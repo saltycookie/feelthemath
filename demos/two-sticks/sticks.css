@@ -1,0 +1,101 @@
+/* Two Sticks, Two Strings: styles for this demo only. Colours, font, navigation and the board come from framework/theme.css.
+   Colour code: blue = y, orange = x − y, pink = what to look at (the picked point, the 10 cm reading, crossings-out).
+   The sticks and the ruler are real objects, so they keep their own colours (below). */
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#mat{gap:0}
+.benchbox{position:relative;flex:1;min-height:0}
+.bench{
+  position:absolute;left:0;top:0;-webkit-user-select:none;user-select:none;
+  --wood:#e8ca97; --wood-edge:#a97b43; --wood-grain:#c49b61;                 /* the sticks */
+  --pencil:var(--board-deep);                                                 /* pencil marks on the wood */
+  --stick-shadow:rgba(0,0,0,.5);
+  --ruler:color-mix(in srgb, var(--chalk) 92%, transparent);                  /* a white plastic ruler */
+  --ruler-ink:var(--board-deep);
+  --ruler-hot:color-mix(in srgb, var(--pink), black 38%);                     /* the 10 on the ruler, dark enough to read on white */
+  --chalk-dim:color-mix(in srgb, var(--chalk) 66%, transparent);
+  --rad-svg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 24'%3E%3Cpath d='M1 13.6 3.9 12.2 7.3 22.2 11.4 1.2' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.scene{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* the mat: a panel with a centimetre grid, like the plot area of a chart */
+.scene .mat-bg{fill:var(--panel);stroke:var(--grid-strong);stroke-width:2}
+.scene .grid{fill:none;stroke:var(--grid);stroke-width:1}
+.scene .grid5{fill:none;stroke:var(--grid-strong);stroke-width:1.4}
+
+/* steps 1-2: the homework figure in chalk */
+.scene .pencil{fill:none;stroke:var(--chalk);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.scene .tick{fill:none;stroke-width:3.2;stroke-linecap:round}
+.scene .tick-y{stroke:var(--blue)}
+.scene .tick-z{stroke:var(--orange)}
+.scene .sqr{fill:none;stroke:var(--chalk);stroke-width:2.2;stroke-linejoin:round}
+.scene .pulse .tick,.scene .pulse .sqr{animation:tickpulse 1.1s ease-in-out 3}
+@keyframes tickpulse{50%{stroke-width:6.5}}
+
+/* the sticks */
+.scene .wood{fill:var(--wood);stroke:var(--wood-edge);stroke-width:1.2}
+.scene .grain{fill:none;stroke:var(--wood-grain);stroke-width:1.1;stroke-linecap:round}
+.scene .omark{stroke:var(--pencil);stroke-width:2.6;stroke-linecap:round}
+.scene .stick-line{fill:none;stroke:var(--pencil);stroke-opacity:.5;stroke-width:1.3}
+.scene .shadow{fill:var(--stick-shadow)}
+.scene .thin-shadow{fill:none;stroke:var(--stick-shadow);stroke-width:6;stroke-linecap:round}
+.scene .thin-edge{fill:none;stroke:var(--pencil);stroke-opacity:.6;stroke-width:6;stroke-linecap:round}
+.scene .thin{fill:none;stroke-width:4;stroke-linecap:round}
+.scene .thin-n{stroke:var(--wood)}
+
+/* letters, measuring lines and the ruler */
+.scene .lbl{fill:var(--chalk);font-family:var(--font-hand);font-weight:700;font-size:calc(27px * var(--k, 1));text-anchor:middle;
+  dominant-baseline:central;paint-order:stroke;stroke:var(--halo);stroke-width:6px;stroke-linejoin:round}
+.scene .lbl.print{font-weight:400;font-style:italic;font-size:calc(29px * var(--k, 1))}
+.scene .dim{fill:none;stroke:var(--chalk-dim);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.scene .guide{fill:none;stroke:var(--chalk-dim);stroke-width:1.5;stroke-dasharray:4 5}
+.scene .ruler-body{fill:var(--ruler);stroke:var(--chalk);stroke-width:1}
+.scene .ruler-ticks{fill:none;stroke:var(--ruler-ink);stroke-width:1.1}
+.scene .ruler-num{fill:var(--ruler-ink);font-family:var(--font-hand);font-weight:700;font-size:calc(13px * var(--k, 1));
+  text-anchor:middle;dominant-baseline:central;transition:fill .3s}
+.scene .ruler-num.hot{fill:var(--ruler-hot)}
+.scene .ruler-unit{fill:var(--ruler-ink);font-family:var(--font-hand);font-size:calc(10px * var(--k, 1));dominant-baseline:central}
+.scene .read{stroke:var(--pink);stroke-width:2.6;stroke-linecap:round}
+.scene .pick{fill:var(--pink);stroke:var(--halo);stroke-width:2;stroke-linejoin:round}
+
+/* words and maths written on the board (HTML on top of the drawing) */
+.overlay{position:absolute;inset:0;pointer-events:none;color:var(--chalk);font-family:var(--font-hand);
+  --fs:calc(var(--cm, 30px) * .62 * var(--k, 1)); --ts:calc(var(--cm, 30px) * .48 * var(--kt, 1))}
+.ptxt{position:absolute;left:4%;width:92%;top:0;margin:0;text-align:center;font-size:var(--ts);font-weight:400;line-height:1.3;
+  text-wrap:balance;opacity:0;text-shadow:0 0 .3em var(--halo)}
+.ptxt.bold{font-weight:700}
+.ptxt.prompt{color:var(--orange)}                       /* a hint, in orange like the other demos' hints */
+.ml{position:absolute;left:0;top:0;transform:translate(-50%,-50%);font-size:var(--fs);font-weight:700;line-height:1.15;white-space:nowrap;
+  opacity:0;text-shadow:0 0 .3em var(--halo),0 0 .14em var(--halo)}
+.rad{display:inline-block;white-space:nowrap}
+.rad::before{content:"";display:inline-block;width:.5em;height:1.1em;margin-right:-.04em;vertical-align:-.27em;background:currentColor;
+  -webkit-mask:var(--rad-svg) no-repeat 0 0/100% 100%;mask:var(--rad-svg) no-repeat 0 0/100% 100%}
+.rad > span{display:inline-block;padding:.02em .08em 0 .05em;border-top:.075em solid currentColor;line-height:1.02}
+
+/* step 4: the solution, one line at a time */
+.solve{position:absolute;top:calc(var(--cm, 30px) * .6);left:0;right:0;margin-inline:auto;width:max-content;max-width:96%;
+  display:grid;grid-template-columns:max-content max-content max-content max-content;column-gap:.36em;row-gap:.06em;
+  font-size:var(--fs);font-weight:700;line-height:1.42;white-space:nowrap}
+.srow{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:baseline;opacity:0;transform:translateY(.35em);
+  transition:opacity .5s ease, transform .5s ease}
+.srow.on{opacity:1;transform:none}
+.srow[data-r="1"]{transition:none;transform:none}
+.sl{justify-self:end} .se{text-align:center} .sr{justify-self:start}
+.sn{padding-left:.9em;font-weight:400;font-size:.5em;color:var(--chalk-dim);align-self:center}
+.srow.ans{position:relative;margin-top:.35em}
+.srow.ans .sr{grid-column:3/5}
+.srow.ans::before{content:"";position:absolute;top:-.08em;bottom:-.08em;left:calc(var(--bx-l, 0px) - .45em);right:calc(var(--bx-r, 0px) - .45em);
+  border:.08em solid var(--chalk);border-radius:1.1em .35em 1em .35em/.35em 1em .35em 1.1em}
+.st{position:relative}
+.st::after{content:"";position:absolute;left:-6%;right:-6%;top:54%;height:.09em;border-radius:.05em;background:var(--pink);
+  transform:rotate(-13deg) scaleX(0);transform-origin:0 50%;transition:transform .5s ease}
+.srow.struck .st::after{transform:rotate(-13deg) scaleX(1)}
+.solve.snap .srow,.solve.snap .st::after{transition:none}     /* jumping to a step: no fading */
+.solve.stack .srow{grid-template-rows:auto auto}
+.solve.stack .srow.ans .sr{grid-column:3}
+.solve.stack .sn{grid-row:2;grid-column:1/-1;justify-self:center;padding:0;margin:-.32em 0 .18em;font-size:.6em;white-space:normal;text-align:center}
+
+@media (prefers-reduced-motion: reduce){
+  .scene .pulse .tick,.scene .pulse .sqr{animation:none}
+  .srow,.st::after{transition:none}
+}

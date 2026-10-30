@@ -38,12 +38,14 @@ export function createDeck(opts) {
     state, render, steps,
     transient = [],            // values that are never part of a look (e.g. arrows that belong to a bubble)
     durations = {}, delays = {},   // per-value defaults for s.apply(): duration, and delay when the value grows
+    linear = [],               // values that animate at an even pace instead of easing in and out
     bubbles = null,            // a createBubbles() instance, if the demo uses callout bubbles
     root = document,
   } = opts;
 
   /* ---------- animated state ---------- */
   const S = { ...state };
+  const evenKeys = new Set(linear);
   if (bubbles) bubbles.keys.forEach(k => { if (!(k in S)) S[k] = 0; });
   const initial = { ...S };
   const tweens = [];
@@ -57,7 +59,7 @@ export function createDeck(opts) {
       const t = tweens[i];
       if (now < t.t0) continue;
       const p = clamp((now - t.t0) / t.dur, 0, 1);
-      S[t.key] = t.from + (t.to - t.from) * ease(p);
+      S[t.key] = t.from + (t.to - t.from) * (t.even ? p : ease(p));
       if (p >= 1) { S[t.key] = t.to; tweens.splice(i, 1); t.res(); }
     }
     render(S);
@@ -67,7 +69,7 @@ export function createDeck(opts) {
   function tween(key, to, dur = 600, delay = 0) {
     for (let i = tweens.length - 1; i >= 0; i--) if (tweens[i].key === key) { const o = tweens.splice(i, 1)[0]; o.res(); }
     if (reduceMotion || (dur <= 0 && delay <= 0)) { S[key] = to; dirty(); return Promise.resolve(); }
-    return new Promise(res => { tweens.push({ key, from: S[key], to, t0: performance.now() + delay, dur, res }); dirty(); });
+    return new Promise(res => { tweens.push({ key, from: S[key], to, t0: performance.now() + delay, dur: Math.max(1, dur), even: evenKeys.has(key), res }); dirty(); });
   }
   function applyLook(look, skip = []) {
     for (const k in look) {

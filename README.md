@@ -11,6 +11,7 @@ rules for what each step shows.
 | Demo | What it shows |
 | --- | --- |
 | [Qiang's Trip](demos/qiangs-trip/) | 15 miles at 30 mph, then 55 mph: how far to average 50 mph? Solved with areas on a speed–time chart. |
+| [Two Sticks, Two Strings](demos/two-sticks/) | AB + CD = 10 cm: how long is AC? The figure is rebuilt with sticks, which are laid end to end on a ruler. |
 | [Template](demos/template/) | A three-step example to copy when starting a new demo. |
 
 ## Looking at the demos
@@ -139,7 +140,7 @@ to send it elsewhere, or `{ home: false }` to leave it out.
 
 Options of `createDeck` besides `state`, `render` and `steps`: `bubbles` (from `createBubbles`),
 `transient` (values that belong to a bubble and are reset with it), `durations` and `delays`
-(per-value defaults for `s.apply`).
+(per-value defaults for `s.apply`), and `linear` (values that animate at an even pace instead of easing in and out).
 
 ## Starting a new demo
 

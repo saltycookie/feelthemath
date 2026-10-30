@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Two Sticks, Two Strings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="../../framework/theme.css">
+<link rel="stylesheet" href="sticks.css">
+<script type="module" src="sticks.js"></script>
+</head>
+<body>
+<div class="deck">
+  <h1 class="sr-only">Two Sticks, Two Strings</h1>
+  <div class="stage">
+    <section class="slide active" id="mat" aria-label="The board">
+      <div class="benchbox" id="benchbox">
+        <div class="bench" id="bench">
+          <svg id="scene" class="scene" role="img" aria-label="The board"></svg>
+          <div class="overlay" id="overlay" aria-hidden="true">
+            <p class="ptxt bold prompt" id="promptTxt">Think about this: how can you recreate this figure using sticks?</p>
+            <p class="ptxt" id="probTxt">In the figure, <i>AB</i> + <i>CD</i> = 10&nbsp;cm. What is the length of <i>AC</i>?</p>
+
+            <span class="ml c-blue" id="lyA"><i>y</i></span>
+            <span class="ml c-blue" id="lyB"><i>y</i></span>
+            <span class="ml c-orange" id="lzA"><i>x</i> − <i>y</i></span>
+            <span class="ml c-orange" id="lzB"><i>x</i> − <i>y</i></span>
+            <span class="ml" id="lxA"><i>x</i></span>
+            <span class="ml" id="lxB"><i>x</i></span>
+            <span class="ml c-blue" id="pT1"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>y</i></span>
+            <span class="ml" id="pPlus">+</span>
+            <span class="ml c-orange" id="pT2"><span class="rad"><span>2</span></span>&#8239;·&#8239;(<i>x</i> − <i>y</i>)</span>
+            <span class="ml" id="pEq">=</span>
+            <span class="ml" id="pTen">10</span>
+
+            <div class="solve" id="solve">
+              <div class="srow" data-r="1"><span class="sl"><span class="ph" data-p="t1"><span class="c-blue"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>y</i></span></span> <span class="ph" data-p="plus">+</span> <span class="ph" data-p="t2"><span class="c-orange"><span class="rad"><span>2</span></span>&#8239;·&#8239;(<i>x</i> − <i>y</i>)</span></span></span><span class="se"><span class="ph" data-p="eq">=</span></span><span class="sr"><span class="ph" data-p="ten">10</span></span><span class="sn">what the ruler shows</span></div>
+              <div class="srow" data-r="2"><span class="sl"><span class="c-blue st"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>y</i></span> + <span class="c-orange"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>x</i> <span class="st">−&#8239;<span class="rad"><span>2</span></span>&#8239;·&#8239;<i>y</i></span></span></span><span class="se">=</span><span class="sr">10</span><span class="sn">open the bracket</span></div>
+              <div class="srow" data-r="3"><span class="sl"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>x</i></span><span class="se">=</span><span class="sr">10</span><span class="sn">the <i>y</i> parts cancel</span></div>
+              <div class="srow" data-r="4"><span class="sl"><i>x</i></span><span class="se">=</span><span class="sr">10 ÷ <span class="rad"><span>2</span></span></span><span class="sn">divide both sides by √2</span></div>
+              <div class="srow" data-r="5"><span class="sl"></span><span class="se">=</span><span class="sr">5<span class="rad"><span>2</span></span></span><span class="sn">since 10 = 5 × √2 × √2</span></div>
+              <div class="srow ans" data-r="6"><span class="sl">AC</span><span class="se">=</span><span class="sr">5<span class="rad"><span>2</span></span> cm</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <nav class="nav"></nav>
+</div>
+</body>
+</html>

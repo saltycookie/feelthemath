@@ -39,7 +39,6 @@ export function createDeck(opts) {
     transient = [],            // values that are never part of a look (e.g. arrows that belong to a bubble)
     durations = {}, delays = {},   // per-value defaults for s.apply(): duration, and delay when the value grows
     bubbles = null,            // a createBubbles() instance, if the demo uses callout bubbles
-    url = true,                // keep #step-N in the address, and open on the step it names
     root = document,
   } = opts;
 
@@ -162,7 +161,7 @@ export function createDeck(opts) {
     const st = steps[i];
     if (st.enter) st.enter({ glide, from: prev });
     const lead = toStart(i, glide);
-    if (url) writeHash(i);
+    writeHash(i);
     listeners.forEach(f => f(i));
     const s = runner(i, ep);
     (async () => {
@@ -186,7 +185,7 @@ export function createDeck(opts) {
     if (location.hash === h) return;
     try { history.replaceState(history.state, '', h); } catch (_) { /* some embedded frames refuse; the step still works */ }
   }
-  if (url) window.addEventListener('hashchange', () => { const i = hashStep(); if (i !== null && i !== cur) go(i, 'jump'); });
+  window.addEventListener('hashchange', () => { const i = hashStep(); if (i !== null && i !== cur) go(i, 'jump'); });
 
   return {
     S, steps,
@@ -198,7 +197,7 @@ export function createDeck(opts) {
     next: () => { if (cur < steps.length - 1) go(cur + 1, 'next'); },
     back: () => { if (cur > 0) go(cur - 1, 'jump'); },
     replay: () => go(cur, 'replay'),
-    start: i => go(i ?? (url ? hashStep() : null) ?? 0, 'jump'),     // the step in the address, or the first
+    start: i => go(i ?? hashStep() ?? 0, 'jump'),     // the step in the address, or the first
     onChange: f => { listeners.push(f); },
     tween,
     redraw: () => { render(S); },

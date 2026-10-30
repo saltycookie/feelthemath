@@ -139,7 +139,7 @@ to send it elsewhere, or `{ home: false }` to leave it out.
 
 Options of `createDeck` besides `state`, `render` and `steps`: `bubbles` (from `createBubbles`),
 `transient` (values that belong to a bubble and are reset with it), `durations` and `delays`
-(per-value defaults for `s.apply`), and `url: false` to keep the step out of the address.
+(per-value defaults for `s.apply`).
 
 ## Starting a new demo
 

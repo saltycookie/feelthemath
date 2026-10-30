@@ -41,7 +41,7 @@ function build() {
   R.brk = el('polyline', { class: 'brk', opacity: 0 }, svg);  // the bracket over part 2's time
   R.hiD = el('rect', { class: 'hi', opacity: 0 }, svg);       // bold outline in the deficit ...
   R.hiS = el('rect', { class: 'hi', opacity: 0 }, svg);       // ... and in the surplus
-  R.eqA = el('path', { class: 'eqa', opacity: 0 }, svg);      // step 6: arrows from the bubble to both areas
+  R.eqA = el('path', { class: 'eqa', opacity: 0 }, svg);      // step 7: arrows from the bubble to both areas
   R.eqB = el('path', { class: 'eqa', opacity: 0 }, svg);
   // labels
   R.l1 = text(svg, 'tx c-chalk');
@@ -140,7 +140,7 @@ function render(S) {
   setText(R.l2q, px(1.5), py(27) + 4, S.r2LabOp * (1 - S.ans));          // "? mi" ...
   setText(R.l2f, px(1.5), py(27) + 4, S.r2LabOp * S.ans);                // ... becomes "110 mi"
 
-  // the bracket over part 2's time: "? h" until step 8 says "2 h"
+  // the bracket over part 2's time: "? h" until step 9 says "2 h"
   const by = py(58);
   R.brk.setAttribute('points', a + ',' + (by - 5) + ' ' + a + ',' + (by + 5) + ' ' + a + ',' + by + ' ' + bx + ',' + by + ' ' + bx + ',' + (by - 5) + ' ' + bx + ',' + (by + 5));
   setOpacity(R.brk, S.brkOp);
@@ -183,7 +183,7 @@ function render(S) {
   placeEqualArrows(S);
 }
 
-// Step 6: two arrows run from the bubble to the deficit (left) and up into the surplus.
+// Step 7: two arrows run from the bubble to the deficit (left) and up into the surplus.
 function placeEqualArrows(S) {
   const r = bubbles.rect(0), on = S.eqOp > .001 && S.bubble0 > .001 && r;
   setOpacity(R.eqA, on ? S.eqOp : 0); setOpacity(R.eqB, on ? S.eqOp : 0);
@@ -275,12 +275,14 @@ deck = createDeck({
         s.to('r2LabOp', 1, 500); s.to('brkOp', 1, 500, 150);
       } },
 
-    { name: 'The two areas must be equal', title: "Let's Use Area to Describe the Problem", slide: 'graph',
-      set: { avgP: 1, carOp: 0, hiOp: 1 },
+    { name: 'The average speed', title: "Let's Use Area to Describe the Problem", slide: 'graph',
+      set: { avgP: 1, carOp: 0 } },                                  // the 50 mph line draws itself, the car goes
+
+    { name: 'The two areas must be equal', title: 'Solve the Problem', slide: 'graph',
+      set: { hiOp: 1 },
       async play(s) {
-        s.apply(s.end, { skip: ['hiOp'] });                          // the line draws itself, the car goes
-        await s.wait(1400);
-        s.to('hiOp', 1, 600);                                        // then the outlines
+        await s.wait(300);
+        s.to('hiOp', 1, 600);                                        // bold outlines in the deficit and the surplus
         await s.wait(1100);
         s.bubble(SAY.equal, () => [px(.5) + 36 + bubbles.size(0).w / 2, py(40), 'mid']);
         s.to('eqOp', 1, 450);

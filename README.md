@@ -109,6 +109,9 @@ to send it elsewhere, or `{ home: false }` to leave it out.
 - **Next** carries on smoothly from there.
 - **Back**, **Replay** and the **step dots** jump straight to the step's beginning, hold it for a moment, then play the step.
 - Leaving a step stops its animation at once, so `play` never has to check whether it is still wanted.
+- The address shows the current step, e.g. `demos/qiangs-trip/#step-5`. Opening or sharing that link starts
+  the demo on step 5, played from its beginning. The steps replace the address instead of adding to the browser
+  history, so the browser's own Back button leaves the demo rather than stepping back through it.
 
 ### Step fields
 
@@ -136,7 +139,7 @@ to send it elsewhere, or `{ home: false }` to leave it out.
 
 Options of `createDeck` besides `state`, `render` and `steps`: `bubbles` (from `createBubbles`),
 `transient` (values that belong to a bubble and are reset with it), `durations` and `delays`
-(per-value defaults for `s.apply`).
+(per-value defaults for `s.apply`), and `url: false` to keep the step out of the address.
 
 ## Starting a new demo
 

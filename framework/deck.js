@@ -9,7 +9,8 @@
 //   - a step's beginning is the previous step's finished look (unless the step says otherwise);
 //   - Next carries on smoothly from where the previous step finished;
 //   - Back, Replay and the step dots jump straight to the step's beginning, hold it for a moment and play the step;
-//   - leaving a step stops its animation at once (no checks needed in `play`).
+//   - leaving a step stops its animation at once (no checks needed in `play`);
+//   - the address shows the current step (#step-1, #step-2, ...), so a link can open the demo on any step.
 //
 // Step fields (all optional):
 //   name        shown to screen readers on the step dots
@@ -38,6 +39,7 @@ export function createDeck(opts) {
     transient = [],            // values that are never part of a look (e.g. arrows that belong to a bubble)
     durations = {}, delays = {},   // per-value defaults for s.apply(): duration, and delay when the value grows
     bubbles = null,            // a createBubbles() instance, if the demo uses callout bubbles
+    url = true,                // keep #step-N in the address, and open on the step it names
     root = document,
   } = opts;
 
@@ -160,6 +162,7 @@ export function createDeck(opts) {
     const st = steps[i];
     if (st.enter) st.enter({ glide, from: prev });
     const lead = toStart(i, glide);
+    if (url) writeHash(i);
     listeners.forEach(f => f(i));
     const s = runner(i, ep);
     (async () => {
@@ -169,6 +172,21 @@ export function createDeck(opts) {
       } catch (e) { if (e !== CANCELLED) throw e; }
     })();
   }
+
+  /* ---------- the address: #step-N (counting from 1) ---------- */
+  // The step replaces the address rather than adding to the browser history, so the browser's Back button
+  // leaves the demo instead of walking back through its steps. Typing or following a #step-N link jumps there.
+  function hashStep() {
+    const m = /^#step-(\d+)$/.exec(location.hash);
+    const n = m ? parseInt(m[1], 10) : NaN;
+    return n >= 1 && n <= steps.length ? n - 1 : null;
+  }
+  function writeHash(i) {
+    const h = '#step-' + (i + 1);
+    if (location.hash === h) return;
+    try { history.replaceState(history.state, '', h); } catch (_) { /* some embedded frames refuse; the step still works */ }
+  }
+  if (url) window.addEventListener('hashchange', () => { const i = hashStep(); if (i !== null && i !== cur) go(i, 'jump'); });
 
   return {
     S, steps,
@@ -180,7 +198,7 @@ export function createDeck(opts) {
     next: () => { if (cur < steps.length - 1) go(cur + 1, 'next'); },
     back: () => { if (cur > 0) go(cur - 1, 'jump'); },
     replay: () => go(cur, 'replay'),
-    start: (i = 0) => go(i, 'jump'),
+    start: i => go(i ?? (url ? hashStep() : null) ?? 0, 'jump'),     // the step in the address, or the first
     onChange: f => { listeners.push(f); },
     tween,
     redraw: () => { render(S); },

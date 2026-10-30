@@ -25,10 +25,9 @@
 #intro.play .pop{animation:pop .45s ease-out both}
 #intro.play .t1s{animation-delay:.2s} #intro.play .t1d{animation-delay:2.1s}
 #intro.play .t2s{animation-delay:2.6s} #intro.play .t2d{animation-delay:5.3s} #intro.play .tb{animation-delay:6s}
-/* the road takes its space (and the text moves up) only when step 2 plays */
-#intro .road{max-height:300px;transition:opacity .3s,max-height .5s ease}
-#intro:not(.play) .road{opacity:0;max-height:0}
-#intro:not(.active) .road{transition:opacity .3s,max-height 0s linear .4s}     /* leaving the slide: no movement while it fades */
+/* the road keeps its place on step 1 too (just invisible), so the problem text sits in the same spot on both steps */
+#intro .road{max-height:300px;transition:opacity .3s}
+#intro:not(.play) .road{opacity:0}
 @keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 @keyframes roadin{from{opacity:0}to{opacity:1}}
 @keyframes drive{

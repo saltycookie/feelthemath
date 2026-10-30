@@ -31,18 +31,20 @@ const T = {
   2: { ...PIC, prompt: 1, marks: 0, draw: 0, wood: 1, lift: 1 },
   3: { ...BASE, bdIn: 0, cross: 0, xdim: 1, bdl: 0 },
   4: { ...BASE, cross: 0, xdim: 1 },
+  across: { ...BASE, sq: 1 },
   5: { ...BASE, sq: 1, thinAB: 1, t1l: 1, thinCD: 1, t2l: 1 },
   6: { ...BASE, sq: 1, thinAB: 1, t1l: 1, thinCD: 1, t2l: 1, lay: 1, eqn: 1 },
   7: { ...BASE, sq: 1, thinAB: 1, t1l: 1, thinCD: 1, t2l: 1, lay: 1, eqn: 1, fade: 1, gather: 1 },
 };
-const PAUSE = 600;                    // a short rest between the parts of the Build step
+const PAUSE = 600;                    // a short rest between two parts played in one step
 // how each part plays: value -> [delay ms, duration ms]
 const CHOREO = {
   2: { prompt: [0, 700], marks: [1300, 600], draw: [1400, 800], wood: [1400, 1500], lift: [1400, 1200] },
   // every stick is carried in 1280 ms (each side gets .4 of the 3200 ms "away" time), BD included
   3: { prompt: [0, 700], prob: [0, 700], away: [500, 3200], bdOut: [3300, 1280], cross: [4600, 900], xdim: [5600, 600], pick: [6300, 1500], ylbl: [7900, 600], zlbl: [8700, 600] },
   4: { bdIn: [300, 1280], bdl: [1700, 2800] },
-  5: { xdim: [0, 350], cross: [200, 1500], sq: [1550, 400], thinAB: [1900, 1300], t1l: [3300, 600], thinCD: [4200, 1500], t2l: [5800, 600] },
+  across: { xdim: [0, 350], cross: [200, 1500], sq: [1550, 400] },
+  5: { thinAB: [300, 1300], t1l: [1700, 600], thinCD: [2600, 1500], t2l: [4200, 600] },
   6: { lay: [200, 1900], eqn: [2250, 600] },
   7: { fade: [0, 800], prob: [0, 600], gather: [450, 1100] },
 };
@@ -57,7 +59,10 @@ const SOLVED = { sol2: 1, strike: 1, sol3: 1, sol4: 1, sol5: 1, sol6: 1 };
 const ALT = [
   'The homework figure on a mat, with the question written above it. AC and BD cross at O at a right angle, AO equals BO and OC equals OD.',
   'Above the ruler: Think about this, how can you recreate this figure using sticks? Then every line turns into a stick.',
-  'BC and AD, then AB and CD, then BD are laid upright side by side in the top-left corner, leaving only AC. AC is labeled x, a point O is picked on it, AO is labeled y and OC x minus y. BD is taken from the corner, laid under AC and marked the same way. BD is laid across AC at a right angle at O. AB is taken from the corner and laid on top, labeled root 2 times y, then CD, labeled root 2 times x minus y. The two thin sticks are laid end to end on the ruler and reach 10 centimetres: root 2 times y plus root 2 times x minus y equals 10.',
+  'BC and AD, then AB and CD, then BD are laid upright side by side in the top-left corner, leaving only AC. AC is labeled x, a point O is picked on it, AO is labeled y and OC x minus y.',
+  'BD is taken from the corner, laid under AC and marked the same way. Then BD is laid across AC at a right angle at O.',
+  'AB is taken from the corner and laid on top, labeled root 2 times y, then CD, labeled root 2 times x minus y.',
+  'The two thin sticks are laid end to end on the ruler and reach 10 centimetres: root 2 times y plus root 2 times x minus y equals 10.',
   'The equation moves to the top of the board and is solved line by line. x equals 10 divided by root 2, which is 5 root 2, so AC is 5 root 2 centimetres.',
 ];
 
@@ -560,8 +565,14 @@ const deck = createDeck({
       async play() { pulseMarks(); } },
     { name: 'Think', slide: 'mat', set: T[2], enter: snapLines,
       play: s => playParts(s, [2]) },
-    { name: 'Build', slide: 'mat', set: T[6], enter: snapLines,
-      play: s => playParts(s, [3, 4, 5, 6]) },
+    { name: 'Label AC', slide: 'mat', set: T[3], enter: snapLines,               // the sides go to the pile; AC gets x, O, y and x − y
+      play: s => playParts(s, [3]) },
+    { name: 'Lay BD across AC', slide: 'mat', set: T.across, enter: snapLines,   // BD is marked the same way, then crosses AC at O
+      play: s => playParts(s, [4, 'across']) },
+    { name: 'Label AB and CD', slide: 'mat', set: T[5], enter: snapLines,       // the thin sticks come back: √2·y and √2·(x − y)
+      play: s => playParts(s, [5]) },
+    { name: 'Lay them on the ruler', slide: 'mat', set: T[6], enter: snapLines, // end to end they reach 10 cm
+      play: s => playParts(s, [6]) },
     { name: 'Solve', slide: 'mat', set: { ...T[7], ...SOLVED }, enter: snapLines,
       async play(s) {
         for (const [t, key] of SOLVE_SEQ) s.to(key, 1, 1, t);         // the solution, one line at a time

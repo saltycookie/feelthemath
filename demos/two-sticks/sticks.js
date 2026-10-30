@@ -563,15 +563,15 @@ const deck = createDeck({
       async play() { pulseMarks(); } },
     { name: 'Think', title: 'Problem Description', slide: 'mat', set: T[2], enter: snapLines,
       play: s => playParts(s, [2]) },
-    { name: 'Label AC', slide: 'mat', set: T[3], enter: snapLines,               // the sides go to the pile; AC gets x, O, y and x − y
+    { name: 'Label AC', title: 'Recreate the Figure', slide: 'mat', set: T[3], enter: snapLines,               // the sides go to the pile; AC gets x, O, y and x − y
       play: s => playParts(s, [3]) },
-    { name: 'Lay BD across AC', slide: 'mat', set: T.across, enter: snapLines,   // BD is marked the same way, then crosses AC at O
+    { name: 'Lay BD across AC', title: 'Recreate the Figure', slide: 'mat', set: T.across, enter: snapLines,   // BD is marked the same way, then crosses AC at O
       play: s => playParts(s, [4, 'across']) },
-    { name: 'Label AB and CD', slide: 'mat', set: T[5], enter: snapLines,       // the thin sticks come back: √2·y and √2·(x − y)
+    { name: 'Label AB and CD', title: 'Recreate the Figure', slide: 'mat', set: T[5], enter: snapLines,       // the thin sticks come back: √2·y and √2·(x − y)
       play: s => playParts(s, [5]) },
-    { name: 'Lay them on the ruler', slide: 'mat', set: T[6], enter: snapLines, // end to end they reach 10 cm
+    { name: 'Lay them on the ruler', title: 'Recreate the Figure', slide: 'mat', set: T[6], enter: snapLines, // end to end they reach 10 cm
       play: s => playParts(s, [6]) },
-    { name: 'Solve', slide: 'mat', set: { ...T[7], ...SOLVED }, enter: snapLines,
+    { name: 'Solve', title: 'Solve the Equation', slide: 'mat', set: { ...T[7], ...SOLVED }, enter: snapLines,
       async play(s) {
         for (const [t, key] of SOLVE_SEQ) s.to(key, 1, 1, t);         // the solution, one line at a time
         await playParts(s, [7]);                                       // while the equation moves to the top

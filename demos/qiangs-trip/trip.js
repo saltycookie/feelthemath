@@ -50,7 +50,6 @@ function build() {
   R.hl1a = el('tspan', {}, R.hl1); R.hl1a.textContent = '10';
   R.hl1b = el('tspan', {}, R.hl1); R.hl1b.textContent = ' mi';
   R.hl2 = text(svg, 'tx c-chalk', '10 mi');                   // ... and in the surplus
-  R.hint = text(svg, 'tx c-orange-main', 'You can use area to represent distance'); R.hint.style.fontWeight = '400';
   R.avgT = text(svg, 'tx c-chalk halo', 'average speed'); R.avgT.style.textAnchor = 'end';
   R.bq = text(svg, 'tx c-chalk', '? h'); R.bf = text(svg, 'tx c-chalk', '2 h');
   R.bq.style.fontSize = '18px'; R.bf.style.fontSize = '18px';
@@ -174,23 +173,11 @@ function render(S) {
   R.car.setAttribute('transform', 'translate(' + px(S.carX) + ' ' + y0 + ') scale(1.2)');
   setOpacity(R.car, S.carOp);
 
-  // step 3: the formula rides just above the rectangle (or just inside its top edge when there is no room),
-  // keeping clear of the band between y = 60 and y = 65, which belongs to the hint
+  // step 3: the formula rides just above the rectangle (or just inside its top edge when there is no room)
   const fx = clamp((x0 + rx) / 2 - FS.w / 2, M.l + 4, M.l + pw - 4 - FS.w);
-  let fy = ry - 32 - FS.h; if (fy < py(60) + 4) fy = ry + 36;
+  let fy = ry - 32 - FS.h; if (fy < M.t + 4) fy = ry + 36;
   F.style.transform = 'translate(' + fx + 'px,' + fy + 'px)';
   F.style.opacity = clamp(S.fOp, 0, 1);
-  // the hint: one line filling that band with an even gap above and below (glyphs span about .9 of the font size),
-  // shrunk only to fit a narrow board
-  const hBand = py(60) - py(65), hKey = pw + '/' + hBand;
-  if (R.hintKey !== hKey) {
-    R.hint.style.fontSize = '40px';
-    const w0 = R.hint.getComputedTextLength() || 600;
-    R.hintFz = Math.max(13, Math.min(40, Math.floor(40 * (pw - 16) / w0), Math.floor((hBand - 14) / .9)));
-    R.hintKey = hKey;
-  }
-  R.hint.style.fontSize = R.hintFz + 'px';
-  setText(R.hint, M.l + pw / 2, py(65) + (hBand - .9 * R.hintFz) / 2 + .68 * R.hintFz + 2, S.hintOp);
 
   bubbles.place(S);
   placeEqualArrows(S);
@@ -246,7 +233,7 @@ deck = createDeck({
   render, bubbles,
   state: {
     ptX: START.x, ptY: START.y, hR: 11, hOp: 0, ring: 0, hov: 0,   // the point
-    fOp: 0, hintOp: 0, xtOp: 1,                                      // formula, hint, x-axis numbers
+    fOp: 0, xtOp: 1,                                                 // formula, x-axis numbers
     r1Op: 0, r1Lab: 0, gdOp: 0, gxOp: 0,                             // part 1 and its chips
     carOp: 0, carX: .5,                                              // the car
     r2Op: 0, r2Rev: 0, r2LabOp: 0, y55: 0, brkOp: 0,                 // part 2 (r2Rev: how far it has grown)
@@ -261,12 +248,12 @@ deck = createDeck({
 
     { name: 'The trip as a road', title: 'Problem Description', slide: 'intro', slideClass: 'play' },
 
-    { name: 'Distance is an area', slide: 'graph', fresh: true,
-      set: { hOp: 1, ring: 1, r1Op: 1, r1Lab: 1, gdOp: 1, gxOp: 1, hintOp: 1, fOp: 1 },
+    { name: 'Distance is an area', title: 'Use Area to Represent Distance', slide: 'graph', fresh: true,
+      set: { hOp: 1, ring: 1, r1Op: 1, r1Lab: 1, gdOp: 1, gxOp: 1, fOp: 1 },
       enter() { U = { ...START }; setFormula(); setDrag(true); },
       leave() { setDrag(false); } },
 
-    { name: 'Part 1: 0.5 hours', slide: 'graph', fresh: true,
+    { name: 'Part 1: 0.5 hours', title: "Let's Use Area to Describe the Problem", slide: 'graph', fresh: true,
       start: { ptX: 0, ptY: PART1.y, hR: 5, carX: 0, xtOp: 0 },      // an empty board, the car parked at (0, 0)
       set: { ptX: PART1.x, carX: PART1.x, r1Op: 1, r1Lab: 1, gdOp: 1, gxOp: 1, carOp: 1 },
       async play(s) {
@@ -279,7 +266,7 @@ deck = createDeck({
         s.to('gxOp', 1, 400);                                        // then 0.5 on the time axis
       } },
 
-    { name: 'Part 2: unknown time', slide: 'graph',
+    { name: 'Part 2: unknown time', title: "Let's Use Area to Describe the Problem", slide: 'graph',
       set: { r2Op: 1, r2Rev: 2 / 3, r2LabOp: 1, y55: 1, brkOp: 1, carX: 2.5 },   // the car stops where the trip ends (2.5 h, unlabelled)
       async play(s) {
         s.to('y55', 1, 400); s.to('r2Op', 1, 0);
@@ -288,7 +275,7 @@ deck = createDeck({
         s.to('r2LabOp', 1, 500); s.to('brkOp', 1, 500, 150);
       } },
 
-    { name: 'The two areas must be equal', slide: 'graph',
+    { name: 'The two areas must be equal', title: "Let's Use Area to Describe the Problem", slide: 'graph',
       set: { avgP: 1, carOp: 0, hiOp: 1 },
       async play(s) {
         s.apply(s.end, { skip: ['hiOp'] });                          // the line draws itself, the car goes
@@ -299,7 +286,7 @@ deck = createDeck({
         s.to('eqOp', 1, 450);
       } },
 
-    { name: 'The deficit is 10 miles', slide: 'graph',
+    { name: 'The deficit is 10 miles', title: 'Solve the Problem', slide: 'graph',
       set: { hlOp: 1 },
       async play(s) {
         await s.wait(300);
@@ -308,7 +295,7 @@ deck = createDeck({
         s.to('hlOp', 1, 500);                                        // "10 mi" in both outlines
       } },
 
-    { name: 'Part 2 takes 2 hours', slide: 'graph',
+    { name: 'Part 2 takes 2 hours', title: 'Solve the Problem', slide: 'graph',
       set: { lab: 1, x25: 1 },
       async play(s) {
         await s.wait(300);
@@ -317,7 +304,7 @@ deck = createDeck({
         s.to('lab', 1, 500); s.to('x25', 1, 500);                    // "? h" becomes "2 h", and 2.5 shows on the axis
       } },
 
-    { name: 'The answer: 110 miles', slide: 'graph',
+    { name: 'The answer: 110 miles', title: 'Solve the Problem', slide: 'graph',
       set: { ans: 1 },
       async play(s) {
         await s.wait(300);
@@ -380,6 +367,6 @@ R.h.addEventListener('keydown', e => {
 setDrag(false);
 setFormula();
 layout();
-onFontsLoaded(() => { R.hintKey = null; [R.cx, R.cy, R.c55, R.c50, R.c25].forEach(remeasureChip); layout(); });
+onFontsLoaded(() => { [R.cx, R.cy, R.c55, R.c50, R.c25].forEach(remeasureChip); layout(); });
 if (window.ResizeObserver) new ResizeObserver(layout).observe(box); else window.addEventListener('resize', layout);
 deck.start();

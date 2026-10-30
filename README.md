@@ -1,12 +1,14 @@
 # Feel the Math
 
-Learn math by interacting with visual demos: word problems solved step by step on a chalkboard,
-with pictures doing most of the explaining.
+Feel the Math is a collection of interactive demos that help students *see* why the answer to a math
+problem is what it is. Each demo takes one word problem and solves it on a chalkboard, letting pictures do
+most of the explaining: a car driving along a speed–time chart turns distances into areas, and wooden sticks
+rebuild a geometry figure and are measured on a ruler. Learners move through the solution one small step at
+a time, replay any step or drag things around to explore, and the arithmetic arrives only once the picture
+has made it feel obvious. The demos run in any browser with nothing to install, and they all share one small
+framework, StepDeck, so new problems are quick to add and every demo looks and behaves the same.
 
-**Live site:** https://saltycookie.github.io/feelthemath/
-Every demo is built on one small shared framework, **StepDeck**, so they all look and behave the same:
-the same chalkboard colours and handwritten font, the same Back / Replay / Next controls, and the same
-rules for what each step shows.
+**Live site:** https://feelthemath.app/
 
 | Demo | What it shows |
 | --- | --- |
@@ -16,8 +18,7 @@ rules for what each step shows.
 
 ## Looking at the demos
 
-**Online:** once GitHub Pages is turned on (see below), the demos are at
-<https://saltycookie.github.io/feelthemath/>.
+**Online:** <https://feelthemath.app/>
 
 **On your computer:** the demos use JavaScript modules, which browsers only load from a web server,
 so double-clicking `index.html` won't work. From this folder run

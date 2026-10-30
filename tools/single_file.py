@@ -13,7 +13,7 @@ GitHub Pages does not need this: it serves the separate files as they are.
 """
 import argparse, os, re, sys
 
-SITE = 'https://saltycookie.github.io/feelthemath/'   # the home link of a packed file goes here
+SITE = 'https://feelthemath.app/'   # the home link of a packed file goes here
 
 LINK_RE = re.compile(r'<link\s+[^>]*rel="stylesheet"[^>]*href="(?!https?:)([^"]+)"[^>]*>\s*')
 SCRIPT_RE = re.compile(r'<script\s+type="module"\s+src="([^"]+)"\s*>\s*</script>\s*')

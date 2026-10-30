@@ -1,5 +1,6 @@
 // StepDeck navigation: Back, one dot per step, Replay and Next, plus the arrow keys,
-// and a home link in the top-left corner of the page that leads back to the list of demos.
+// a home link in the top-left corner of the page that leads back to the list of demos,
+// and a title band across the top that shows the current step's `title` (empty when it has none).
 // createNav(container, deck) fills an empty <nav class="nav"> and keeps it in step with the deck.
 //   home: where the home link goes. Default: <meta name="stepdeck-home" content="..."> if the page has one,
 //         otherwise '../../' (the site's front page, seen from demos/<name>/). false: no home link.
@@ -7,13 +8,23 @@
 const HOUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h5v-5.5h3v5.5h5V10"/></svg>';
 
 export function createNav(container, deck, { keys = true, home } = {}) {
+  const page = container.closest('.deck') || document.body;
+  // the title band: always there, so every step's drawing starts at the same height
+  const bar = document.createElement('header');
+  bar.className = 'titlebar';
+  const title = document.createElement('p');
+  title.className = 'step-title';
+  title.setAttribute('aria-live', 'polite');
+  bar.appendChild(title);
+  page.insertBefore(bar, page.querySelector('.stage') || page.firstChild);
+
   if (home === undefined) home = document.querySelector('meta[name="stepdeck-home"]')?.content || '../../';
   if (home !== false) {
     const a = document.createElement('a');
     a.className = 'home'; a.href = home;
     a.setAttribute('aria-label', 'All demos'); a.title = 'All demos';
     a.innerHTML = HOUSE;
-    (container.closest('.deck') || document.body).prepend(a);
+    page.prepend(a);
   }
   container.innerHTML =
     '<div class="nav-l"><button class="btn" type="button" data-act="back" aria-label="Previous step"><span class="arrow">←</span> Back</button></div>' +
@@ -46,6 +57,7 @@ export function createNav(container, deck, { keys = true, home } = {}) {
   });
 
   function update(i) {
+    title.textContent = deck.steps[i].title || '';      // straight away, before the step's animation starts
     const was = document.activeElement;
     back.disabled = i === 0;
     next.disabled = i === deck.count - 1;

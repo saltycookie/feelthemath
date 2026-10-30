@@ -257,9 +257,9 @@ deck = createDeck({
   durations: { avgP: 1000, ptX: 900, ptY: 900, hR: 600 },
   delays: { r2LabOp: 350, brkOp: 350, y55: 250 },
   steps: [
-    { name: 'The problem', slide: 'intro', replay: false },
+    { name: 'The problem', title: 'Problem Description', slide: 'intro', replay: false },
 
-    { name: 'The trip as a road', slide: 'intro', slideClass: 'play' },
+    { name: 'The trip as a road', title: 'Problem Description', slide: 'intro', slideClass: 'play' },
 
     { name: 'Distance is an area', slide: 'graph', fresh: true,
       set: { hOp: 1, ring: 1, r1Op: 1, r1Lab: 1, gdOp: 1, gxOp: 1, hintOp: 1, fOp: 1 },

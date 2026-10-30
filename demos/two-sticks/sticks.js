@@ -485,7 +485,6 @@ function measureSolve() {
   });
 }
 // Fit the mat into the space above the navigation, as large as it goes. A narrow space gets a taller mat.
-// When the mat would reach the top-left corner, it keeps clear of the home link there.
 function layout() {
   const r = box.getBoundingClientRect();
   if (!r.width || !r.height) return;
@@ -498,8 +497,7 @@ function layout() {
     buildStatic();
   }
   const ar = MAT.w / MAT.h;
-  let top = 0, H = r.height, w = Math.min(r.width, H * ar);
-  if ((r.width - w) / 2 < 48 && (H - w / ar) / 2 < 40) { top = 40; H -= 40; w = Math.min(r.width, H * ar); }
+  const top = 0, H = r.height, w = Math.min(r.width, H * ar);
   const h = w / ar;
   bench.style.width = w + 'px'; bench.style.height = h + 'px';
   bench.style.left = (r.width - w) / 2 + 'px'; bench.style.top = top + (H - h) / 2 + 'px';
@@ -561,9 +559,9 @@ const deck = createDeck({
   // these run at an even pace, because each piece inside them (one stick, one label) has its own easing
   linear: ['away', 'lay', 'pick', 'bdl'],
   steps: [
-    { name: 'The problem', slide: 'mat', enter: snapLines,
+    { name: 'The problem', title: 'Problem Description', slide: 'mat', enter: snapLines,
       async play() { pulseMarks(); } },
-    { name: 'Think', slide: 'mat', set: T[2], enter: snapLines,
+    { name: 'Think', title: 'Problem Description', slide: 'mat', set: T[2], enter: snapLines,
       play: s => playParts(s, [2]) },
     { name: 'Label AC', slide: 'mat', set: T[3], enter: snapLines,               // the sides go to the pile; AC gets x, O, y and x − y
       play: s => playParts(s, [3]) },

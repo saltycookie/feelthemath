@@ -68,8 +68,13 @@ body{
 .slide.active{opacity:1;visibility:visible;transition:opacity .4s ease}
 
 /* ---- navigation (built by nav.js) ----------------------------------------- */
-/* home link: a chalk house in the top-left corner, back to the list of demos (44px tap target, small glyph) */
-.home{position:absolute;top:-6px;left:-6px;z-index:5;width:44px;height:44px;display:grid;place-items:center;
+/* title band across the top of every step (built by nav.js): twice the home icon's height, its top level with the icon's */
+.titlebar{flex:none;height:48px;display:flex;align-items:center;justify-content:center;padding:0 52px;
+  -webkit-user-select:none;user-select:none}
+.step-title{margin:0;color:var(--orange);font:700 clamp(20px, 3vw, 30px)/1.1 var(--font-hand);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* home link: a chalk house in the top-left corner, back to the list of demos (44px tap target, 24px glyph at the very top) */
+.home{position:absolute;top:-10px;left:-6px;z-index:5;width:44px;height:44px;display:grid;place-items:center;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
   border-radius:10px;color:var(--chalk);opacity:.7;transition:opacity .2s}
 .home:hover{opacity:1}

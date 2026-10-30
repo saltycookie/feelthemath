@@ -14,6 +14,7 @@
 //
 // Step fields (all optional):
 //   name        shown to screen readers on the step dots
+//   title       shown in the title band at the top of the page as soon as the step is entered (orange; none: empty)
 //   slide       id of the <section class="slide"> to show
 //   slideClass  class added to that slide while the step is active; restarted on Replay (for CSS animations)
 //   fresh       true: the step starts from the demo's initial state instead of the previous step's finished look

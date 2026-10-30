@@ -100,8 +100,9 @@ createNav(document.querySelector('.nav'), deck);
 deck.start();
 ```
 
-`createNav` fills the empty `<nav class="nav">` with Back, the step dots, Replay and Next, and also puts a
-home link (a chalk house) in the page's top-left corner that leads back to the list of demos. By default it
+`createNav` fills the empty `<nav class="nav">` with Back, the step dots, Replay and Next. It also adds a
+title band across the top of the page, which shows each step's `title` (and stays as empty space when a step
+has none), and puts a home link (a chalk house) in the band's top-left corner that leads back to the list of demos. By default it
 points to `../../`, the front page as seen from `demos/<name>/`. Pass `createNav(nav, deck, { home: 'url' })`
 to send it elsewhere, or `{ home: false }` to leave it out.
 
@@ -120,6 +121,7 @@ to send it elsewhere, or `{ home: false }` to leave it out.
 | Field | Meaning |
 | --- | --- |
 | `name` | Read out by screen readers on the step's dot. |
+| `title` | Shown in the title band at the top of the page, in orange, as soon as the step is entered. Leave it out for an empty band. |
 | `slide` | `id` of the `<section class="slide">` to show. |
 | `slideClass` | A class added to that slide while the step is active, for CSS animations. Replay restarts them. |
 | `set` | Values that change by the end of the step. The finished look is the beginning plus `set`. |

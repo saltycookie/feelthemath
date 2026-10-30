@@ -14,7 +14,7 @@ const fmt = n => String(Math.round(n * 100) / 100);
 const u = s => '<u>' + s + '</u>';                       // a unit after a number: 15<u>mi</u>
 
 /* ---------- the chart's scales ---------- */
-const XM = 3.5, YM = 65;          // axis ranges (hours, mph); the last tick on each axis reads "…"
+const XM = 3.5, YM = 65;          // axis ranges (hours, mph); the last grid line on each axis has no number
 const XDRAG = 3, YDRAG = 55;      // how far the step-3 point may go
 const M = { l: 68, r: 20, t: 8, b: 64 };
 let W = 0, H = 0, pw = 0, ph = 0;
@@ -86,12 +86,12 @@ function layout() {
   for (let v = 0; v <= YM; v += 5) {
     el('line', { class: 'gl' + (v % 10 === 0 ? ' major' : ''), x1: M.l, x2: M.l + pw, y1: py(v), y2: py(v) }, R.grid);
     const t = el('text', { class: 'tick', x: M.l - 15, y: py(v) + 4, 'text-anchor': 'end' }, R.grid);
-    t.textContent = v >= YM ? '…' : v;
+    if (v < YM) t.textContent = v;                              // the top line (65) has no number
   }
   for (let t = .5; t <= XM + 1e-9; t += .5) {
     el('line', { class: 'gl', x1: px(t), x2: px(t), y1: M.t, y2: M.t + ph }, R.grid);
     const x = el('text', { class: 'tick', x: px(t), y: py(0) + 19, 'text-anchor': 'middle' }, R.xtg);
-    x.textContent = t >= XM - 1e-9 ? '…' : fmt(t);
+    if (t < XM - 1e-9) x.textContent = fmt(t);                  // the last line (3.5) has no number
   }
   el('line', { class: 'axis', x1: M.l, x2: M.l, y1: M.t, y2: M.t + ph }, R.grid);
   el('line', { class: 'axis', x1: M.l, x2: M.l + pw, y1: M.t + ph, y2: M.t + ph }, R.grid);
@@ -274,8 +274,9 @@ deck = createDeck({
         s.to('carOp', 1, 350); s.to('gdOp', 1, 400, 200);
         await s.wait(1100);
         s.to('carX', .5, 1500); await s.to('ptX', .5, 1500);         // the car drives and the rectangle grows with it
-        s.to('gxOp', 1, 400); s.to('r1Lab', 1, 500, 150);
-        s.bubble(SAY.time1, () => [px(.5) + 20, py(0) - 12, 'right'], { delay: 300 });   // by the 0.5 label
+        s.to('r1Lab', 1, 500, 150);                                  // the distance
+        await s.bubble(SAY.time1, () => [px(.5) + 20, py(0) - 12, 'right'], { delay: 300 });   // 15 ÷ 30 = 0.5 h, by the car
+        s.to('gxOp', 1, 400);                                        // then 0.5 on the time axis
       } },
 
     { name: 'Part 2: unknown time', slide: 'graph',
@@ -336,23 +337,28 @@ function setPoint(x, y) {
   deck.tween('ptX', x, 140); deck.tween('ptY', y, 140);
   setFormula();
 }
+// is the pointer on the point? (a bigger target for fingers than for a mouse)
+function onPoint(e) {
+  const b = svg.getBoundingClientRect(), r = e.pointerType === 'mouse' ? 28 : 40;
+  const dx = e.clientX - b.left - px(deck.S.ptX), dy = e.clientY - b.top - py(deck.S.ptY);
+  return dx * dx + dy * dy < r * r;
+}
 function moveTo(e) {
   const b = svg.getBoundingClientRect();
   const t = (e.clientX - b.left - M.l) / pw * XM, v = (1 - (e.clientY - b.top - M.t) / ph) * YM;
   setPoint(clamp(Math.round(t / .5) * .5, .5, XDRAG), clamp(Math.round(v / 5) * 5, 5, YDRAG));
 }
+// only the point itself can be picked up: pressing elsewhere on the chart does nothing
 R.cap.addEventListener('pointerdown', e => {
-  if (deck.index !== EXPLORE) return;
+  if (deck.index !== EXPLORE || !onPoint(e)) return;
   e.preventDefault(); drag = true; R.cap.classList.add('drag');
   try { R.cap.setPointerCapture(e.pointerId); } catch (_) {}
-  deck.tween('hov', 1, 100); moveTo(e);
+  deck.tween('hov', 1, 100);
 });
 R.cap.addEventListener('pointermove', e => {
   if (deck.index !== EXPLORE) return;
   if (drag) { moveTo(e); return; }
-  const b = svg.getBoundingClientRect();
-  const dx = e.clientX - b.left - px(deck.S.ptX), dy = e.clientY - b.top - py(deck.S.ptY);
-  const near = dx * dx + dy * dy < 28 * 28;
+  const near = onPoint(e);
   R.cap.classList.toggle('near', near);
   deck.tween('hov', near ? 1 : 0, 140);
 });

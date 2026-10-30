@@ -77,5 +77,5 @@
 .handle:focus-visible .hfocus{opacity:1}
 @keyframes ring{0%{transform:scale(.7);opacity:.9}100%{transform:scale(1.5);opacity:0}}
 .cap-hit{fill:transparent}
-.cap-hit.on{cursor:pointer} .cap-hit.on.near{cursor:grab} .cap-hit.on.drag{cursor:grabbing}
+.cap-hit.on.near{cursor:grab} .cap-hit.on.drag{cursor:grabbing}      /* only over the point */
 @media (prefers-reduced-motion: reduce){ .hring{animation:none} }

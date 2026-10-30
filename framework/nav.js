@@ -1,7 +1,20 @@
-// StepDeck navigation: Back, one dot per step, Replay and Next, plus the arrow keys.
+// StepDeck navigation: Back, one dot per step, Replay and Next, plus the arrow keys,
+// and a home link in the top-left corner of the page that leads back to the list of demos.
 // createNav(container, deck) fills an empty <nav class="nav"> and keeps it in step with the deck.
+//   home: where the home link goes. Default: <meta name="stepdeck-home" content="..."> if the page has one,
+//         otherwise '../../' (the site's front page, seen from demos/<name>/). false: no home link.
 
-export function createNav(container, deck, { keys = true } = {}) {
+const HOUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h5v-5.5h3v5.5h5V10"/></svg>';
+
+export function createNav(container, deck, { keys = true, home } = {}) {
+  if (home === undefined) home = document.querySelector('meta[name="stepdeck-home"]')?.content || '../../';
+  if (home !== false) {
+    const a = document.createElement('a');
+    a.className = 'home'; a.href = home;
+    a.setAttribute('aria-label', 'All demos'); a.title = 'All demos';
+    a.innerHTML = HOUSE;
+    (container.closest('.deck') || document.body).prepend(a);
+  }
   container.innerHTML =
     '<div class="nav-l"><button class="btn" type="button" data-act="back" aria-label="Previous step"><span class="arrow">←</span> Back</button></div>' +
     '<div class="dots"></div>' +

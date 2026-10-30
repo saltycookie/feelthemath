@@ -4,6 +4,7 @@
     python3 tools/single_file.py demos/qiangs-trip               -> dist/qiangs-trip.html
     python3 tools/single_file.py demos/qiangs-trip -o out.html
     python3 tools/single_file.py demos/qiangs-trip --fragment     (no <html>/<head>/<body> wrapper)
+    python3 tools/single_file.py demos/qiangs-trip --home URL     (where the home link goes; default: the live site)
 
 It inlines local stylesheets and bundles the page's JavaScript modules into one script.
 Web fonts still load from Google Fonts. Only the plain import/export forms used in this
@@ -11,6 +12,8 @@ repository are understood:  import { a, b as c } from './x.js';  export function
 GitHub Pages does not need this: it serves the separate files as they are.
 """
 import argparse, os, re, sys
+
+SITE = 'https://saltycookie.github.io/feelthemath/'   # the home link of a packed file goes here
 
 LINK_RE = re.compile(r'<link\s+[^>]*rel="stylesheet"[^>]*href="(?!https?:)([^"]+)"[^>]*>\s*')
 SCRIPT_RE = re.compile(r'<script\s+type="module"\s+src="([^"]+)"\s*>\s*</script>\s*')
@@ -49,9 +52,11 @@ def bundle(entry):
     return '\n'.join(out)
 
 
-def pack(demo_dir, fragment=False):
+def pack(demo_dir, fragment=False, home=SITE):
     page = os.path.join(demo_dir, 'index.html')
     html = open(page, encoding='utf-8').read()
+    # a packed file has no front page beside it: point the home link at the live site
+    html = html.replace('</title>', '</title>\n<meta name="stepdeck-home" content="%s">' % home, 1)
     scripts = []
 
     def css(m):
@@ -79,10 +84,11 @@ def main():
     ap.add_argument('demo', help='demo folder, e.g. demos/qiangs-trip')
     ap.add_argument('-o', '--out', help='output file (default: dist/<demo>.html)')
     ap.add_argument('--fragment', action='store_true', help='leave out the <html>, <head> and <body> wrapper')
+    ap.add_argument('--home', default=SITE, help='where the home link goes (default: %(default)s)')
     a = ap.parse_args()
     out = a.out or os.path.join('dist', os.path.basename(os.path.normpath(a.demo)) + '.html')
     os.makedirs(os.path.dirname(out) or '.', exist_ok=True)
-    open(out, 'w', encoding='utf-8').write(pack(a.demo, a.fragment))
+    open(out, 'w', encoding='utf-8').write(pack(a.demo, a.fragment, a.home))
     print('wrote', out)
 
 

@@ -42,7 +42,7 @@ index.html                 list of demos (the site's home page)
 framework/                 StepDeck, shared by every demo
   theme.css                colours, font, board, navigation, bubbles, chart basics
   deck.js                  animated values, steps, and moving between steps
-  nav.js                   Back, step dots, Replay, Next and the arrow keys
+  nav.js                   Back, step dots, Replay, Next, the arrow keys, and the home link
   bubbles.js               callout bubbles that point at things
   svg.js                   small helpers for drawing charts in SVG
 demos/<name>/              one folder per demo: index.html plus its own script and styles
@@ -98,6 +98,11 @@ createNav(document.querySelector('.nav'), deck);
 deck.start();
 ```
 
+`createNav` fills the empty `<nav class="nav">` with Back, the step dots, Replay and Next, and also puts a
+home link (a chalk house) in the page's top-left corner that leads back to the list of demos. By default it
+points to `../../`, the front page as seen from `demos/<name>/`. Pass `createNav(nav, deck, { home: 'url' })`
+to send it elsewhere, or `{ home: false }` to leave it out.
+
 ### The rules every demo gets for free
 
 - A step **begins** where the previous step finished, minus any bubble.
@@ -146,3 +151,6 @@ To email a demo or open it with no server, pack it into a single HTML file:
 ```sh
 python3 tools/single_file.py demos/qiangs-trip      # writes dist/qiangs-trip.html
 ```
+
+A packed file has no front page next to it, so its home link points to the live site
+(change it with `--home URL`).

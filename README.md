@@ -1,0 +1,148 @@
+# Feel the Math
+
+Learn math by interacting with visual demos: word problems solved step by step on a chalkboard,
+with pictures doing most of the explaining.
+
+**Live site:** https://saltycookie.github.io/feelthemath/
+Every demo is built on one small shared framework, **StepDeck**, so they all look and behave the same:
+the same chalkboard colours and handwritten font, the same Back / Replay / Next controls, and the same
+rules for what each step shows.
+
+| Demo | What it shows |
+| --- | --- |
+| [Qiang's Trip](demos/qiangs-trip/) | 15 miles at 30 mph, then 55 mph: how far to average 50 mph? Solved with areas on a speed–time chart. |
+| [Template](demos/template/) | A three-step example to copy when starting a new demo. |
+
+## Looking at the demos
+
+**Online:** once GitHub Pages is turned on (see below), the demos are at
+<https://saltycookie.github.io/feelthemath/>.
+
+**On your computer:** the demos use JavaScript modules, which browsers only load from a web server,
+so double-clicking `index.html` won't work. From this folder run
+
+```sh
+python3 -m http.server
+```
+
+then open <http://localhost:8000>. Any other static server works too.
+
+## Publishing with GitHub Pages
+
+1. Push this repository to GitHub. On a free GitHub plan the repository has to be public.
+2. In the repository's **Settings → Pages**, choose **Deploy from a branch**, then the `main` branch and the `/ (root)` folder.
+3. After a minute the site is live. Every push to `main` updates it.
+
+Nothing needs to be built first: GitHub Pages serves the files as they are.
+
+## Folder layout
+
+```
+index.html                 list of demos (the site's home page)
+framework/                 StepDeck, shared by every demo
+  theme.css                colours, font, board, navigation, bubbles, chart basics
+  deck.js                  animated values, steps, and moving between steps
+  nav.js                   Back, step dots, Replay, Next and the arrow keys
+  bubbles.js               callout bubbles that point at things
+  svg.js                   small helpers for drawing charts in SVG
+demos/<name>/              one folder per demo: index.html plus its own script and styles
+tools/single_file.py       packs a demo into one HTML file (optional)
+```
+
+## The theme
+
+All colours and the font live at the top of `framework/theme.css`:
+
+```css
+--board:  #3d6856;          /* the board colour */
+--chalk:  #f4f1e8;          /* white chalk for text and lines */
+--blue / --orange / --pink  /* chalk pastels for marks, each with a lighter -ink twin for text */
+--font-hand: "Kalam", ...;  /* the handwritten font */
+```
+
+Everything that has to match the board is worked out from `--board`: the bubble background, the outline
+behind text, grid lines, the lighter middle and darker edges of the board, and the shaded fills. Change
+`--board` and those follow. To change a colour for one demo only, override it on `:root` in that demo's
+stylesheet.
+
+Ready-made classes colour text in HTML and in SVG alike: `c-chalk`, `c-muted`, `c-blue`, `c-orange`, `c-pink`
+(the lighter text tints) and `c-blue-main`, `c-orange-main`, `c-pink-main` (the pastels themselves).
+
+Each page loads Kalam from Google Fonts. Without a connection the text falls back to another casual font.
+
+## How a demo works
+
+A demo gives `createDeck()` three things:
+
+- **`state`**: every animated value with its starting number, e.g. `{ rectOp: 0, grow: 0 }`.
+- **`render(S)`**: draws the page from those values. It runs on every animation frame while anything moves.
+- **`steps`**: what each step changes and how it gets there.
+
+```js
+const deck = createDeck({
+  render, bubbles,
+  state: { rectOp: 0, grow: 0, answerOp: 0 },
+  steps: [
+    { name: 'The question', slide: 'question', replay: false },
+    { name: 'Draw the garden', slide: 'drawing',
+      set: { rectOp: 1, grow: 1 },              // the finished look of this step
+      async play(s) {                           // how to get there from the step's beginning
+        s.to('rectOp', 1, 0);
+        await s.to('grow', 1, 1500);
+        s.bubble('3 × 2', () => [x, y, 'right']);
+      } },
+    { name: 'The answer', slide: 'drawing', set: { answerOp: 1 } },   // no play: the values simply glide to `set`
+  ],
+});
+createNav(document.querySelector('.nav'), deck);
+deck.start();
+```
+
+### The rules every demo gets for free
+
+- A step **begins** where the previous step finished, minus any bubble.
+- **Next** carries on smoothly from there.
+- **Back**, **Replay** and the **step dots** jump straight to the step's beginning, hold it for a moment, then play the step.
+- Leaving a step stops its animation at once, so `play` never has to check whether it is still wanted.
+
+### Step fields
+
+| Field | Meaning |
+| --- | --- |
+| `name` | Read out by screen readers on the step's dot. |
+| `slide` | `id` of the `<section class="slide">` to show. |
+| `slideClass` | A class added to that slide while the step is active, for CSS animations. Replay restarts them. |
+| `set` | Values that change by the end of the step. The finished look is the beginning plus `set`. |
+| `start` | Values that are different at the beginning, on top of the previous finished look. |
+| `fresh` | `true` to begin from the demo's starting `state` instead of the previous finished look (a cleared board). |
+| `play(s)` | Async function that animates the step. Without it, the values glide to the finished look. |
+| `enter(info)`, `leave(info)` | Hooks for things that aren't animated values, such as turning dragging on and off. |
+| `replay` | `false` to disable Replay on this step. |
+
+### Inside `play(s)`
+
+| Call | Does |
+| --- | --- |
+| `s.to('key', value, ms, delay)` | Animate one value. Also `s.to({ a: 1, b: 0 }, ms, delay)`. Returns a promise. |
+| `await s.wait(ms)` | Pause. |
+| `s.apply(look, { skip })` | Animate to a whole set of values, using the deck's `durations` and `delays`. |
+| `s.bubble(html, anchor, { delay })` | Show a callout bubble. `anchor()` returns `[x, y, side]`, where side is `right`, `left`, `above`, `below` or `mid`. |
+| `s.end`, `s.start` | The step's finished look and beginning. |
+
+Options of `createDeck` besides `state`, `render` and `steps`: `bubbles` (from `createBubbles`),
+`transient` (values that belong to a bubble and are reset with it), `durations` and `delays`
+(per-value defaults for `s.apply`).
+
+## Starting a new demo
+
+1. Copy `demos/template` to `demos/<your-demo>`.
+2. Write the problem into `index.html`, and the drawing and steps into `demo.js`.
+3. Add a link to it in the top-level `index.html` and in the table above.
+
+## One-file copies
+
+To email a demo or open it with no server, pack it into a single HTML file:
+
+```sh
+python3 tools/single_file.py demos/qiangs-trip      # writes dist/qiangs-trip.html
+```

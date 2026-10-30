@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Template</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="../../framework/theme.css">
+<style>
+  /* styles for this demo only */
+  #question{justify-content:center;align-items:center}
+  .problem{margin:0;max-width:30em;font-size:clamp(21px,3vw,33px);line-height:1.35}
+  .box{position:relative;flex:1;min-height:0}
+  #pic{position:absolute;inset:0;width:100%;height:100%}
+  .area{fill:var(--blue-fill);stroke:var(--blue);stroke-width:2}
+  .big{font:700 28px var(--font-hand);text-anchor:middle}
+</style>
+<script type="module" src="demo.js"></script>
+</head>
+<body>
+<div class="deck">
+  <div class="stage">
+    <section class="slide active" id="question">
+      <p class="problem">A garden is <b class="c-blue">3 m</b> long and <b class="c-blue">2 m</b> wide. What is its area?</p>
+    </section>
+    <section class="slide" id="drawing">
+      <div class="box" id="box"><svg id="pic"></svg></div>
+    </section>
+  </div>
+  <nav class="nav"></nav>
+</div>
+</body>
+</html>

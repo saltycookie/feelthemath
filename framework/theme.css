@@ -1,0 +1,141 @@
+/* ==========================================================================
+   StepDeck theme: the chalkboard look shared by every demo.
+
+   To restyle every demo, change the values in section 1. Everything in
+   section 2 is worked out from them, so the colours that have to match the
+   board (bubbles, outlines behind text, grid lines, ...) follow on their own.
+   Override these on :root (not on an inner element) so the derived colours
+   are recalculated too.
+   ========================================================================== */
+
+:root{
+  /* ---- 1. the values you would normally change ---------------------------- */
+  --board:  #3d6856;                     /* the board as seen: RGB 61, 104, 86 */
+  --chalk:  #f4f1e8;                     /* white chalk: text and lines */
+
+  /* chalk pastels for marks; each has a lighter "-ink" twin for text */
+  --blue:   #8fcbff;  --blue-ink:   #a9d8ff;
+  --orange: #ffa347;  --orange-ink: #ffc078;
+  --pink:   #ff9c94;  --pink-ink:   #ffb5ae;
+
+  /* one handwritten face everywhere (Kalam is loaded from Google Fonts by each page) */
+  --font-hand: "Kalam", "Chalkboard SE", "Comic Sans MS", "Segoe Print", sans-serif;
+
+  /* ---- 2. derived: colours that match the board ---------------------------- */
+  --board-glow:  color-mix(in srgb, var(--board), white 3%);     /* the lighter middle of the board */
+  --board-edge:  color-mix(in srgb, var(--board), black 8%);     /* the darker edges */
+  --board-deep:  color-mix(in srgb, var(--board), black 62%);    /* bubbles; text on chalk-coloured chips */
+  --halo:        var(--board);                                    /* knock-out outline behind text drawn over marks */
+  --muted:       color-mix(in srgb, var(--chalk), var(--board) 20%);   /* units, secondary text */
+  --grid:        color-mix(in srgb, var(--chalk) 13%, transparent);
+  --grid-strong: color-mix(in srgb, var(--chalk) 30%, transparent);
+  --chalk-faint: color-mix(in srgb, var(--chalk) 34%, transparent);
+  --panel:       color-mix(in srgb, var(--board-deep) 12%, transparent);  /* chart plot area */
+  --shadow:      rgba(0, 0, 0, .35);
+
+  /* accent fills: the pastel at low opacity, for shaded areas */
+  --blue-fill:   color-mix(in srgb, var(--blue) 42%, transparent);
+  --orange-fill: color-mix(in srgb, var(--orange) 38%, transparent);
+  --pink-fill:   color-mix(in srgb, var(--pink) 30%, transparent);
+
+  color-scheme: dark;                    /* one deliberate look: there is no light/dark switch */
+}
+
+/* ---- the board ------------------------------------------------------------ */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--chalk);
+  font-family:var(--font-hand);
+  background-color:var(--board);
+  /* chalk dust: a grey noise blended with "overlay", which leaves the average colour exactly --board */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.16 0 0 0 .42 .16 0 0 0 .42 .16 0 0 0 .42 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 28%, var(--board-glow) 0%, var(--board) 55%, var(--board-edge) 100%);
+  background-blend-mode:overlay, normal;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:12px;
+  overflow:hidden;
+}
+
+/* ---- deck layout: slides stacked in one stage, navigation underneath ------- */
+.deck{height:100%;display:flex;flex-direction:column;gap:8px;max-width:1200px;margin:0 auto}
+.stage{position:relative;flex:1;min-height:0}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;min-width:0;opacity:0;visibility:hidden;
+  transition:opacity .4s ease, visibility 0s linear .4s}
+.slide.active{opacity:1;visibility:visible;transition:opacity .4s ease}
+
+/* ---- navigation (built by nav.js) ----------------------------------------- */
+.nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding-top:4px}
+.nav-l{justify-self:start}
+.nav-r{justify-self:end;display:flex;align-items:center;gap:8px}
+.btn{font:400 17px var(--font-hand);height:44px;padding:0 16px;border-radius:10px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;min-width:0;
+  background:var(--chalk);color:var(--board);border:1px solid var(--chalk)}        /* Back and Next look the same */
+.btn.ghost{background:transparent;color:var(--chalk);border-color:var(--grid-strong)}  /* Replay: outlined */
+.btn.ghost:hover:not(:disabled){border-color:var(--chalk)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn:focus-visible,.dot:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.dots{display:flex;gap:2px}
+.dot{width:26px;height:36px;border:0;background:none;display:grid;place-items:center;cursor:pointer;padding:0}
+.dot i{display:block;width:8px;height:8px;border-radius:50%;background:var(--grid-strong);
+  transition:width .3s, background .3s, border-radius .3s}
+.dot.done i{background:var(--muted)}
+.dot[aria-current="step"] i{width:20px;border-radius:4px;background:var(--chalk)}
+@media (max-width:480px){
+  .nav{grid-template-columns:auto 1fr auto}
+  .dots{justify-self:center}
+  .btn{padding:0 12px}
+  .btn .arrow,.btn .lbl{display:none}
+  .btn.ghost{min-width:44px;padding:0}
+  .dot{width:16px}
+  .dot[aria-current="step"] i{width:14px}
+}
+
+/* ---- callout bubbles (placed by bubbles.js); data-tail says which edge carries the tail ---- */
+.bubble{position:absolute;left:0;top:0;width:max-content;padding:7px 14px 8px;border:2px solid var(--chalk);border-radius:14px;
+  background:var(--board-deep);color:var(--chalk);box-shadow:0 3px 12px var(--shadow);
+  font:400 clamp(16px, 2vw, 21px)/1.25 var(--font-hand);font-variant-numeric:tabular-nums;text-align:center;
+  pointer-events:none;opacity:0;will-change:transform, opacity}
+.bubble b{font-weight:700}
+.bubble u{text-decoration:none;color:var(--muted);font-size:.78em;margin-left:.18em}      /* units: 15<u>mi</u> */
+.bubble::before{content:"";position:absolute;width:12px;height:12px;box-sizing:border-box;background:var(--board-deep);
+  border:2px solid var(--chalk);transform:rotate(45deg)}
+.bubble[data-tail="right"]::before{left:-8px;top:var(--tp);border-color:transparent transparent var(--chalk) var(--chalk)}
+.bubble[data-tail="left"]::before{right:-8px;top:var(--tp);border-color:var(--chalk) var(--chalk) transparent transparent}
+.bubble[data-tail="below"]::before{top:-8px;left:var(--tp);border-color:var(--chalk) transparent transparent var(--chalk)}
+.bubble[data-tail="above"]::before{bottom:-8px;left:var(--tp);border-color:transparent var(--chalk) var(--chalk) transparent}
+.bubble[data-tail="mid"]::before{display:none}                                            /* centred, no tail */
+
+/* ---- chalk colours as classes: work on HTML text (color) and SVG (fill) --- */
+.c-chalk{color:var(--chalk);fill:var(--chalk)}
+.c-muted{color:var(--muted);fill:var(--muted)}
+.c-blue{color:var(--blue-ink);fill:var(--blue-ink)}
+.c-orange{color:var(--orange-ink);fill:var(--orange-ink)}
+.c-pink{color:var(--pink-ink);fill:var(--pink-ink)}
+.c-blue-main{color:var(--blue);fill:var(--blue)}
+.c-orange-main{color:var(--orange);fill:var(--orange)}
+.c-pink-main{color:var(--pink);fill:var(--pink)}
+
+/* ---- chart basics (svg.js) ------------------------------------------------ */
+.plot{fill:var(--panel);stroke:var(--grid-strong);stroke-width:1}
+.gl{stroke:var(--grid);stroke-width:1}
+.gl.major{stroke:var(--grid-strong)}
+.axis{stroke:var(--chalk);stroke-opacity:.85;stroke-width:1.6}
+.tick{font:400 14px var(--font-hand);fill:var(--chalk)}
+.atitle{font:400 21px var(--font-hand);fill:var(--chalk)}
+.halo{paint-order:stroke;stroke:var(--halo);stroke-width:5px;stroke-linejoin:round}
+/* chips: small filled labels that mark a known value on an axis */
+.chip rect{rx:4;ry:4}
+.chip text{fill:var(--board-deep);font:700 14px var(--font-hand);text-anchor:middle}
+.chip.blue rect{fill:var(--blue)}
+.chip.orange rect{fill:var(--orange)}
+.chip.pink rect{fill:var(--pink)}
+.chip.chalk rect{fill:var(--chalk)}
+.chip.chalk text{fill:var(--board)}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}
+}

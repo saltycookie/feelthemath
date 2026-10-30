@@ -1,0 +1,81 @@
+/* Qiang's Trip: styles for this demo only. Colours, fonts, navigation and bubbles come from framework/theme.css.
+   Colour code: blue = the first part of the trip, orange = the second part, pink = the gap that has to be made up,
+   white chalk = the 50 mph average. */
+
+/* ---- steps 1-2: the problem, then the trip drawn as a road ---- */
+#intro{justify-content:center;align-items:center;gap:clamp(18px,5vh,48px)}
+.problem{margin:0;max-width:34em;font:400 clamp(21px,3vw,33px)/1.35 var(--font-hand);text-wrap:pretty}
+.problem b{font-weight:700}
+.road{width:100%;max-width:880px;height:auto;display:block}
+.rline{fill:none;stroke-width:22}
+.road-base{stroke:var(--chalk-faint);stroke-linecap:butt}          /* the pale road, there before the car moves */
+.rt{font-family:var(--font-hand);font-weight:700;text-anchor:middle}
+.rt.big{font-size:46px} .rt.sm{font-size:38px}
+.car-body{fill:var(--blue)}
+.car-wheel{fill:var(--board);stroke:var(--chalk);stroke-width:2.5}
+.brace{fill:none;stroke:var(--chalk);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.rline.a1,.rline.a2{stroke-dasharray:1;stroke-dashoffset:0}
+/* The road plays on step 2 (#intro.play); step 1 is the problem text alone.
+   Timeline (s): 0-0.5 the pale road fades in; 0.2 "30 mph" -> 0.8-2.0 the car drives part 1, drawing it -> 2.1 "15 mi"
+   -> 2.6 "55 mph" -> 3.2-5.2 the car drives part 2 to the end -> 5.3 "? mi" -> 6.0 whole-trip bracket */
+#intro.play .road-base{animation:roadin .5s ease-out both}
+#intro.play .a1{animation:draw 1.2s .8s cubic-bezier(.5,0,.3,1) both}
+#intro.play .a2{animation:draw 2s 3.2s cubic-bezier(.5,0,.3,1) both}
+#intro.play .car{animation:drive 4.4s .8s linear both}
+#intro.play .pop{animation:pop .45s ease-out both}
+#intro.play .t1s{animation-delay:.2s} #intro.play .t1d{animation-delay:2.1s}
+#intro.play .t2s{animation-delay:2.6s} #intro.play .t2d{animation-delay:5.3s} #intro.play .tb{animation-delay:6s}
+/* the road takes its space (and the text moves up) only when step 2 plays */
+#intro .road{max-height:300px;transition:opacity .3s,max-height .5s ease}
+#intro:not(.play) .road{opacity:0;max-height:0}
+#intro:not(.active) .road{transition:opacity .3s,max-height 0s linear .4s}     /* leaving the slide: no movement while it fades */
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes roadin{from{opacity:0}to{opacity:1}}
+@keyframes drive{
+  0%{transform:translateX(0);animation-timing-function:cubic-bezier(.5,0,.3,1)}
+  27.27%{transform:translateX(250px)}
+  54.55%{transform:translateX(250px);animation-timing-function:cubic-bezier(.5,0,.3,1)}
+  100%{transform:translateX(720px)}
+}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---- steps 3-9: the speed-time chart ---- */
+#graph{gap:0}
+.chartbox{position:relative;flex:1;min-height:0}
+#chart{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;touch-action:none;user-select:none;-webkit-user-select:none}
+
+/* step 3: the formula rides just above the draggable rectangle (positioned from script) */
+.formula{position:absolute;left:0;top:0;width:max-content;display:flex;flex-wrap:wrap;opacity:0;
+  justify-content:center;align-items:baseline;gap:.05em .4em;text-align:center;pointer-events:none;
+  font:400 clamp(17px,2.4vw,26px)/1.2 var(--font-hand);font-variant-numeric:tabular-nums;
+  text-shadow:0 0 5px var(--halo),0 0 10px var(--halo),0 0 14px var(--halo);will-change:transform}
+.formula .w{color:var(--muted)}
+.formula b{font-weight:700}
+.formula u{text-decoration:none;color:var(--muted);font-size:.72em;margin-left:.2em}
+.formula .z{font-size:1.1em}
+
+/* marks */
+.tx{font-family:var(--font-hand);font-weight:700;font-size:15px;text-anchor:middle}
+.rc{stroke-width:2;stroke-linejoin:round}
+.r1{fill:var(--blue-fill);stroke:var(--blue)}
+.r2{fill:var(--orange-fill);stroke:var(--orange)}
+.avg{stroke:var(--chalk);stroke-width:2.5;stroke-dasharray:9 6}
+.brk{fill:none;stroke:var(--orange);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hi{fill:none;stroke:var(--pink);stroke-width:4;stroke-linejoin:round}     /* bold inner outline on the deficit and the surplus */
+.eqa{fill:none;stroke:var(--chalk);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* the small car that drives along the time axis */
+.tcb{fill:var(--blue)}
+.tcw{fill:var(--board);stroke:var(--chalk);stroke-width:1.8}
+
+/* the draggable point (step 3) */
+.handle{outline:none}
+.hcore{fill:var(--blue);stroke:var(--board);stroke-width:3}
+.hicon{fill:none;stroke:var(--board-deep);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.hring{fill:none;stroke:var(--blue);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:ring 1.6s ease-out infinite}
+.hfocus{fill:none;stroke:var(--chalk);stroke-width:2;opacity:0}
+.handle:focus-visible .hfocus{opacity:1}
+@keyframes ring{0%{transform:scale(.7);opacity:.9}100%{transform:scale(1.5);opacity:0}}
+.cap-hit{fill:transparent}
+.cap-hit.on{cursor:pointer} .cap-hit.on.near{cursor:grab} .cap-hit.on.drag{cursor:grabbing}
+@media (prefers-reduced-motion: reduce){ .hring{animation:none} }

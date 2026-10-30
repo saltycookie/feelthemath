@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Qiang's Trip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="../../framework/theme.css">
+<link rel="stylesheet" href="trip.css">
+<script type="module" src="trip.js"></script>
+</head>
+<body>
+<div class="deck">
+  <div class="stage">
+
+    <section class="slide active" id="intro" aria-label="The problem">
+      <p class="problem">Qiang drives <b class="c-blue">15 miles</b> at an average speed of <b class="c-blue">30 miles per hour</b>.
+        How many additional miles will he have to drive at <b class="c-orange">55 miles per hour</b> to average
+        <b class="c-chalk">50 miles per hour</b> for the entire trip?</p>
+      <svg class="road" viewBox="0 0 800 244" role="img"
+           aria-label="A road in two parts: 15 miles at 30 mph, then an unknown distance at 55 mph, with an overall average of 50 mph">
+        <defs>
+          <linearGradient id="gRoadB" gradientUnits="userSpaceOnUse" x1="290" y1="0" x2="760" y2="0">
+            <stop offset="0" style="stop-color:var(--orange)"/>
+            <stop offset="1" style="stop-color:var(--orange);stop-opacity:.22"/>
+          </linearGradient>
+        </defs>
+        <line class="rline road-base" x1="40" y1="110" x2="760" y2="110"/>
+        <line class="rline a1" pathLength="1" x1="40" y1="110" x2="290" y2="110" style="stroke:var(--blue)"/>
+        <line class="rline a2" pathLength="1" x1="290" y1="110" x2="760" y2="110" stroke="url(#gRoadB)"/>
+        <g class="car">
+          <g transform="translate(40 99)">
+            <rect class="car-body" x="-27" y="-24" width="54" height="16" rx="5"/>
+            <path class="car-body" d="M-15 -23 L-8 -37 H12 L21 -23 Z"/>
+            <circle class="car-wheel" cx="-14" cy="-8" r="6.5"/>
+            <circle class="car-wheel" cx="14" cy="-8" r="6.5"/>
+          </g>
+        </g>
+        <g class="pop t1d"><text class="rt big c-blue" x="165" y="48">15 mi</text></g>
+        <g class="pop t1s"><text class="rt sm c-blue" x="165" y="158">30 mph</text></g>
+        <g class="pop t2d"><text class="rt big c-orange" x="525" y="48">? mi</text></g>
+        <g class="pop t2s"><text class="rt sm c-orange" x="525" y="158">55 mph</text></g>
+        <g class="pop tb">
+          <path class="brace" d="M40 184 v12 H760 v-12"/>
+          <text class="rt sm c-chalk" x="400" y="236">50 mph average</text>
+        </g>
+      </svg>
+    </section>
+
+    <section class="slide" id="graph" aria-label="Speed against time">
+      <div class="chartbox" id="chartbox">
+        <svg id="chart" role="img" aria-label="Average speed in mph against time in hours"></svg>
+        <div class="formula" id="formula" aria-live="polite"></div>
+      </div>
+    </section>
+
+  </div>
+  <nav class="nav"></nav>
+</div>
+</body>
+</html>

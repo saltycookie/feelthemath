@@ -50,7 +50,9 @@ function build() {
   R.hl1a = el('tspan', {}, R.hl1); R.hl1a.textContent = '10';
   R.hl1b = el('tspan', {}, R.hl1); R.hl1b.textContent = ' mi';
   R.hl2 = text(svg, 'tx c-chalk', '10 mi');                   // ... and in the surplus
-  R.avgT = text(svg, 'tx c-chalk halo', 'average speed'); R.avgT.style.textAnchor = 'end';
+  R.avgT = text(svg, 'tx c-chalk halo'); R.avgT.style.textAnchor = 'start';   // "average speed", just past the line's end
+  R.avgTa = el('tspan', {}, R.avgT); R.avgTa.textContent = 'average';
+  R.avgTb = el('tspan', {}, R.avgT); R.avgTb.textContent = ' speed';
   R.bq = text(svg, 'tx c-chalk', '? h'); R.bf = text(svg, 'tx c-chalk', '2 h');
   R.bq.style.fontSize = '18px'; R.bf.style.fontSize = '18px';
   R.xt = text(svg, 'atitle', 'time (hours)'); R.xt.style.textAnchor = 'middle';
@@ -147,14 +149,26 @@ function render(S) {
   setText(R.bq, px(1.5), by + 20, S.brkOp * (1 - S.lab));
   setText(R.bf, px(1.5), by + 20, S.brkOp * S.lab);
 
-  // the 50 mph average line, drawn from left to right
+  // the 50 mph average line, drawn from left to right as far as the end of part 2 (the second rectangle)
   const ay = py(50);
-  R.avg.setAttribute('x1', x0); R.avg.setAttribute('x2', x0 + S.avgP * (px(XM) - x0));
+  R.avg.setAttribute('x1', x0); R.avg.setAttribute('x2', x0 + S.avgP * (bx - x0));
   R.avg.setAttribute('y1', ay); R.avg.setAttribute('y2', ay);
   setOpacity(R.avg, S.avgP * 5);
-  const narrowL = pw < 470;
-  R.avgT.style.fontSize = (narrowL ? 15 : 17) + 'px';
-  setText(R.avgT, px(XM) - 8, ay + (narrowL ? 17 : 19), (S.avgP - .75) * 4);
+  // "average speed" carries on from the line's end, in the empty space to its right
+  // (on two lines, "average" over "speed", when one line would run off the chart)
+  const afs = pw < 470 ? 15 : 17, ax = bx + 10;
+  R.avgT.style.fontSize = afs + 'px';
+  if (R.avgFs !== afs) {
+    R.avgTb.removeAttribute('x'); R.avgTb.removeAttribute('dy'); R.avgTb.textContent = ' speed';
+    R.avgW = R.avgT.getComputedTextLength() || afs * 6.2; R.avgFs = afs;
+  }
+  if (M.l + pw - 4 - ax < R.avgW) {
+    R.avgTb.setAttribute('x', ax); R.avgTb.setAttribute('dy', afs * 1.1); R.avgTb.textContent = 'speed';
+    setText(R.avgT, ax, ay + afs * .33 - afs * .55, (S.avgP - .75) * 4);
+  } else {
+    R.avgTb.removeAttribute('x'); R.avgTb.removeAttribute('dy'); R.avgTb.textContent = ' speed';
+    setText(R.avgT, ax, ay + afs * .33, (S.avgP - .75) * 4);
+  }
 
   // bold outlines a little inside the deficit (under the line, part 1) and the surplus (over the line, part 2)
   const dT = py(50), dB = py(30), dW = px(.5) - x0, dcx = x0 + dW / 2;
@@ -369,6 +383,6 @@ R.h.addEventListener('keydown', e => {
 setDrag(false);
 setFormula();
 layout();
-onFontsLoaded(() => { [R.cx, R.cy, R.c55, R.c50, R.c25].forEach(remeasureChip); layout(); });
+onFontsLoaded(() => { [R.cx, R.cy, R.c55, R.c50, R.c25].forEach(remeasureChip); R.avgFs = 0; layout(); });
 if (window.ResizeObserver) new ResizeObserver(layout).observe(box); else window.addEventListener('resize', layout);
 deck.start();

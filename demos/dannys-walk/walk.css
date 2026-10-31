@@ -6,16 +6,17 @@
 
 /* ---- steps 1-2: the problem, then its figure ---- */
 #intro{justify-content:center;align-items:center;gap:clamp(12px,3vh,32px)}
-.problem{margin:0;max-width:34em;font:400 clamp(15px, min(max(19px, 2.7vw), 4.3vh), 31px)/1.35 var(--font-hand);text-wrap:pretty}   /* smaller on short screens */
+.problem{margin:0;max-width:34em;font:400 clamp(14px, min(max(19px, 2.7vw), 4vh), 31px)/1.35 var(--font-hand);text-wrap:pretty}   /* smaller on short screens */
 .problem b{font-weight:700}
 .figbox{position:relative;flex:none;width:100%;max-width:960px;height:220px}     /* walk.js sets the height to fit the figure */
 #fig{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
-.ask{margin:0;color:var(--orange);font:700 clamp(17px, min(max(21px, 3vw), 4.6vh), 34px)/1.2 var(--font-hand);text-align:center;opacity:0;
+.ask{margin:0;color:var(--orange);font:700 clamp(16px, min(max(21px, 3vw), 4.4vh), 34px)/1.2 var(--font-hand);text-align:center;opacity:0;
   will-change:transform, opacity}
 
 /* the figure (sizes in px; --fs is the label size worked out by walk.js) */
 #fig .river{fill:none;stroke:var(--blue);stroke-width:4;stroke-linecap:round}
-#fig .dim{fill:none;stroke:var(--chalk-dim);stroke-width:1.6;stroke-linecap:round}
+#fig .dim{fill:none;stroke:var(--chalk-dim);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#fig .ext{fill:none;stroke:var(--chalk-faint);stroke-width:1.2}     /* extension lines down to the 120 m measure */
 #fig .sq{fill:none;stroke:var(--chalk-dim);stroke-width:1.4}
 #fig .walk{fill:none;stroke:var(--orange);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;
   stroke-dasharray:11 9;animation:march .8s linear infinite}
@@ -30,4 +31,8 @@
 #fig .cap.river-cap{fill:var(--blue-ink)}
 #fig .len{font-weight:700;font-size:var(--fs, 18px);stroke-width:5px;fill:var(--chalk)}
 
+@media (max-height: 500px){                          /* phones on their side: wider, shorter lines of text leave room for the figure */
+  #intro{gap:8px}
+  .problem{max-width:48em}
+}
 @media (prefers-reduced-motion: reduce){ #fig .walk{animation:none} }

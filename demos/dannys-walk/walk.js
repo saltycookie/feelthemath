@@ -22,6 +22,7 @@ const MAX_K = 7.5;                // largest scale, px per metre
 /* ---------- layout: the figure fits the room left under the problem text ---------- */
 const slide = $('#intro'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
 let W = 0, H = 0, k = 0, ox = 0, oy = 0, fs = 18;      // figure size, px per metre, where (0, 0) is, label size
+let compact = false;                                    // short screen: "home" and "playground" beside the letters, not above
 const X = x => ox + x * k, Y = y => oy - y * k;          // metres -> px
 const P = p => [X(p.x), Y(p.y)];
 
@@ -31,7 +32,8 @@ function build() {
   R.river = el('path', { class: 'river' }, svg);
   R.riverT = text(svg, 'cap river-cap', 'river');
   R.dimA = el('path', { class: 'dim' }, svg);           // A to the river: 20 m
-  R.dimE = el('path', { class: 'dim' }, svg);           // A to below B: 120 m east
+  R.ext = el('path', { class: 'ext' }, svg);            // under the river: where A's and B's lines meet it, carried down
+  R.dimE = el('path', { class: 'dim' }, svg);           // along the river, between those two points: 120 m
   R.dimB = el('path', { class: 'dim' }, svg);           // B to the river: 30 m
   R.sqA = el('path', { class: 'sq' }, svg);             // right angles where A's and B's lines meet the river
   R.sqB = el('path', { class: 'sq' }, svg);
@@ -55,23 +57,39 @@ function layout() {
   const room = sh - prob.offsetHeight - ask.offsetHeight - 2 * gap;     // the height left for the figure
   fs = clamp(Math.min(W / 48, room / 9), 12, 21);
   // room around the drawing for the labels: "20 m" on the left, "30 m" on the right, B's name above, C's below
-  const m = { l: fs * 3.4, r: fs * 3.4, t: fs * 3.3, b: fs * 2 };
-  k = Math.max(.5, Math.min((W - m.l - m.r) / SPAN.w, (room - m.t - m.b) / SPAN.h, MAX_K));
+  const m = { l: fs * 3.4, r: fs * 3.4, t: fs * 3.3, b: fs * 2.9 };     // (below: C's name, then the 120 m measure)
+  const fit = top => Math.min((W - m.l - m.r) / SPAN.w, (room - top - m.b) / SPAN.h, MAX_K);
+  compact = fit(m.t) < 3 && fit(fs * 2.1) > fit(m.t);                   // short of height: save the captions' line
+  if (compact) m.t = fs * 2.1;
+  k = Math.max(.5, fit(m.t));
+  R.cA.style.textAnchor = R.cB.style.textAnchor = compact ? 'end' : '';
   H = Math.round(SPAN.h * k + m.t + m.b);
   ox = m.l + (W - m.l - m.r - SPAN.w * k) / 2;
   oy = m.t + SPAN.h * k;
   box.style.height = H + 'px';
   svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
   svg.style.setProperty('--fs', fs + 'px');
+  gapW = (R.tE.getComputedTextLength() || fs * 2.6) + fs * .7;        // the 120 m measure leaves a gap for its label
   deck.redraw();
 }
 
 /* ---------- helpers ---------- */
+let gapW = 0;
 const lerp = (a, b, t) => a + (b - a) * t;
 const fadeIn = (t, from = .6) => clamp((t - from) / (1 - from), 0, 1);     // a label appears as its line finishes
 // a measuring line from p to q, drawn up to fraction t
 function measure(n, p, q, t) {
   n.setAttribute('d', t > 0 ? 'M' + p[0] + ' ' + p[1] + 'L' + lerp(p[0], q[0], t) + ' ' + lerp(p[1], q[1], t) : '');
+}
+// a horizontal measure at height y from x0 towards x1, drawn up to fraction t: arrowheads at both ends,
+// and a gap of width gap around the middle for its label
+function span(n, x0, x1, y, t, gap) {
+  if (t <= 0) { n.setAttribute('d', ''); return; }
+  const tip = lerp(x0, x1, t), gl = (x0 + x1 - gap) / 2, gr = (x0 + x1 + gap) / 2, h = fs * .45;
+  const head = (x, dir) => 'M' + (x - dir * h) + ' ' + (y - h * .55) + 'L' + x + ' ' + y + 'L' + (x - dir * h) + ' ' + (y + h * .55);
+  let d = 'M' + x0 + ' ' + y + 'L' + Math.min(tip, gl) + ' ' + y;
+  if (tip > gr) d += 'M' + gr + ' ' + y + 'L' + tip + ' ' + y;
+  n.setAttribute('d', d + head(x0, -1) + head(tip, 1));
 }
 // a small right-angle mark at corner c, between the directions (dx1, dy1) and (dx2, dy2)
 function corner(n, c, d1, d2, op) {
@@ -79,6 +97,11 @@ function corner(n, c, d1, d2, op) {
   n.setAttribute('d', 'M' + (x + d1[0] * s) + ' ' + (y + d1[1] * s) + 'L' + (x + (d1[0] + d2[0]) * s) + ' ' + (y + (d1[1] + d2[1]) * s) +
     'L' + (x + d2[0] * s) + ' ' + (y + d2[1] * s));
   setOpacity(n, op);
+}
+// "home" / "playground": above the point's letter, or to its left on a short screen
+function caption(n, p, op) {
+  if (compact) setText(n, p[0] - fs * .75, p[1] - fs * 1.05, op);
+  else setText(n, p[0], p[1] - fs * 2.2, op);
 }
 function point(n, p, op) {
   n.setAttribute('cx', p[0]); n.setAttribute('cy', p[1]);
@@ -89,7 +112,7 @@ function point(n, p, op) {
 /* ---------- render: the figure for given animated values ---------- */
 function render(S) {
   if (!k) return;
-  const a = P(A), b = P(B), c = P(C), foot = [X(A.x), oy], footB = [X(B.x), oy], turn = [X(B.x), Y(A.y)];
+  const a = P(A), b = P(B), c = P(C), foot = [X(A.x), oy], footB = [X(B.x), oy];
 
   // the river, drawn from west to east across the whole figure
   const r0 = 3, r1 = W - 3;
@@ -99,20 +122,23 @@ function render(S) {
   // Danny's home, A, and its 20 m to the river
   point(R.pA, a, S.a);
   setText(R.lA, a[0], a[1] - fs * 1.05, S.a);
-  setText(R.cA, a[0], a[1] - fs * 2.2, S.a);
+  caption(R.cA, a, S.a);
   measure(R.dimA, a, foot, S.aDim);
   corner(R.sqA, foot, [1, 0], [0, -1], fadeIn(S.aDim));
   setText(R.tA, foot[0] - fs * 1.75, (a[1] + oy) / 2, fadeIn(S.aDim));
 
-  // the playground, B: 120 m east of A (measured at A's level, up to the line under B), and 30 m to the river
+  // the playground, B: 30 m north of the river, then 120 m east of A, measured along the river
   point(R.pB, b, S.b);
   setText(R.lB, b[0], b[1] - fs * 1.05, S.b);
-  setText(R.cB, b[0], b[1] - fs * 2.2, S.b);
-  measure(R.dimE, a, turn, S.bEast);
-  setText(R.tE, (a[0] + turn[0]) / 2, turn[1] - fs * .85, fadeIn(S.bEast));
+  caption(R.cB, b, S.b);
   measure(R.dimB, b, footB, S.bRiver);
   corner(R.sqB, footB, [-1, 0], [0, -1], fadeIn(S.bRiver));
   setText(R.tB, footB[0] + fs * 1.75, (b[1] + oy) / 2, fadeIn(S.bRiver));
+  const ey = oy + fs * 2.15;                                        // the 120 m measure sits under C's name
+  R.ext.setAttribute('d', 'M' + foot[0] + ' ' + (oy + fs * .4) + 'V' + (ey + fs * .4) + 'M' + footB[0] + ' ' + (oy + fs * .4) + 'V' + (ey + fs * .4));
+  setOpacity(R.ext, clamp(S.bEast * 5, 0, 1));
+  span(R.dimE, foot[0], footB[0], ey, S.bEast, gapW);
+  setText(R.tE, (foot[0] + footB[0]) / 2, ey, fadeIn(S.bEast));
 
   // a point C on the bank
   point(R.pC, c, S.c);
@@ -151,8 +177,8 @@ deck = createDeck({
         await s.to('a', 1, 450, 250);           // Danny's home, A ...
         await s.to('aDim', 1, 700, 100);        // ... 20 m north of the river
         await s.to('b', 1, 450, 400);           // the playground, B ...
-        await s.to('bEast', 1, 1100, 100);      // ... 120 m east of A ...
-        await s.to('bRiver', 1, 800);           // ... and 30 m north of the river
+        await s.to('bRiver', 1, 800, 100);      // ... 30 m north of the river ...
+        await s.to('bEast', 1, 1100, 150);      // ... and 120 m east of A, along the river
         await s.to('c', 1, 450, 400);           // a point C on the bank
         await s.to('walk', 1, 2600, 300);       // the walk: B to C, then C to A
         await s.to('ask', 1, 600, 350);         // how short can it be?

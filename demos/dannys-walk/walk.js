@@ -1,7 +1,7 @@
 // Danny's Walk
 // "Danny's home is 20 meters north of a straight river that flows from west to east. A playground is 120 meters east
-//  and 10 meters north of his home. After playing at the playground, Danny wants to walk to the river bank to wash up
-//  before going home. What is the shortest total distance he needs to walk?"
+//  of his home and 30 meters north of the river. After playing at the playground, Danny wants to walk to the river bank
+//  to wash up before going home. What is the shortest total distance he needs to walk?"
 // The figure is drawn to scale, in metres: the river bank is the line y = 0 (east to the right, north up),
 // home A = (0, 20), playground B = (120, 30), and C is a point on the bank. Danny walks B -> C -> A.
 // So far: step 1 (the problem) and step 2 (the problem drawn as a figure, ending on "How short can BC + CA be?").
@@ -32,8 +32,8 @@ function build() {
   R.riverT = text(svg, 'cap river-cap', 'river');
   R.dimA = el('path', { class: 'dim' }, svg);           // A to the river: 20 m
   R.dimE = el('path', { class: 'dim' }, svg);           // A to below B: 120 m east
-  R.dimN = el('path', { class: 'dim' }, svg);           // up to B: 10 m north
-  R.sqA = el('path', { class: 'sq' }, svg);             // right angles: at the river, and at the corner below B
+  R.dimB = el('path', { class: 'dim' }, svg);           // B to the river: 30 m
+  R.sqA = el('path', { class: 'sq' }, svg);             // right angles where A's and B's lines meet the river
   R.sqB = el('path', { class: 'sq' }, svg);
   R.walk = el('path', { class: 'walk' }, svg);          // B -> C -> A, its dashes marching towards home
   R.pA = el('circle', { class: 'pt' }, svg);
@@ -44,7 +44,7 @@ function build() {
   R.lC = text(svg, 'lbl c', 'C');
   R.tA = text(svg, 'len', '20 m');
   R.tE = text(svg, 'len', '120 m');
-  R.tN = text(svg, 'len', '10 m');
+  R.tB = text(svg, 'len', '30 m');
 }
 
 function layout() {
@@ -54,7 +54,7 @@ function layout() {
   W = Math.min(sw, 960);
   const room = sh - prob.offsetHeight - ask.offsetHeight - 2 * gap;     // the height left for the figure
   fs = clamp(Math.min(W / 48, room / 9), 12, 21);
-  // room around the drawing for the labels: "20 m" on the left, "10 m" on the right, B's name above, C's below
+  // room around the drawing for the labels: "20 m" on the left, "30 m" on the right, B's name above, C's below
   const m = { l: fs * 3.4, r: fs * 3.4, t: fs * 3.3, b: fs * 2 };
   k = Math.max(.5, Math.min((W - m.l - m.r) / SPAN.w, (room - m.t - m.b) / SPAN.h, MAX_K));
   H = Math.round(SPAN.h * k + m.t + m.b);
@@ -89,7 +89,7 @@ function point(n, p, op) {
 /* ---------- render: the figure for given animated values ---------- */
 function render(S) {
   if (!k) return;
-  const a = P(A), b = P(B), c = P(C), foot = [X(A.x), oy], turn = [X(B.x), Y(A.y)];
+  const a = P(A), b = P(B), c = P(C), foot = [X(A.x), oy], footB = [X(B.x), oy], turn = [X(B.x), Y(A.y)];
 
   // the river, drawn from west to east across the whole figure
   const r0 = 3, r1 = W - 3;
@@ -104,15 +104,15 @@ function render(S) {
   corner(R.sqA, foot, [1, 0], [0, -1], fadeIn(S.aDim));
   setText(R.tA, foot[0] - fs * 1.75, (a[1] + oy) / 2, fadeIn(S.aDim));
 
-  // the playground, B: 120 m east of A, then 10 m north
+  // the playground, B: 120 m east of A (measured at A's level, up to the line under B), and 30 m to the river
   point(R.pB, b, S.b);
   setText(R.lB, b[0], b[1] - fs * 1.05, S.b);
   setText(R.cB, b[0], b[1] - fs * 2.2, S.b);
   measure(R.dimE, a, turn, S.bEast);
   setText(R.tE, (a[0] + turn[0]) / 2, turn[1] - fs * .85, fadeIn(S.bEast));
-  measure(R.dimN, turn, b, S.bNorth);
-  corner(R.sqB, turn, [-1, 0], [0, -1], fadeIn(S.bNorth));
-  setText(R.tN, turn[0] + fs * 1.75, (turn[1] + b[1]) / 2, fadeIn(S.bNorth));
+  measure(R.dimB, b, footB, S.bRiver);
+  corner(R.sqB, footB, [-1, 0], [0, -1], fadeIn(S.bRiver));
+  setText(R.tB, footB[0] + fs * 1.75, (b[1] + oy) / 2, fadeIn(S.bRiver));
 
   // a point C on the bank
   point(R.pC, c, S.c);
@@ -139,20 +139,20 @@ build();
 let deck = null;
 deck = createDeck({
   render,
-  state: { river: 0, a: 0, aDim: 0, b: 0, bEast: 0, bNorth: 0, c: 0, walk: 0, ask: 0 },
+  state: { river: 0, a: 0, aDim: 0, b: 0, bEast: 0, bRiver: 0, c: 0, walk: 0, ask: 0 },
   linear: ['walk'],
   steps: [
     { name: 'The problem', title: 'Problem Description', slide: 'intro', replay: false },
 
     { name: 'The problem as a figure', title: 'Problem Description', slide: 'intro',
-      set: { river: 1, a: 1, aDim: 1, b: 1, bEast: 1, bNorth: 1, c: 1, walk: 1, ask: 1 },
+      set: { river: 1, a: 1, aDim: 1, b: 1, bEast: 1, bRiver: 1, c: 1, walk: 1, ask: 1 },
       async play(s) {
         await s.to('river', 1, 1000);           // the river, from west to east
         await s.to('a', 1, 450, 250);           // Danny's home, A ...
         await s.to('aDim', 1, 700, 100);        // ... 20 m north of the river
         await s.to('b', 1, 450, 400);           // the playground, B ...
         await s.to('bEast', 1, 1100, 100);      // ... 120 m east of A ...
-        await s.to('bNorth', 1, 500);           // ... and 10 m north
+        await s.to('bRiver', 1, 800);           // ... and 30 m north of the river
         await s.to('c', 1, 450, 400);           // a point C on the bank
         await s.to('walk', 1, 2600, 300);       // the walk: B to C, then C to A
         await s.to('ask', 1, 600, 350);         // how short can it be?

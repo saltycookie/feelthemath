@@ -10,6 +10,7 @@
 //   - Next carries on smoothly from where the previous step finished;
 //   - Back, Replay and the step dots jump straight to the step's beginning, hold it for a moment and play the step;
 //   - leaving a step stops its animation at once (no checks needed in `play`);
+//   - while a step is still animating, the deck reports itself busy (Next waits; the dots and the address do not);
 //   - the address shows the current step (#step-1, #step-2, ...), so a link can open the demo on any step.
 //
 // Step fields (all optional):
@@ -72,10 +73,10 @@ export function createDeck(opts) {
     if (reduceMotion || (dur <= 0 && delay <= 0)) { S[key] = to; dirty(); return Promise.resolve(); }
     return new Promise(res => { tweens.push({ key, from: S[key], to, t0: performance.now() + delay, dur: Math.max(1, dur), even: evenKeys.has(key), res }); dirty(); });
   }
-  function applyLook(look, skip = []) {
+  function applyLook(look, skip = [], tw = tween) {
     for (const k in look) {
       if (skip.includes(k)) continue;
-      tween(k, look[k], durations[k] || 550, look[k] > S[k] ? (delays[k] || 0) : 0);
+      tw(k, look[k], durations[k] || 550, look[k] > S[k] ? (delays[k] || 0) : 0);
     }
   }
 
@@ -91,14 +92,14 @@ export function createDeck(opts) {
   });
 
   // Put the board in step i's beginning; returns how long to wait before the step's own animation.
-  function toStart(i, glide) {
+  function toStart(i, glide, tw) {
     const st = starts[i];
-    if (!glide) { for (const k in st) tween(k, st[k], 0); return HOLD; }
+    if (!glide) { for (const k in st) tw(k, st[k], 0); return HOLD; }
     let moving = false, fading = false;
     for (const k in st) {
       if (Math.abs(S[k] - st[k]) < .01) continue;
       if (transientKeys.has(k)) fading = true; else moving = true;
-      tween(k, st[k], transientKeys.has(k) ? GLIDE_TRANSIENT : GLIDE);
+      tw(k, st[k], transientKeys.has(k) ? GLIDE_TRANSIENT : GLIDE);
     }
     return moving ? 600 : fading ? 300 : 0;
   }
@@ -123,7 +124,7 @@ export function createDeck(opts) {
   }
 
   /* ---------- the step runner handed to play() ---------- */
-  function runner(i, ep) {
+  function runner(i, ep, tw, pending) {
     const alive = () => ep === epoch;
     const check = v => { if (!alive()) throw CANCELLED; return v; };
     // a promise that stops the step if it has been left; harmless when nobody awaits it
@@ -136,20 +137,35 @@ export function createDeck(opts) {
       to(...args) {
         if (typeof args[0] === 'object') {
           const [look, dur, delay] = args;
-          return guard(Promise.all(Object.keys(look).map(k => tween(k, look[k], dur, delay))));
+          return guard(Promise.all(Object.keys(look).map(k => tw(k, look[k], dur, delay))));
         }
         const [key, value, dur, delay] = args;
-        return guard(tween(key, value, dur, delay));
+        return guard(tw(key, value, dur, delay));
       },
-      apply: (look, { skip = [] } = {}) => applyLook(look, skip),
+      apply: (look, { skip = [] } = {}) => applyLook(look, skip, tw),
       // show callout bubble n (default 0) next to anchor() -> [x, y, side]
       bubble(html, anchor, { index = 0, dur = 450, delay = 0 } = {}) {
         if (!bubbles) throw new Error('createDeck: no bubbles were given');
         bubbles.set(index, html, anchor);
-        return guard(tween(bubbles.keys[index], 1, dur, delay));
+        return guard(tw(bubbles.keys[index], 1, dur, delay));
+      },
+      // wait until everything the step started has finished: its values, and its slide's CSS animations
+      async settle() {
+        for (let n = 0; n !== pending.length;) { n = pending.length; await guard(Promise.all(pending)); }
+        const el = slideEl(steps[i].slide);
+        if (el && steps[i].slideClass && el.getAnimations) {
+          const css = el.getAnimations({ subtree: true })
+            .filter(a => a.animationName && isFinite(a.effect.getComputedTiming().endTime));
+          await guard(Promise.all(css.map(a => a.finished.catch(() => {}))));
+        }
       },
     };
   }
+
+  /* ---------- busy: a step is still animating ---------- */
+  let busy = false;
+  const busyListeners = [];
+  function setBusy(b) { if (busy !== b) { busy = b; busyListeners.forEach(f => f(b)); } }
 
   /* ---------- navigation ---------- */
   let cur = -1;
@@ -163,14 +179,19 @@ export function createDeck(opts) {
     showSlides(i, glide);
     const st = steps[i];
     if (st.enter) st.enter({ glide, from: prev });
-    const lead = toStart(i, glide);
+    const pending = [];                                // every tween this step starts, so we know when it is done
+    const tw = (...a) => { const p = tween(...a); pending.push(p); return p; };
+    const lead = toStart(i, glide, tw);
     writeHash(i);
+    busy = true;                                       // quietly: the listeners below hear it with the new step
     listeners.forEach(f => f(i));
-    const s = runner(i, ep);
+    const s = runner(i, ep, tw, pending);
     (async () => {
       try {
         await s.wait(lead);
         if (st.play) await st.play(s); else s.apply(s.end);
+        await s.settle();
+        if (ep === epoch) setBusy(false);
       } catch (e) { if (e !== CANCELLED) throw e; }
     })();
   }
@@ -202,6 +223,8 @@ export function createDeck(opts) {
     replay: () => go(cur, 'replay'),
     start: i => go(i ?? hashStep() ?? 0, 'jump'),     // the step in the address, or the first
     onChange: f => { listeners.push(f); },
+    get busy() { return busy; },                       // true while the current step is still animating
+    onBusy: f => { busyListeners.push(f); },
     tween,
     redraw: () => { render(S); },
     dirty,

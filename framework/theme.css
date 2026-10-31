@@ -89,7 +89,7 @@ body{
   background:var(--chalk);color:var(--board);border:1px solid var(--chalk)}        /* Back and Next look the same */
 .btn.ghost{background:transparent;color:var(--chalk);border-color:var(--grid-strong)}  /* Replay: outlined */
 .btn.ghost:hover:not(:disabled){border-color:var(--chalk)}
-.btn:disabled{opacity:.35;cursor:default}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.35;cursor:default}      /* aria-disabled: Next waiting for an animation */
 .btn:focus-visible,.dot:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
 .dots{display:flex;gap:2px}
 .dot{width:26px;height:36px;border:0;background:none;display:grid;place-items:center;cursor:pointer;padding:0}

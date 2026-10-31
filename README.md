@@ -112,6 +112,8 @@ to send it elsewhere, or `{ home: false }` to leave it out.
 - **Next** carries on smoothly from there.
 - **Back**, **Replay** and the **step dots** jump straight to the step's beginning, hold it for a moment, then play the step.
 - Leaving a step stops its animation at once, so `play` never has to check whether it is still wanted.
+- **Next** waits (dimmed) until the current step has finished animating, so nobody skips past an explanation
+  half-way. Back, Replay, the step dots and the address still go anywhere at any time.
 - The address shows the current step, e.g. `demos/qiangs-trip/#step-5`. Opening or sharing that link starts
   the demo on step 5, played from its beginning. The steps replace the address instead of adding to the browser
   history, so the browser's own Back button leaves the demo rather than stepping back through it.

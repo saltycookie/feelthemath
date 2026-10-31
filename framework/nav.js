@@ -46,13 +46,20 @@ export function createNav(container, deck, { keys = true, home } = {}) {
     return b;
   });
 
+  // Next waits until the current step has finished animating. It stays focusable meanwhile (aria-disabled,
+  // not disabled), so a keyboard user can keep pressing it; the dots and the address still go anywhere.
+  const waiting = () => next.getAttribute('aria-disabled') === 'true';
+  function refreshNext() {
+    next.disabled = deck.index === deck.count - 1;
+    if (!next.disabled && deck.busy) next.setAttribute('aria-disabled', 'true'); else next.removeAttribute('aria-disabled');
+  }
   back.addEventListener('click', () => deck.back());
-  next.addEventListener('click', () => deck.next());
+  next.addEventListener('click', () => { if (!waiting()) deck.next(); });
   replay.addEventListener('click', () => deck.replay());
 
   if (keys) document.addEventListener('keydown', e => {
     if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); deck.next(); }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); if (!waiting()) deck.next(); }
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); deck.back(); }
   });
 
@@ -60,7 +67,7 @@ export function createNav(container, deck, { keys = true, home } = {}) {
     title.textContent = deck.steps[i].title || '';      // straight away, before the step's animation starts
     const was = document.activeElement;
     back.disabled = i === 0;
-    next.disabled = i === deck.count - 1;
+    refreshNext();
     replay.disabled = !deck.canReplay(i);
     // never leave keyboard focus on a button that just became disabled
     if (was && was.disabled) (was === back || was === replay ? next : replay).focus();
@@ -70,5 +77,6 @@ export function createNav(container, deck, { keys = true, home } = {}) {
     });
   }
   deck.onChange(update);
+  deck.onBusy(refreshNext);
   return { update };
 }

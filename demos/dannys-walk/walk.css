@@ -1,0 +1,33 @@
+/* Danny's Walk: styles for this demo only. Colours, font, navigation and the board come from framework/theme.css.
+   Colour code: blue = the river, orange = Danny's walk from B to C to A (and the question about it),
+   pink = the point C on the river bank, chalk = the given places and distances. */
+
+:root{--chalk-dim:color-mix(in srgb, var(--chalk) 62%, transparent)}     /* measuring lines */
+
+/* ---- steps 1-2: the problem, then its figure ---- */
+#intro{justify-content:center;align-items:center;gap:clamp(12px,3vh,32px)}
+.problem{margin:0;max-width:34em;font:400 clamp(15px, min(max(19px, 2.7vw), 4.3vh), 31px)/1.35 var(--font-hand);text-wrap:pretty}   /* smaller on short screens */
+.problem b{font-weight:700}
+.figbox{position:relative;flex:none;width:100%;max-width:960px;height:220px}     /* walk.js sets the height to fit the figure */
+#fig{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.ask{margin:0;color:var(--orange);font:700 clamp(17px, min(max(21px, 3vw), 4.6vh), 34px)/1.2 var(--font-hand);text-align:center;opacity:0;
+  will-change:transform, opacity}
+
+/* the figure (sizes in px; --fs is the label size worked out by walk.js) */
+#fig .river{fill:none;stroke:var(--blue);stroke-width:4;stroke-linecap:round}
+#fig .dim{fill:none;stroke:var(--chalk-dim);stroke-width:1.6;stroke-linecap:round}
+#fig .sq{fill:none;stroke:var(--chalk-dim);stroke-width:1.4}
+#fig .walk{fill:none;stroke:var(--orange);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:11 9;animation:march .8s linear infinite}
+@keyframes march{to{stroke-dashoffset:-20}}      /* the dashes travel along the path: from B, through C, towards home */
+#fig .pt{fill:var(--chalk);stroke:var(--board);stroke-width:2.5}
+#fig .pt.c{fill:var(--pink)}
+#fig text{font-family:var(--font-hand);text-anchor:middle;dominant-baseline:central;
+  paint-order:stroke;stroke:var(--halo);stroke-linejoin:round}
+#fig .lbl{font-weight:700;font-size:calc(var(--fs, 18px) * 1.3);stroke-width:6px;fill:var(--chalk)}
+#fig .lbl.c{fill:var(--pink-ink)}
+#fig .cap{font-weight:400;font-size:calc(var(--fs, 18px) * .85);stroke-width:5px;fill:var(--muted)}
+#fig .cap.river-cap{fill:var(--blue-ink)}
+#fig .len{font-weight:700;font-size:var(--fs, 18px);stroke-width:5px;fill:var(--chalk)}
+
+@media (prefers-reduced-motion: reduce){ #fig .walk{animation:none} }

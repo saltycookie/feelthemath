@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Danny's Walk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
+<link rel="stylesheet" href="../../framework/theme.css">
+<link rel="stylesheet" href="walk.css">
+<script type="module" src="walk.js"></script>
+</head>
+<body>
+<div class="deck">
+  <div class="stage">
+
+    <section class="slide active" id="intro" aria-label="The problem">
+      <p class="problem" id="problem">Danny's home is <b>20 meters</b> north of a <b class="c-blue">straight river</b> that flows
+        from west to east. A playground is <b>120 meters</b> east and <b>10 meters</b> north of his home. After playing at the
+        playground, Danny wants to walk to the river bank to wash up before going home. What is the shortest total distance
+        he needs to walk?</p>
+      <!-- the figure keeps its place on step 1 too (just empty), so the problem text sits in the same spot on both steps -->
+      <div class="figbox" id="figbox">
+        <svg id="fig" role="img" aria-label="A straight river running from west to east. Danny's home, A, is 20 meters north of it.
+          The playground, B, is 120 meters east and 10 meters north of A. C is a point on the river bank, and Danny's walk goes
+          from B to C and then from C to A."></svg>
+      </div>
+      <p class="ask" id="ask">How short can <i>BC</i> + <i>CA</i> be?</p>
+    </section>
+
+  </div>
+  <nav class="nav"></nav>
+</div>
+</body>
+</html>

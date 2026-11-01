@@ -13,7 +13,7 @@ It is plain JavaScript modules and CSS, with no dependencies and nothing to buil
 ```
 theme.css      colours, font, board, navigation, bubbles, chart basics
 deck.js        animated values, steps, and moving between steps
-nav.js         Back, step dots, Replay, Next, the arrow keys, and the home link
+nav.js         Back, step dots, Replay, Next (Finish on the last step), the arrow keys, and the home link
 bubbles.js     callout bubbles that point at things
 svg.js         small helpers for drawing in SVG
 ```
@@ -72,6 +72,10 @@ title band across the top of the page, which shows each step's `title` (and stay
 has none), and puts a home link (a chalk house) in the band's top-left corner that leads back to the list of
 demos. By default it points to `../../`, the front page as seen from `demos/<name>/`. Pass
 `createNav(nav, deck, { home: 'url' })` to send it elsewhere, or `{ home: false }` to leave it out.
+
+On the last step, Next becomes **Finish**. Like Next, it waits (dimmed) until the step has finished
+animating; then it takes the reader to the same place as the home link. With `{ home: false }` there is no
+Finish, and Next is simply disabled on the last step. The arrow keys never leave the demo: only Finish does.
 
 ### The rules every demo gets for free
 

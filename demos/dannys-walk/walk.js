@@ -17,7 +17,8 @@
 //   reader: the unfolded paper, seen straight on in the middle of the slide (step 5 hands over a flat drawing).
 //   Step 6: the picture rises to the top. Lines east from home and south from the playground meet at D: a right
 //   triangle ABD with BD = 30 + 20 = 50 m and AD = 120 m (the 120 m along the river goes), whose long side is the
-//   straight walk. Under it: AB = sqrt(120^2 + 50^2) = sqrt(16 900) = 130 m, and the answer is circled.
+//   straight walk. Under it: AB = sqrt(120^2 + 50^2) = 10 x sqrt(12^2 + 5^2) = 10 x sqrt(169) = 10 x 13 = 130 m, and
+//   the answer is circled.
 //
 // For steps 3-4 the figure lives in 3D. The paper is the plane z = 0 (z points at the viewer). Its front half, north
 // of the river, stays put. Its back half turns about the river by phi: 0 is folded up behind the front half, pi is flat
@@ -283,7 +284,7 @@ function render(S) {
   under(hint5, S.hint5, hy);
   // step 6's working, a piece at a time, and the ring round the answer
   math.style.transform = 'translateY(' + mathY + 'px)';
-  [S.m1, S.m2, S.m3].forEach((o, i) => {
+  [S.m1, S.m2, S.m3, S.m4, S.m5].forEach((o, i) => {
     segs[i].style.opacity = clamp(o, 0, 1);
     segs[i].style.transform = 'translateY(' + (1 - o) * 8 + 'px)';
   });
@@ -397,8 +398,11 @@ function render(S) {
   } else { R.legs.setAttribute('d', ''); setOpacity(R.pD, 0); }
   corner(R.sqD, front, D.x, D.y, [-1, 0], [0, 1], s, S.dpt);
   label(R.lD, front, D.x, D.y, .85, -.95, S.dpt, v.k);                  // D: below and to the right of its corner
-  // BD's length inside the triangle, beside its middle (B's 30 m is on the other side of the line); AD's under it
-  label(R.tBD, front, D.x, (B.y + D.y) / 2, -2.05, 0, S.swap, v.k);   // (clear of the right angle at the river)
+  // BD's length runs up along it, inside the triangle (B's 30 m is on the other side), lying over the river: the 30 m
+  // north of the river and the 20 m south of it together. AD's is under it.
+  const [bx, by] = front(D.x - fs * 1.25 / v.k, 0);                     // (clear of the right angle at the river)
+  setText(R.tBD, bx, by, S.swap);
+  R.tBD.setAttribute('transform', 'rotate(-90 ' + bx + ' ' + by + ')');
   label(R.tAD, front, (A.x + D.x) / 2, D.y, 0, -1, S.swap, v.k);
 
   // the switch of steps 3-4
@@ -432,7 +436,8 @@ const deck = createDeck({
     txt: 1, view: 0, paper: 0, unf: 0, sw: 0, hint3: 0,                           // step 3: words, camera, paper, unfolding, switch, closing words
     sub: 0, c2: 0, c3: 0, c4: 0, w2: 0, w3: 0, w4: 0, lab4: 0, hint4: 0,          // step 4: C -> C1, C2-C4, walks 2-4, the 120 m label, question
     focus: 0, hint5: 0, flat: 0,                    // step 5: only C3's walk left, its words, and the flat view to come
-    rise: 0, tri: 0, dpt: 0, swap: 0, m1: 0, m2: 0, m3: 0, ring: 0,   // step 6: to the top, the triangle, D, its lengths, the working
+    rise: 0, tri: 0, dpt: 0, swap: 0, m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, ring: 0,   // step 6: to the top, the triangle, D,
+                                                                                     // its lengths, the working, the ring
   },
   linear: ['walk', 'w2', 'w3', 'w4'],
   steps: [
@@ -514,7 +519,7 @@ const deck = createDeck({
 
     // (begins flat: see step 5)
     { name: 'The answer', title: 'Solve the Problem', slide: 'board',
-      set: { hint5: 0, rise: 1, tri: 1, dpt: 1, swap: 1, m1: 1, m2: 1, m3: 1, ring: 1 },
+      set: { hint5: 0, rise: 1, tri: 1, dpt: 1, swap: 1, m1: 1, m2: 1, m3: 1, m4: 1, m5: 1, ring: 1 },
       async play(s) {
         s.to('hint5', 0, 500);                  // the words go ...
         await s.to('rise', 1, 1300);            // ... as the picture rises to the top
@@ -522,8 +527,10 @@ const deck = createDeck({
         await s.to('dpt', 1, 450);              // ... at D, with a right angle: a right triangle, its long side the walk
         await s.to('swap', 1, 900, 300);        // BD = 50 m, AD = 120 m (instead of the 120 m along the river)
         await s.to('m1', 1, 600, 500);          // AB = sqrt(120^2 + 50^2)
-        await s.to('m2', 1, 600, 600);          //    = sqrt(16 900)
-        await s.to('m3', 1, 600, 600);          //    = 130 m
+        await s.to('m2', 1, 600, 600);          //    = 10 x sqrt(12^2 + 5^2)   (both lengths are tens)
+        await s.to('m3', 1, 600, 600);          //    = 10 x sqrt(169)
+        await s.to('m4', 1, 600, 600);          //    = 10 x 13
+        await s.to('m5', 1, 600, 600);          //    = 130 m
         await s.to('ring', 1, 900, 250);        // the answer
       } },
   ],

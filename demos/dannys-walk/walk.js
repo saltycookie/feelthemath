@@ -12,8 +12,9 @@
 // For step 3 the figure lives in 3D. The paper is the plane z = 0 (z points at the viewer). Its front half, north of
 // the river, stays put. Its back half turns about the river by phi: 0 is folded up behind the front half, pi is flat
 // south of the river. A point of the back half x metres east and v metres from the fold is at (x, v cos phi, -v sin phi).
-// `view` turns the camera from straight on (step 2: a flat drawing) to the left of the paper and a little above it.
-// The camera is very far away, so there is no perspective: lines that are parallel on the paper stay parallel.
+// `view` turns the camera from straight on (step 2: a flat drawing) to a little west of the paper. The eyes are level
+// with the river and not too far away: the far (east) end looks smaller, so the paper's top and bottom edges close in
+// towards it, while its upright sides stay upright and parallel, and the river stays level.
 
 import { createDeck, onFontsLoaded, clamp } from '../../framework/deck.js';
 import { createNav } from '../../framework/nav.js';
@@ -29,7 +30,7 @@ const C = { x: 80, y: 0 };        // a point on the river bank (any point will d
 const SPAN = { w: 120, h: 30 };   // what the step-2 figure has to show: from A to B, and from the river up to B
 const MID = 60;                   // the figure turns about the middle of the river under it, (60, 0, 0)
 const MAX_K = 7.5;                // largest scale, px per metre
-const CAM = { yaw: 28 * Math.PI / 180, pitch: 18 * Math.PI / 180 };   // step 3's camera: this far to the left, and above
+const CAM = { yaw: 25 * Math.PI / 180, dist: 230 };   // step 3's camera: this far round to the west, this far away (m)
 const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long one dash takes to march along it (s): see walk.css
 
 /* ---------- the page ---------- */
@@ -45,13 +46,13 @@ let gapW = 0;                              // the gap the 120 m measure leaves f
 /* ---------- views: where a point of the scene lands on the screen ---------- */
 // t: 0 straight on, 1 step 3's camera. k: px per metre. (ox, oy): where the middle of the river (60, 0, 0) lands.
 function makeView(t, k, ox, oy) {
-  return { k, ox, oy, cy: Math.cos(CAM.yaw * t), sy: Math.sin(CAM.yaw * t), cp: Math.cos(CAM.pitch * t), sp: Math.sin(CAM.pitch * t) };
+  return { k, ox, oy, cy: Math.cos(CAM.yaw * t), sy: Math.sin(CAM.yaw * t), q: t / CAM.dist };   // q: 0 is no perspective
 }
 function proj(v, x, y, z = 0) {
   const px = x - MID;
   const x1 = px * v.cy + z * v.sy, z1 = z * v.cy - px * v.sy;      // turn about the upright axis: the west end comes nearer
-  const y2 = y * v.cp - z1 * v.sp;                                  // tip the top towards the viewer: seen from a little above
-  return [v.ox + v.k * x1, v.oy - v.k * y2];                        // (from far away: no perspective)
+  const f = 1 / (1 - z1 * v.q);                                     // nearer things look bigger (the eyes are level with the river)
+  return [v.ox + v.k * x1 * f, v.oy - v.k * y * f];
 }
 // how far the paper reaches in step 3's view, at 1 px per metre around the middle of the river: its front half, and
 // its back half all the way through the unfolding (up and down are positive and negative y)

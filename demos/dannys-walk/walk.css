@@ -43,22 +43,27 @@
 .hint kbd{display:inline-block;min-width:1.45em;padding:0 .25em;border:2px solid currentColor;border-radius:.35em;
   font:700 .9em/1.25 var(--font-hand);text-align:center}
 
-/* the slider on the right: drag the knob down to unfold the paper, up to fold it */
-.fold{position:absolute;left:0;top:0;width:58px;display:flex;flex-direction:column;align-items:center;gap:20px;padding:4px 0;   /* gap: room for the knob at either end */
-  opacity:0;pointer-events:none;cursor:pointer;outline:none;touch-action:none;
-  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+/* the slider on the right: drag the knob (or tap the track) to fold and unfold the paper, or tap "fold" / "unfold" */
+.fold{position:absolute;left:0;top:0;width:64px;display:flex;flex-direction:column;align-items:center;gap:2px;
+  opacity:0;pointer-events:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .fold.on{pointer-events:auto}
-.fold.drag{cursor:grabbing}
-.fold-end{font:400 16px/1.15 var(--font-hand);color:var(--muted)}
+.fold-end{font:400 16px/1.15 var(--font-hand);color:var(--muted);background:none;border:0;border-radius:10px;padding:10px 8px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .2s}          /* a tap glides the paper all the way */
+.fold-end:hover{color:var(--chalk)}
+.fold-end:focus-visible{outline:2px solid var(--blue);outline-offset:0}
+.fold-slide{width:100%;display:flex;justify-content:center;padding:16px 0;cursor:pointer;outline:none;touch-action:none;
+  -webkit-tap-highlight-color:transparent}                                            /* padding: room for the knob at either end */
+.fold-slide.drag{cursor:grabbing}
 .fold-track{position:relative;width:6px;height:240px;border-radius:3px;background:var(--grid-strong)}   /* walk.js sets the height */
 .fold-thumb{position:absolute;left:50%;top:0;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;
   background:var(--chalk);border:3px solid var(--board);box-shadow:0 2px 8px var(--shadow);transition:transform .15s}
-.fold.on:hover .fold-thumb,.fold.drag .fold-thumb{transform:scale(1.15)}
-.fold:focus-visible .fold-thumb{outline:2px solid var(--blue);outline-offset:3px}
+.fold.on .fold-slide:hover .fold-thumb,.fold-slide.drag .fold-thumb{transform:scale(1.15)}
+.fold-slide:focus-visible .fold-thumb{outline:2px solid var(--blue);outline-offset:3px}
 
 @media (max-height: 500px){                          /* phones on their side: wider, shorter lines of text leave room for the figure */
   #board{gap:8px}
   .problem{max-width:48em}
-  .fold-end{font-size:14px}
+  .fold-end{font-size:14px;padding:6px 8px}
+  .fold-slide{padding:15px 0}
 }
 @media (prefers-reduced-motion: reduce){ #fig .walk{animation:none} .fold-thumb{transition:none} }

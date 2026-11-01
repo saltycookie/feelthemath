@@ -35,7 +35,8 @@ const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long o
 
 /* ---------- the page ---------- */
 const slide = $('#board'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
-const slider = $('#slider'), track = $('#track'), thumb = $('#thumb'), hint = $('#hint');
+const fold = $('#fold'), slider = $('#slider'), track = $('#track'), thumb = $('#thumb'), hint = $('#hint');
+const foldAll = $('#foldAll'), unfoldAll = $('#unfoldAll');
 let SW = 0, SH = 0;                        // the slide, in px
 let fs = 18, compact = false;              // label size; short screen: "home" and "playground" beside the letters, not above
 let V2 = null, V3 = null;                  // the view in steps 1-2 (the figure under the words) and in step 3
@@ -101,7 +102,7 @@ function layout() {
 
   // the slider: in the strip right of the figure, centred on the river
   track.style.height = Math.round(clamp(PAPER.h * k3 * 1.6, 110, 380)) + 'px';
-  slider.style.transform = 'translate(' + ((fx + W + SW) / 2 - slider.offsetWidth / 2) + 'px,' + (SH / 2 - slider.offsetHeight / 2) + 'px)';
+  fold.style.transform = 'translate(' + ((fx + W + SW) / 2 - fold.offsetWidth / 2) + 'px,' + (SH / 2 - fold.offsetHeight / 2) + 'px)';
 
   svg.setAttribute('viewBox', '0 0 ' + SW + ' ' + SH);
   svg.style.setProperty('--fs', fs + 'px');
@@ -248,13 +249,13 @@ function render(S) {
   if (Math.abs(lag - lagNow) > .004) { R.walkCA.style.animationDelay = lag + 's'; lagNow = lag; }
 
   // step 3's slider follows the paper (top: folded, bottom: unfolded)
-  slider.style.opacity = S.sl;
+  fold.style.opacity = S.sl;
   thumb.style.top = S.unf * 100 + '%';
-  const fold = Math.round((1 - S.unf) * 100);
-  if (fold !== foldNow) {
-    foldNow = fold;
-    slider.setAttribute('aria-valuenow', fold);
-    slider.setAttribute('aria-valuetext', fold === 100 ? 'folded' : fold === 0 ? 'unfolded' : fold + '% folded');
+  const pct = Math.round((1 - S.unf) * 100);                       // how folded, in %
+  if (pct !== foldNow) {
+    foldNow = pct;
+    slider.setAttribute('aria-valuenow', pct);
+    slider.setAttribute('aria-valuetext', pct === 100 ? 'folded' : pct === 0 ? 'unfolded' : pct + '% folded');
   }
 }
 
@@ -319,11 +320,13 @@ deck.onChange(i => {
   prob.setAttribute('aria-hidden', i >= FOLD ? 'true' : 'false');
 });
 
-/* ---------- step 3: the slider folds and unfolds the paper (drag it, or the up and down arrow keys) ---------- */
+/* ---------- step 3: the slider folds and unfolds the paper ---------- */
+// Drag the knob or tap the track; tap "fold" or "unfold" to glide all the way; or the up and down arrow keys.
+// The taps matter on phones: an app showing the page may keep up-and-down swipes for itself (to scroll or close it).
 let dragging = false;
 function setSlider(on) {
-  slider.classList.toggle('on', on);
-  slider.tabIndex = on ? 0 : -1;
+  fold.classList.toggle('on', on);
+  slider.tabIndex = foldAll.tabIndex = unfoldAll.tabIndex = on ? 0 : -1;
   if (on) slider.removeAttribute('aria-disabled'); else slider.setAttribute('aria-disabled', 'true');
   if (!on) { dragging = false; slider.classList.remove('drag'); }
 }
@@ -335,8 +338,14 @@ slider.addEventListener('pointerdown', e => {
   e.preventDefault(); dragging = true; slider.classList.add('drag');
   try { slider.setPointerCapture(e.pointerId); } catch (_) {}
   slider.focus({ preventScroll: true });
-  unfoldTo(atPointer(e), 220);
+  const u = clamp(atPointer(e), 0, 1);
+  unfoldTo(u, 150 + 600 * Math.abs(u - deck.S.unf));               // a tap on the track glides the knob there
 });
+// tell the browser this finger is the slider's, not a scroll of the page
+['touchstart', 'touchmove'].forEach(t => slider.addEventListener(t, e => { if (deck.index === FOLD) e.preventDefault(); }, { passive: false }));
+const glideTo = u => unfoldTo(u, 300 + 1500 * Math.abs(u - deck.S.unf));
+foldAll.addEventListener('click', () => { if (deck.index === FOLD) glideTo(0); });
+unfoldAll.addEventListener('click', () => { if (deck.index === FOLD) glideTo(1); });
 slider.addEventListener('pointermove', e => { if (dragging) unfoldTo(atPointer(e), 60); });
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => slider.addEventListener(ev, () => { dragging = false; slider.classList.remove('drag'); }));
 // the up and down arrow keys fold and unfold anywhere on the step (Home and End too, on the slider itself);

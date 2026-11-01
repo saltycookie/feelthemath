@@ -31,12 +31,16 @@
       <p class="hint" id="hint"><b>Fold and unfold Danny's world yourself!</b><br>
         You can use <kbd>↑</kbd> and <kbd>↓</kbd> to control.</p>
 
-      <!-- step 3: fold and unfold the paper; top = folded, bottom = unfolded -->
-      <div class="fold" id="slider" role="slider" tabindex="-1" aria-orientation="vertical" aria-label="Fold the paper" aria-keyshortcuts="ArrowUp ArrowDown"
-           aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="folded" aria-disabled="true">
-        <span class="fold-end" aria-hidden="true">fold</span>
-        <div class="fold-track" id="track"><div class="fold-thumb" id="thumb"></div></div>
-        <span class="fold-end" aria-hidden="true">unfold</span>
+      <!-- step 3: fold and unfold the paper; top = folded, bottom = unfolded. Drag the knob, tap the track, or tap
+           "fold" / "unfold" (taps still work where a phone app keeps up-and-down swipes for itself) -->
+      <div class="fold" id="fold">
+        <button class="fold-end" id="foldAll" type="button" tabindex="-1" aria-label="Fold the paper all the way">fold</button>
+        <div class="fold-slide" id="slider" role="slider" tabindex="-1" aria-orientation="vertical" aria-label="Fold the paper"
+             aria-keyshortcuts="ArrowUp ArrowDown" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="folded"
+             aria-disabled="true">
+          <div class="fold-track" id="track"><div class="fold-thumb" id="thumb"></div></div>
+        </div>
+        <button class="fold-end" id="unfoldAll" type="button" tabindex="-1" aria-label="Unfold the paper all the way">unfold</button>
       </div>
     </section>
 

@@ -69,7 +69,9 @@ function proj(v, x, y, z = 0) {
   return [v.ox + v.k * x1 * f, v.oy - v.k * y * f];
 }
 // how far the paper reaches in step 3's view, at 1 px per metre around the middle of the river: its front half, and
-// its back half all the way through the unfolding (up and down are positive and negative y)
+// its back half all the way through the unfolding (up and down are positive and negative y). Also the middle of the
+// paper as it lies folded or unfolded (mid: half way between its upright sides): half way through, the back half
+// swings out further to the west than the paper ever lies.
 function reach() {
   const v = makeView(1, 1, 0, 0), e = { x0: 0, x1: 0, y0: 0, y1: 0 };
   const add = ([x, y]) => { e.x0 = Math.min(e.x0, x); e.x1 = Math.max(e.x1, x); e.y0 = Math.min(e.y0, -y); e.y1 = Math.max(e.y1, -y); };
@@ -77,6 +79,7 @@ function reach() {
     add(proj(v, x, PAPER.h));
     for (let i = 0; i <= 12; i++) { const p = i / 12 * Math.PI; add(proj(v, x, PAPER.h * Math.cos(p), -PAPER.h * Math.sin(p))); }
   }
+  e.mid = (proj(v, PAPER.x0, 0)[0] + proj(v, PAPER.x1, 0)[0]) / 2;
   return e;
 }
 
@@ -102,15 +105,17 @@ function layout() {
   V2 = makeView(0, k, fx + W / 2, box.offsetTop + m.t + SPAN.h * k);
   RIVER = [MID + (fx + 3 - V2.ox) / k, MID + (fx + W - 3 - V2.ox) / k];
 
-  // steps 3-4: the paper, at every stage of the unfolding, with the words of steps 3-4 under it. The figure keeps its
+  // steps 3-5: the paper, at every stage of the unfolding, with the words of steps 3-5 under it. The figure keeps its
   // size, unless that would not fit with the river across the middle; then the paper and the words are centred as one
-  // block, which lifts the river a little above the middle and leaves room under the words.
+  // block, which lifts the river a little above the middle and leaves room under the words. Across, the paper as it
+  // lies (folded or unfolded) is centred over the words, and the swing of its back half stays within the same width.
   PAPER = { x0: -(m.l + (compact ? fs * .8 : 0)) / k, x1: SPAN.w + m.r / k, h: SPAN.h + m.t * .92 / k };   // ("home" beside A needs a bit more)
   hints.forEach(n => { n.style.width = W + 'px'; n.style.left = fx + 'px'; });
   const e = reach(), pad = fs * .6, hg = fs * .9, hh = Math.max(...hints.map(n => n.offsetHeight)), up = e.y1, down = -e.y0;
-  const k3 = Math.max(.5, Math.min(k, W / (e.x1 - e.x0), (SH / 2 - pad) / up, (SH / 2 - pad - hg - hh) / down));
+  const wide = 2 * Math.max(e.mid - e.x0, e.x1 - e.mid);
+  const k3 = Math.max(.5, Math.min(k, W / wide, (SH / 2 - pad) / up, (SH / 2 - pad - hg - hh) / down));
   const oy3 = (SH - (up + down) * k3 - hg - hh) / 2 + up * k3;        // the river
-  V3 = makeView(1, k3, fx + W / 2 - k3 * (e.x0 + e.x1) / 2, oy3);
+  V3 = makeView(1, k3, fx + W / 2 - k3 * e.mid, oy3);
   hintY = oy3 + down * k3 + hg;                                        // just under the lowest the paper reaches
 
   // after step 5: the unfolded paper straight on, no bigger than in step 2, centred with step 5's words under it

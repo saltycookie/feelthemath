@@ -35,13 +35,13 @@ const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long o
 
 /* ---------- the page ---------- */
 const slide = $('#board'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
-const fold = $('#fold'), toggle = $('#toggle'), hint = $('#hint');
-const foldAll = $('#foldAll'), unfoldAll = $('#unfoldAll');
+const switcher = $('#switcher'), toggle = $('#toggle'), wordFold = $('#wordFold'), wordUnfold = $('#wordUnfold');
+const hint = $('#hint');
 let SW = 0, SH = 0;                        // the slide, in px
 let fs = 18, compact = false;              // label size; short screen: "home" and "playground" beside the letters, not above
 let V2 = null, V3 = null;                  // the view in steps 1-2 (the figure under the words) and in step 3
-let PAPER = { x0: -10, x1: 130, h: 40 };   // the sheet of paper, in metres (it takes in the labels around the figure)
-let RIVER = [0, 120];                      // the river's ends in step 2, in metres
+let PAPER = null;                          // the sheet of paper, in metres { x0, x1, h } (it takes in the labels around the figure)
+let RIVER = null;                          // the river's ends in step 2, in metres [west, east]
 let gapW = 0;                              // the gap the 120 m measure leaves for its label
 let hintY = 0;                             // where step 3's closing words go: under the paper
 
@@ -75,7 +75,7 @@ function layout() {
   const gap = parseFloat(getComputedStyle(slide).rowGap) || 0;
   // the figure leaves a strip on the right for step 3's switch: it stays centred when there is room beside it for the
   // switch, and moves left when there is not
-  const g = SW < 560 ? 54 : 70;
+  const g = SW < 560 ? 56 : 70;                                        // (the switch and its words are 56 px wide)
   const W = Math.min(960, SW - g), fx = Math.min((SW - W) / 2, SW - g - W);
   const room = SH - prob.offsetHeight - ask.offsetHeight - 2 * gap;     // the height left for the figure under the words
   fs = clamp(Math.min(W / 48, room / 9), 12, 21);
@@ -103,8 +103,8 @@ function layout() {
   hint.style.left = fx + 'px';
 
   // the switch: in the strip right of the figure, level with the river (as far as the slide allows)
-  const sy = clamp(oy3 - fold.offsetHeight / 2, 0, Math.max(0, SH - fold.offsetHeight));
-  fold.style.transform = 'translate(' + ((fx + W + SW) / 2 - fold.offsetWidth / 2) + 'px,' + sy + 'px)';
+  const sy = clamp(oy3 - switcher.offsetHeight / 2, 0, Math.max(0, SH - switcher.offsetHeight));
+  switcher.style.transform = 'translate(' + ((fx + W + SW) / 2 - switcher.offsetWidth / 2) + 'px,' + sy + 'px)';
 
   svg.setAttribute('viewBox', '0 0 ' + SW + ' ' + SH);
   svg.style.setProperty('--fs', fs + 'px');
@@ -134,7 +134,7 @@ function build() {
   R.pB = el('circle', { class: 'pt' }, R.front);
   R.lB = text(R.front, 'lbl', 'B'); R.cB = text(R.front, 'cap', 'playground');
   R.tB = text(R.front, 'len', '30 m');
-  // the river (in step 3, the fold), C on it, and step 2's 120 m measure under it
+  // the river (in step 3, the fold), C on it, and the 120 m measure under it
   R.river = el('path', { class: 'river' }, svg);
   R.riverT = text(svg, 'cap river-cap', 'river');
   R.pC = el('circle', { class: 'pt c' }, svg);
@@ -266,7 +266,7 @@ function render(S) {
   setText(R.tE, lp[0], lp[1], fadeIn(S.bEast));
 
   // step 3's switch
-  fold.style.opacity = S.sw;
+  switcher.style.opacity = S.sw;
 }
 
 /* ---------- the steps ---------- */
@@ -282,8 +282,7 @@ const ALT = [
 ];
 
 build();
-let deck = null;
-deck = createDeck({
+const deck = createDeck({
   render,
   state: {
     river: 0, a: 0, aDim: 0, b: 0, bRiver: 0, bEast: 0, c: 0, walk: 0, ask: 0,   // step 2: the figure, drawn bit by bit
@@ -334,16 +333,16 @@ deck.onChange(i => {
 });
 
 /* ---------- step 3: a switch folds and unfolds the paper ---------- */
-// Flipping it plays the fold or the unfold, from wherever the paper is. "fold" and "unfold" beside it can be tapped too.
+// Flipping it plays the fold or the unfold, from wherever the paper is. The words "fold" and "unfold" can be tapped too.
 let open = false;                   // where the switch points: false folded, true unfolded
 function setSwitch(on) {
   open = on;
   toggle.setAttribute('aria-checked', on ? 'true' : 'false');
-  foldAll.classList.toggle('now', !on);
-  unfoldAll.classList.toggle('now', on);
+  wordFold.classList.toggle('now', !on);
+  wordUnfold.classList.toggle('now', on);
 }
 function setControls(on) {
-  fold.classList.toggle('on', on);
+  switcher.classList.toggle('on', on);
   toggle.tabIndex = on ? 0 : -1;
   if (on) toggle.removeAttribute('aria-disabled'); else toggle.setAttribute('aria-disabled', 'true');
 }
@@ -355,8 +354,8 @@ function flip(on) {
   deck.tween('unf', to, Math.max(400, 2600 * Math.abs(to - deck.S.unf)));
 }
 toggle.addEventListener('click', () => flip(!open));
-foldAll.addEventListener('click', () => flip(false));
-unfoldAll.addEventListener('click', () => flip(true));
+wordFold.addEventListener('click', () => flip(false));
+wordUnfold.addEventListener('click', () => flip(true));
 
 /* ---------- start ---------- */
 layout();

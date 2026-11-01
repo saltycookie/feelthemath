@@ -28,16 +28,15 @@
       <svg id="fig" role="img" aria-label="The figure"></svg>
 
       <!-- step 3, once the paper has unfolded: under it -->
-      <p class="hint" id="hint"><b>Fold and unfold Danny's world yourself!</b><br>
-        Flip the switch on the right.</p>
+      <p class="hint" id="hint">Fold and unfold Danny's world yourself!</p>
 
       <!-- step 3: a switch on the right folds and unfolds the paper (up: folded, down: unfolded); the words beside it
            can be tapped too -->
-      <div class="fold" id="fold">
-        <button class="fold-end" id="foldAll" type="button" tabindex="-1" aria-hidden="true">fold</button>
+      <div class="switcher" id="switcher">
+        <button class="switch-word" id="wordFold" type="button" tabindex="-1" aria-hidden="true">fold</button>
         <button class="switch" id="toggle" type="button" role="switch" aria-checked="false" aria-label="Unfold the paper"
                 tabindex="-1" aria-disabled="true"><span class="knob"></span></button>
-        <button class="fold-end" id="unfoldAll" type="button" tabindex="-1" aria-hidden="true">unfold</button>
+        <button class="switch-word" id="wordUnfold" type="button" tabindex="-1" aria-hidden="true">unfold</button>
       </div>
     </section>
 

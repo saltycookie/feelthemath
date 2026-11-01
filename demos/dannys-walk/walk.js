@@ -35,13 +35,14 @@ const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long o
 
 /* ---------- the page ---------- */
 const slide = $('#board'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
-const slider = $('#slider'), track = $('#track'), thumb = $('#thumb');
+const slider = $('#slider'), track = $('#track'), thumb = $('#thumb'), hint = $('#hint');
 let SW = 0, SH = 0;                        // the slide, in px
 let fs = 18, compact = false;              // label size; short screen: "home" and "playground" beside the letters, not above
 let V2 = null, V3 = null;                  // the view in steps 1-2 (the figure under the words) and in step 3
 let PAPER = { x0: -10, x1: 130, h: 40 };   // the sheet of paper, in metres (it takes in the labels around the figure)
 let RIVER = [0, 120];                      // the river's ends in step 2, in metres
 let gapW = 0;                              // the gap the 120 m measure leaves for its label
+let hintY = 0;                             // where step 3's closing words go: under the paper
 
 /* ---------- views: where a point of the scene lands on the screen ---------- */
 // t: 0 straight on, 1 step 3's camera. k: px per metre. (ox, oy): where the middle of the river (60, 0, 0) lands.
@@ -89,11 +90,14 @@ function layout() {
   RIVER = [MID + (fx + 3 - V2.ox) / k, MID + (fx + W - 3 - V2.ox) / k];
 
   // step 3: the river across the middle of the slide. The figure keeps its size, unless the paper would not fit
-  // at some stage of the unfolding.
+  // at some stage of the unfolding, with the closing words ("Fold and unfold ...") under it.
   PAPER = { x0: -(m.l + (compact ? fs * .8 : 0)) / k, x1: SPAN.w + m.r / k, h: SPAN.h + m.t * .92 / k };   // ("home" beside A needs a bit more)
-  const e = reach(), pad = fs * .6;
-  const k3 = Math.max(.5, Math.min(k, W / (e.x1 - e.x0), (SH / 2 - pad) / Math.max(e.y1, -e.y0)));
+  hint.style.width = W + 'px';
+  const e = reach(), pad = fs * .6, hg = fs * .7, hh = hint.offsetHeight;
+  const k3 = Math.max(.5, Math.min(k, W / (e.x1 - e.x0), (SH / 2 - pad) / e.y1, (SH / 2 - pad - hg - hh) / -e.y0));
   V3 = makeView(1, k3, fx + W / 2 - k3 * (e.x0 + e.x1) / 2, SH / 2);
+  hintY = SH / 2 - e.y0 * k3 + hg;                                     // just under the lowest the paper reaches
+  hint.style.left = fx + 'px';
 
   // the slider: in the strip right of the figure, centred on the river
   track.style.height = Math.round(clamp(PAPER.h * k3 * 1.6, 110, 380)) + 'px';
@@ -193,6 +197,8 @@ function render(S) {
   prob.style.opacity = S.txt;
   ask.style.opacity = clamp(S.ask, 0, 1);
   ask.style.transform = 'translateY(' + (1 - S.ask) * 10 + 'px)';
+  hint.style.opacity = clamp(S.hint, 0, 1);
+  hint.style.transform = 'translateY(' + (hintY + (1 - S.hint) * 10) + 'px)';
 
   // the paper, folded along the river: it fades in over the figure; later its back half swings down behind
   sheet(R.sheetB, back, PAPER.h, S.paper);
@@ -270,7 +276,7 @@ deck = createDeck({
   render,
   state: {
     river: 0, a: 0, aDim: 0, b: 0, bRiver: 0, bEast: 0, c: 0, walk: 0, ask: 0,   // step 2: the figure, drawn bit by bit
-    txt: 1, m120: 1, view: 0, paper: 0, unf: 0, sl: 0,                            // step 3: words, 120 m, camera, paper, unfolding, slider
+    txt: 1, m120: 1, view: 0, paper: 0, unf: 0, sl: 0, hint: 0,                   // step 3: words, 120 m, camera, paper, unfolding, slider, closing words
   },
   linear: ['walk'],
   steps: [
@@ -291,7 +297,7 @@ deck = createDeck({
       } },
 
     { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper', slide: 'board',
-      set: { txt: 0, ask: 0, m120: 0, view: 1, paper: 1, unf: 1, sl: 1 },
+      set: { txt: 0, ask: 0, m120: 0, view: 1, paper: 1, unf: 1, sl: 1, hint: 1 },
       enter() { touched = false; setSlider(true); },
       leave() { setSlider(false); },
       async play(s) {
@@ -302,6 +308,7 @@ deck = createDeck({
         await s.to('view', 1, 1700);            // the paper rises until the river is across the middle, and is seen from the side
         await s.wait(700);
         if (!touched) await s.to('unf', 1, 3000);   // unfold: the back half swings down, carrying home across the river
+        await s.to('hint', 1, 600, 400);        // now your turn: fold and unfold it
       } },
   ],
 });

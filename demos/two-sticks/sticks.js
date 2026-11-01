@@ -1,4 +1,4 @@
-// Two Sticks, Two Strings
+// Two Perpendicular Sticks
 // "In the figure, AB + CD = 10 cm. What is the length of AC?"  AC and BD cross at O at a right angle, AO = BO = y and OC = OD = x − y.
 // The figure is rebuilt with sticks: AC and BD are both x long, AB = √2·y and CD = √2·(x − y).
 // Laid end to end on a ruler they reach 10 cm, so √2·x = 10 and AC = x = 5√2 cm.

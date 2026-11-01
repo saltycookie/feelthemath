@@ -1,4 +1,4 @@
-/* Two Sticks, Two Strings: styles for this demo only. Colours, font, navigation and the board come from framework/theme.css.
+/* Two Perpendicular Sticks: styles for this demo only. Colours, font, navigation and the board come from framework/theme.css.
    Colour code: blue = y, orange = x − y, pink = what to look at (the picked point, the 10 cm reading, crossings-out).
    The sticks and the ruler are real objects, so they keep their own colours (below). */
 

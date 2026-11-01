@@ -3,11 +3,12 @@
 // A demo describes
 //   - its animated values (`state`: name -> starting number),
 //   - a `render(S)` that draws the page from those values (called on every animation frame),
-//   - its `steps`. Each step says what it changes in the finished look (`set`) and how to get there (`play`).
+//   - its `steps`. Each step says what it changes in the finished look (`set`) and how to get there (`play`, and
+//     `leave` when leaving the step with Next animates too).
 //
 // The engine guarantees, for every demo:
 //   - a step's beginning is the previous step's finished look (unless the step says otherwise);
-//   - Next carries on smoothly from where the previous step finished;
+//   - Next first plays the leaving step's leave() animation, if it has one, then carries on smoothly from there;
 //   - Back, Replay and the step dots jump straight to the step's beginning, hold it for a moment and play the step;
 //   - leaving a step stops its animation at once (no checks needed in `play`);
 //   - while a step is still animating, the deck reports itself busy (Next waits; the dots and the address do not);
@@ -20,9 +21,13 @@
 //   slideClass  class added to that slide while the step is active; restarted on Replay (for CSS animations)
 //   fresh       true: the step starts from the demo's initial state instead of the previous step's finished look
 //   start       values that differ in the step's beginning (on top of the previous finished look, or the initial state)
-//   set         values that change by the end of the step (the finished look = beginning + set)
+//   set         values that have changed by the time the step is left with Next (the finished look = beginning + set):
+//               usually where play ends; where leave ends, when leave animates
 //   play(s)     async function animating from the beginning to the finished look; default: s.apply(s.end)
-//   enter(info) / leave(info)   synchronous hooks for anything that is not an animated value (info.glide: arriving with Next)
+//   enter(info) / leave(info, s)   hooks for anything that is not an animated value (info.glide: arriving / leaving with
+//               Next). leave may also animate, with the runner s as in play (s.end is the step's finished look): an
+//               async leave is waited for when leaving with Next, and cut short by any other move. Use it when the
+//               reader can change the board (a switch, a drag): leave tidies the board into the finished look.
 //   replay      false to disable Replay on this step
 
 export const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -175,20 +180,34 @@ export function createDeck(opts) {
     const glide = how !== 'replay' && cur >= 0 && i === cur + 1;
     const prev = cur;
     cur = i; const ep = ++epoch;
-    if (prev >= 0 && steps[prev].leave) steps[prev].leave({ glide, to: i });
-    showSlides(i, glide);
-    const st = steps[i];
-    if (st.enter) st.enter({ glide, from: prev });
     const pending = [];                                // every tween this step starts, so we know when it is done
     const tw = (...a) => { const p = tween(...a); pending.push(p); return p; };
-    const lead = toStart(i, glide, tw);
+    // Leave the previous step. Its leave() may animate the board to the look it hands over (its finished look), with a
+    // runner like play's. Leaving with Next, the new step waits for that; any other move jumps to the new step's
+    // beginning straight away, which cuts the animation short (its runner is stale from the start).
+    let leaving = null;
+    if (prev >= 0 && steps[prev].leave) leaving = steps[prev].leave({ glide, to: i }, runner(prev, glide ? ep : -1, tw, pending));
+    const waits = glide && typeof leaving?.then === 'function';
+    if (!waits && typeof leaving?.catch === 'function') leaving.catch(e => { if (e !== CANCELLED) throw e; });
+    // the new step takes over: its slide, its enter() hook, and the board to its beginning (returns how long to hold)
+    const st = steps[i];
+    const begin = () => {
+      showSlides(i, glide);
+      if (st.enter) st.enter({ glide, from: prev });
+      return toStart(i, glide, tw);
+    };
+    const lead = waits ? 0 : begin();
     writeHash(i);
     busy = true;                                       // quietly: the listeners below hear it with the new step
     listeners.forEach(f => f(i));
     const s = runner(i, ep, tw, pending);
     (async () => {
       try {
-        await s.wait(lead);
+        if (waits) {                                   // the previous step's leave() animates first
+          await leaving;
+          if (ep !== epoch) return;
+          await s.wait(begin());
+        } else await s.wait(lead);
         if (st.play) await st.play(s); else s.apply(s.end);
         await s.settle();
         if (ep === epoch) setBusy(false);

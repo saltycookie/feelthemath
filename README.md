@@ -109,7 +109,7 @@ to send it elsewhere, or `{ home: false }` to leave it out.
 ### The rules every demo gets for free
 
 - A step **begins** where the previous step finished, minus any bubble.
-- **Next** carries on smoothly from there.
+- **Next** carries on smoothly from there. If the step being left has a `leave` animation, Next plays it first.
 - **Back**, **Replay** and the **step dots** jump straight to the step's beginning, hold it for a moment, then play the step.
 - Leaving a step stops its animation at once, so `play` never has to check whether it is still wanted.
 - **Next** waits (dimmed) until the current step has finished animating, so nobody skips past an explanation
@@ -126,14 +126,14 @@ to send it elsewhere, or `{ home: false }` to leave it out.
 | `title` | Shown in the title band at the top of the page, in orange, as soon as the step is entered. Leave it out for an empty band. |
 | `slide` | `id` of the `<section class="slide">` to show. |
 | `slideClass` | A class added to that slide while the step is active, for CSS animations. Replay restarts them. |
-| `set` | Values that change by the end of the step. The finished look is the beginning plus `set`. |
+| `set` | Values that have changed by the time the step is left with Next: usually where `play` ends, or where `leave` ends when it animates. The finished look is the beginning plus `set`. |
 | `start` | Values that are different at the beginning, on top of the previous finished look. |
 | `fresh` | `true` to begin from the demo's starting `state` instead of the previous finished look (a cleared board). |
 | `play(s)` | Async function that animates the step. Without it, the values glide to the finished look. |
-| `enter(info)`, `leave(info)` | Hooks for things that aren't animated values, such as turning dragging on and off. |
+| `enter(info)`, `leave(info, s)` | Hooks for things that aren't animated values, such as turning dragging on and off. `leave` may also animate, with the same `s` as `play`, to tidy up what the reader changed (a switch, a drag) into the finished look. An async `leave` is waited for when leaving with Next; any other move cuts it short. |
 | `replay` | `false` to disable Replay on this step. |
 
-### Inside `play(s)`
+### Inside `play(s)` (and an animating `leave(info, s)`)
 
 | Call | Does |
 | --- | --- |

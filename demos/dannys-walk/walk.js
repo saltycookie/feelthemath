@@ -148,15 +148,12 @@ function build() {
 /* ---------- helpers (positions are screen points [x, y]) ---------- */
 const fadeIn = (t, from = .6) => clamp((t - from) / (1 - from), 0, 1);     // a label appears as its line finishes
 function line(n, p, q, on) { n.setAttribute('d', on ? 'M' + p + 'L' + q : ''); }
-// a horizontal measure at height y from x0 towards x1, drawn up to fraction t: arrowheads at both ends,
-// and a gap of width gap around gx for its label
-function span(n, x0, x1, y, t, gap, gx) {
-  if (t <= 0) { n.setAttribute('d', ''); return; }
-  const tip = lerp(x0, x1, t), gl = gx - gap / 2, gr = gx + gap / 2, h = fs * .45;
-  const head = (x, dir) => 'M' + (x - dir * h) + ' ' + (y - h * .55) + 'L' + x + ' ' + y + 'L' + (x - dir * h) + ' ' + (y + h * .55);
-  let d = 'M' + x0 + ' ' + y + 'L' + Math.min(tip, gl) + ' ' + y;
-  if (tip > gr) d += 'M' + gr + ' ' + y + 'L' + tip + ' ' + y;
-  n.setAttribute('d', d + head(x0, -1) + head(tip, 1));
+// where the screen segments p0-p1 and q0-q1 cross, as a fraction of the way from p0 to p1 (null if they do not)
+function crossAt(p0, p1, q0, q1) {
+  const rx = p1[0] - p0[0], ry = p1[1] - p0[1], sx = q1[0] - q0[0], sy = q1[1] - q0[1], den = rx * sy - ry * sx;
+  if (Math.abs(den) < 1e-9) return null;
+  const qx = q0[0] - p0[0], qy = q0[1] - p0[1], t = (qx * sy - qy * sx) / den, u = (qx * ry - qy * rx) / den;
+  return t > 0 && t < 1 && u > 0 && u < 1 ? t : null;
 }
 // the sheet of paper h metres tall, on the half that map(x, y) places
 function sheet(n, map, h, op) {
@@ -245,19 +242,29 @@ function render(S) {
   const lag = (Math.hypot(b[0] - c[0], b[1] - c[1]) % DASH) / DASH * MARCH - MARCH;
   if (Math.abs(lag - lagNow) > .004) { R.walkCA.style.animationDelay = lag + 's'; lagNow = lag; }
 
-  // the playground is also 120 m east of A, measured along the river, under C's name. Once the paper unfolds, the
-  // walk from C to home crosses this measure: its label then slides east, just clear of the crossing.
-  const fa = front(A.x, 0), fb = front(B.x, 0), ey = (fa[1] + fb[1]) / 2 + fs * 2.15;
-  R.ext.setAttribute('d', 'M' + fa[0] + ' ' + (fa[1] + fs * .4) + 'V' + (ey + fs * .4) + 'M' + fb[0] + ' ' + (fb[1] + fs * .4) + 'V' + (ey + fs * .4));
+  // the playground is also 120 m east of A, measured along the river, under C's name. The measure lies on the
+  // paper's plane, so it is seen in the same perspective as the river: its far end looks smaller. Its label sits in a
+  // gap at the measure's middle; once the paper unfolds, the walk from C to home crosses the measure, and the label
+  // then slides east along it, just clear of the crossing.
+  const dm = fs * 2.15 / v.k, om = fs * .4 / v.k, hm = fs * .45 / v.k;   // metres: depth under the river, overhang, arrowhead
+  const p0 = front(A.x, -dm), p1 = front(B.x, -dm), len2 = (p1[0] - p0[0]) ** 2 + (p1[1] - p0[1]) ** 2 || 1;
+  const at = q => ((q[0] - p0[0]) * (p1[0] - p0[0]) + (q[1] - p0[1]) * (p1[1] - p0[1])) / len2;   // screen point -> fraction
+  const P = f => [lerp(p0[0], p1[0], f), lerp(p0[1], p1[1], f)];                                      // fraction -> screen point
+  R.ext.setAttribute('d', 'M' + front(A.x, -om) + 'L' + front(A.x, -dm - om) + 'M' + front(B.x, -om) + 'L' + front(B.x, -dm - om));
   setOpacity(R.ext, clamp(S.bEast * 5, 0, 1));
-  let lx = (fa[0] + fb[0]) / 2;
-  const wend = back(lerp(C.x, A.x, u2), lerp(C.y, A.y, u2));
-  if (u2 > 0 && (wend[1] - ey) * (c[1] - ey) < 0) {
-    const xc = c[0] + (wend[0] - c[0]) * (ey - c[1]) / (wend[1] - c[1]);
-    lx = clamp(Math.max(lx, xc + gapW / 2 + fs * .25), lx, fb[0] - gapW / 2);
-  }
-  span(R.dimE, fa[0], fb[0], ey, S.bEast, gapW, lx);
-  setText(R.tE, lx, ey, fadeIn(S.bEast));
+  const half = gapW / 2 / Math.sqrt(len2);
+  let fl = at(front((A.x + B.x) / 2, -dm));
+  const fc = u2 > 0 ? crossAt(p0, p1, c, back(lerp(C.x, A.x, u2), lerp(C.y, A.y, u2))) : null;
+  if (fc !== null) fl = clamp(Math.max(fl, fc + half + fs * .25 / Math.sqrt(len2)), fl, 1 - half);
+  if (S.bEast > 0) {
+    const tx = lerp(A.x, B.x, S.bEast), ft = at(front(tx, -dm));
+    const head = (x, dir) => 'M' + front(x - dir * hm, -dm + .55 * hm) + 'L' + front(x, -dm) + 'L' + front(x - dir * hm, -dm - .55 * hm);
+    let d = 'M' + p0 + 'L' + P(Math.min(ft, fl - half));
+    if (ft > fl + half) d += 'M' + P(fl + half) + 'L' + P(ft);
+    R.dimE.setAttribute('d', d + head(A.x, -1) + head(tx, 1));
+  } else R.dimE.setAttribute('d', '');
+  const lp = P(fl);
+  setText(R.tE, lp[0], lp[1], fadeIn(S.bEast));
 
   // step 3's slider follows the paper (top: folded, bottom: unfolded)
   fold.style.opacity = S.sl;
@@ -310,8 +317,8 @@ deck = createDeck({
 
     { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper', slide: 'board',
       set: { txt: 0, ask: 0, view: 1, paper: 1, unf: 1, sl: 1, hint: 1 },
-      enter() { touched = false; setSlider(true); },
-      leave() { setSlider(false); },
+      enter() { touched = false; stopChase(); setSlider(true); },
+      leave() { stopChase(); setSlider(false); },
       async play(s) {
         s.to({ txt: 0, ask: 0 }, 1200);         // the words fade out ...
         await s.to('paper', 1, 1200);           // ... as the paper fades in over the figure, folded along the river: home is on its back half
@@ -341,35 +348,58 @@ function setSlider(on) {
   if (on) slider.removeAttribute('aria-disabled'); else slider.setAttribute('aria-disabled', 'true');
   if (!on) { dragging = false; slider.classList.remove('drag'); }
 }
-let want = 0, wantAt = 0;           // the last value asked for, and when: quick key presses build on it, not on the gliding value
-function unfoldTo(u, dur) { touched = true; want = clamp(u, 0, 1); wantAt = performance.now(); deck.tween('unf', want, dur); }
-const atPointer = e => { const r = track.getBoundingClientRect(); return (e.clientY - r.top) / r.height; };
+// Where the paper was last asked to go, and when: quick key presses build on it, not on the moving paper.
+let want = 0, wantAt = 0;
+// A tap ("fold", "unfold", or a point on the track): one smooth glide there.
+function glideTo(u, dur) {
+  stopChase(); touched = true; want = clamp(u, 0, 1); wantAt = performance.now();
+  deck.tween('unf', want, dur ?? 300 + 1500 * Math.abs(want - deck.S.unf));
+}
+// A finger dragging the knob, or the arrow keys: the paper chases the asked-for place every frame, closing a share of
+// the distance each time (tau: how quickly, in s). A glide restarted on every move would stay in its slow start, so
+// the paper would lag far behind the finger and feel stuck.
+let chasing = 0, lastT = 0, tau = .08;
+function chase(u, t) {
+  touched = true; want = clamp(u, 0, 1); wantAt = performance.now(); tau = t;
+  if (chasing) return;
+  deck.tween('unf', deck.S.unf, 0);                                    // stop any glide where it is
+  lastT = performance.now(); chasing = requestAnimationFrame(chaseFrame);
+}
+function chaseFrame(now) {
+  const S = deck.S, dt = Math.min(.05, Math.max(0, now - lastT) / 1000);
+  lastT = now;
+  S.unf += (want - S.unf) * (1 - Math.exp(-dt / tau));
+  if (Math.abs(want - S.unf) < .0005) { S.unf = want; chasing = 0; } else chasing = requestAnimationFrame(chaseFrame);
+  deck.dirty();
+}
+function stopChase() { if (chasing) cancelAnimationFrame(chasing); chasing = 0; }
+
+const atPointer = e => { const r = track.getBoundingClientRect(); return clamp((e.clientY - r.top) / r.height, 0, 1); };
 slider.addEventListener('pointerdown', e => {
   if (deck.index !== FOLD) return;
   e.preventDefault(); dragging = true; slider.classList.add('drag');
   try { slider.setPointerCapture(e.pointerId); } catch (_) {}
   slider.focus({ preventScroll: true });
-  const u = clamp(atPointer(e), 0, 1);
-  unfoldTo(u, 150 + 600 * Math.abs(u - deck.S.unf));               // a tap on the track glides the knob there
+  const u = atPointer(e);
+  glideTo(u, 150 + 600 * Math.abs(u - deck.S.unf));                  // a tap on the track glides the knob there
 });
+slider.addEventListener('pointermove', e => { if (dragging) chase(atPointer(e), .03); });    // the knob stays under the finger
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => slider.addEventListener(ev, () => { dragging = false; slider.classList.remove('drag'); }));
 // tell the browser this finger is the slider's, not a scroll of the page
 ['touchstart', 'touchmove'].forEach(t => slider.addEventListener(t, e => { if (deck.index === FOLD) e.preventDefault(); }, { passive: false }));
-const glideTo = u => unfoldTo(u, 300 + 1500 * Math.abs(u - deck.S.unf));
 foldAll.addEventListener('click', () => { if (deck.index === FOLD) glideTo(0); });
 unfoldAll.addEventListener('click', () => { if (deck.index === FOLD) glideTo(1); });
-slider.addEventListener('pointermove', e => { if (dragging) unfoldTo(atPointer(e), 60); });
-['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => slider.addEventListener(ev, () => { dragging = false; slider.classList.remove('drag'); }));
 // the up and down arrow keys fold and unfold anywhere on the step (Home and End too, on the slider itself);
-// the left and right arrows still change step
+// the left and right arrows still change step. Holding a key down keeps the paper moving smoothly.
 document.addEventListener('keydown', e => {
   if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || deck.index !== FOLD) return;
-  const u = performance.now() - wantAt < 400 ? want : deck.S.unf;
+  const u = chasing || performance.now() - wantAt < 400 ? want : deck.S.unf;
   const keys = { ArrowUp: u - .1, ArrowDown: u + .1 };
   if (document.activeElement === slider) Object.assign(keys, { Home: 1, End: 0 });
   const to = keys[e.key];
   if (to === undefined) return;
   e.preventDefault();
-  unfoldTo(Math.round(to * 10) / 10, 250);
+  chase(Math.round(to * 10) / 10, .09);
 });
 
 /* ---------- start ---------- */

@@ -114,6 +114,13 @@ Options of `createDeck` besides `state`, `render` and `steps`: `bubbles` (from `
 `transient` (values that belong to a bubble and are reset with it), `durations` and `delays`
 (per-value defaults for `s.apply`), and `linear` (values that animate at an even pace instead of easing in and out).
 
+### For tools
+
+The page shows which step is on, and whether it is still animating, on its `<html>` element:
+`<html data-step="5" data-step-busy>` while step 5 plays, and `<html data-step="5">` once it has finished.
+Tools that need a step's finished look wait for that, for example `tools/thumbnail.py`, which screenshots a step
+for the home page: open `#step-5`, then wait for `html[data-step="5"]:not([data-step-busy])`.
+
 ## Starting a new demo
 
 [`demos/template`](../demos/template/) is a three-step example to copy: the question, a rectangle that draws
@@ -123,3 +130,6 @@ itself, then the answer.
 2. Write the problem into `index.html`, and the drawing and steps into `demo.js`.
 3. Add a link to it in the site's front page (the top-level `index.html`) and in the table of demos in the
    [top-level README](../README.md).
+4. Give it a thumbnail for the front page: put `<meta name="thumbnail" content="step=N">` in its `index.html`,
+   with the step whose finished look shows the demo best, and run `python3 tools/thumbnail.py demos/<your-demo>`
+   (see [Thumbnails on the home page](../README.md#thumbnails-on-the-home-page)).

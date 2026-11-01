@@ -11,32 +11,44 @@
 <style>
   body{overflow:auto}
   main{max-width:760px;margin:0 auto;padding:clamp(24px,6vh,64px) 0}
-  h1{font-size:clamp(32px,5vw,46px);margin:0 0 .2em;font-weight:700}
+  h1{font-size:clamp(32px,5vw,46px);margin:0 0 .2em;font-weight:700;color:var(--orange)}
   .lead{color:var(--muted);font-size:clamp(18px,2.4vw,22px);margin:0 0 2em}
   ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
-  a.demo{display:block;padding:18px 22px;border:2px solid var(--grid-strong);border-radius:14px;color:inherit;text-decoration:none;
+  /* a demo: its thumbnail on the left; on the right, the title above the short description */
+  a.demo{display:grid;grid-template-columns:120px minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:20px;align-items:start;
+    padding:16px;border:2px solid var(--grid-strong);border-radius:14px;color:inherit;text-decoration:none;
     background:var(--panel);transition:border-color .2s}
   a.demo:hover,a.demo:focus-visible{border-color:var(--chalk);outline:none}
-  .demo h2{margin:0 0 .25em;font-size:24px}
+  .demo .thumb{grid-row:1 / span 2;display:block;width:120px;height:120px;border-radius:8px;border:1px solid var(--grid-strong)}
+  .demo h2{margin:0 0 .25em;font-size:24px;line-height:1.2}
   .demo p{margin:0;color:var(--muted);font-size:18px}
+  @media (max-width:480px){
+    a.demo{column-gap:14px;padding:12px}
+    .demo h2{font-size:21px}
+    .demo p{font-size:16px}
+  }
 </style>
 </head>
 <body>
 <main>
   <h1>Feel the Math</h1>
-  <p class="lead">Learn math by interacting with visual demos: word problems solved step by step on a chalkboard.</p>
+  <p class="lead">Learn math by interacting with visual demos. Feel the connection between math and our physical world.</p>
+  <!-- thumbnails: made with tools/thumbnail.py (see the README) -->
   <ul>
+    <li><a class="demo" href="demos/dannys-walk/">
+      <img class="thumb" src="demos/dannys-walk/thumbnail.png" srcset="demos/dannys-walk/thumbnail@2x.png 2x" width="120" height="120" alt="">
+      <h2>Danny's Walk</h2>
+      <p>From the playground to the river and on home: how short can the walk be? Unfold a paper folded along the river, and the shortest walk is a straight line.</p>
+    </a></li>
     <li><a class="demo" href="demos/qiangs-trip/">
+      <img class="thumb" src="demos/qiangs-trip/thumbnail.png" srcset="demos/qiangs-trip/thumbnail@2x.png 2x" width="120" height="120" alt="">
       <h2>Qiang's Trip</h2>
       <p>15 miles at 30 mph, then 55 mph: how far to average 50 mph? Solved with areas on a speed–time chart.</p>
     </a></li>
     <li><a class="demo" href="demos/two-sticks/">
+      <img class="thumb" src="demos/two-sticks/thumbnail.png" srcset="demos/two-sticks/thumbnail@2x.png 2x" width="120" height="120" alt="">
       <h2>Two Sticks, Two Strings</h2>
       <p>AB + CD = 10 cm: how long is AC? Rebuild the figure with sticks and lay them end to end on a ruler.</p>
-    </a></li>
-    <li><a class="demo" href="demos/dannys-walk/">
-      <h2>Danny's Walk</h2>
-      <p>From the playground to the river and on home: how short can the walk be? Unfold a paper folded along the river, and the shortest walk is a straight line.</p>
     </a></li>
   </ul>
 </main>

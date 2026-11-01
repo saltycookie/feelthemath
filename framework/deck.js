@@ -12,7 +12,8 @@
 //   - Back, Replay and the step dots jump straight to the step's beginning, hold it for a moment and play the step;
 //   - leaving a step stops its animation at once (no checks needed in `play`);
 //   - while a step is still animating, the deck reports itself busy (Next waits; the dots and the address do not);
-//   - the address shows the current step (#step-1, #step-2, ...), so a link can open the demo on any step.
+//   - the address shows the current step (#step-1, #step-2, ...), so a link can open the demo on any step;
+//   - <html> shows it too, for tools: data-step="N", plus data-step-busy while the step is still animating.
 //
 // Step fields (all optional):
 //   name        shown to screen readers on the step dots
@@ -170,7 +171,14 @@ export function createDeck(opts) {
   /* ---------- busy: a step is still animating ---------- */
   let busy = false;
   const busyListeners = [];
-  function setBusy(b) { if (busy !== b) { busy = b; busyListeners.forEach(f => f(b)); } }
+  function setBusy(b) { if (busy !== b) { busy = b; mark(); busyListeners.forEach(f => f(b)); } }
+  // Tools (screenshots, tests) read the deck from the page: <html data-step="3" data-step-busy> while step 3 animates,
+  // and the same without data-step-busy once it has finished. See tools/thumbnail.py.
+  function mark() {
+    const html = document.documentElement;
+    html.dataset.step = cur + 1;
+    html.toggleAttribute('data-step-busy', busy);
+  }
 
   /* ---------- navigation ---------- */
   let cur = -1;
@@ -198,7 +206,7 @@ export function createDeck(opts) {
     };
     const lead = waits ? 0 : begin();
     writeHash(i);
-    busy = true;                                       // quietly: the listeners below hear it with the new step
+    busy = true; mark();                               // quietly: the listeners below hear it with the new step
     listeners.forEach(f => f(i));
     const s = runner(i, ep, tw, pending);
     (async () => {

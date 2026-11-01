@@ -7,7 +7,7 @@
 //   Step 1: the problem.  Step 2: the problem drawn as a figure, ending on "How short can BC + CA be?".
 //   Step 3: the figure is on a sheet of paper folded along the river, with home on the back half. The words fade as
 //   the paper fades in; the paper rises and turns to be seen from the side; then it unfolds, carrying home across the
-//   river, and a slider folds and unfolds it again.
+//   river, and a switch folds and unfolds it again.
 //
 // For step 3 the figure lives in 3D. The paper is the plane z = 0 (z points at the viewer). Its front half, north of
 // the river, stays put. Its back half turns about the river by phi: 0 is folded up behind the front half, pi is flat
@@ -35,7 +35,7 @@ const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long o
 
 /* ---------- the page ---------- */
 const slide = $('#board'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
-const fold = $('#fold'), slider = $('#slider'), track = $('#track'), thumb = $('#thumb'), hint = $('#hint');
+const fold = $('#fold'), toggle = $('#toggle'), hint = $('#hint');
 const foldAll = $('#foldAll'), unfoldAll = $('#unfoldAll');
 let SW = 0, SH = 0;                        // the slide, in px
 let fs = 18, compact = false;              // label size; short screen: "home" and "playground" beside the letters, not above
@@ -73,8 +73,8 @@ function layout() {
   SW = slide.clientWidth; SH = slide.clientHeight;
   if (!SW || !SH) return;
   const gap = parseFloat(getComputedStyle(slide).rowGap) || 0;
-  // the figure leaves a strip on the right for step 3's slider: it stays centred when there is room beside it for the
-  // slider, and moves left when there is not
+  // the figure leaves a strip on the right for step 3's switch: it stays centred when there is room beside it for the
+  // switch, and moves left when there is not
   const g = SW < 560 ? 54 : 70;
   const W = Math.min(960, SW - g), fx = Math.min((SW - W) / 2, SW - g - W);
   const room = SH - prob.offsetHeight - ask.offsetHeight - 2 * gap;     // the height left for the figure under the words
@@ -102,8 +102,7 @@ function layout() {
   hintY = oy3 + down * k3 + hg;                                        // just under the lowest the paper reaches
   hint.style.left = fx + 'px';
 
-  // the slider: in the strip right of the figure, centred on the river (as far as the slide allows)
-  track.style.height = Math.round(clamp(PAPER.h * k3 * 1.6, 110, 380)) + 'px';
+  // the switch: in the strip right of the figure, level with the river (as far as the slide allows)
   const sy = clamp(oy3 - fold.offsetHeight / 2, 0, Math.max(0, SH - fold.offsetHeight));
   fold.style.transform = 'translate(' + ((fx + W + SW) / 2 - fold.offsetWidth / 2) + 'px,' + sy + 'px)';
 
@@ -185,7 +184,7 @@ function point(n, p, op) {
 }
 
 /* ---------- render: the figure for given animated values ---------- */
-let lagNow = 0, foldNow = -1;
+let lagNow = 0;
 function render(S) {
   if (!V2) return;
   const t = S.view, v = makeView(t, lerp(V2.k, V3.k, t), lerp(V2.ox, V3.ox, t), lerp(V2.oy, V3.oy, t));
@@ -266,20 +265,13 @@ function render(S) {
   const lp = P(fl);
   setText(R.tE, lp[0], lp[1], fadeIn(S.bEast));
 
-  // step 3's slider follows the paper (top: folded, bottom: unfolded)
-  fold.style.opacity = S.sl;
-  thumb.style.top = S.unf * 100 + '%';
-  const pct = Math.round((1 - S.unf) * 100);                       // how folded, in %
-  if (pct !== foldNow) {
-    foldNow = pct;
-    slider.setAttribute('aria-valuenow', pct);
-    slider.setAttribute('aria-valuetext', pct === 100 ? 'folded' : pct === 0 ? 'unfolded' : pct + '% folded');
-  }
+  // step 3's switch
+  fold.style.opacity = S.sw;
 }
 
 /* ---------- the steps ---------- */
-const FOLD = 2;                     // the step with the slider
-let touched = false;                // the slider has been used since the step began
+const FOLD = 2;                     // the step with the switch
+let touched = false;                // the switch has been used since the step began
 const ALT = [
   '',
   "A straight river running from west to east. Danny's home, A, is 20 meters north of it. The playground, B, is 120 meters " +
@@ -295,7 +287,7 @@ deck = createDeck({
   render,
   state: {
     river: 0, a: 0, aDim: 0, b: 0, bRiver: 0, bEast: 0, c: 0, walk: 0, ask: 0,   // step 2: the figure, drawn bit by bit
-    txt: 1, view: 0, paper: 0, unf: 0, sl: 0, hint: 0,                            // step 3: words, camera, paper, unfolding, slider, closing words
+    txt: 1, view: 0, paper: 0, unf: 0, sw: 0, hint: 0,                            // step 3: words, camera, paper, unfolding, switch, closing words
   },
   linear: ['walk'],
   steps: [
@@ -316,17 +308,20 @@ deck = createDeck({
       } },
 
     { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper', slide: 'board',
-      set: { txt: 0, ask: 0, view: 1, paper: 1, unf: 1, sl: 1, hint: 1 },
-      enter() { touched = false; stopChase(); setSlider(true); },
-      leave() { stopChase(); setSlider(false); },
+      set: { txt: 0, ask: 0, view: 1, paper: 1, unf: 1, sw: 1, hint: 1 },
+      enter() { touched = false; setSwitch(false); setControls(true); },    // the step begins folded
+      leave() { setControls(false); },
       async play(s) {
         s.to({ txt: 0, ask: 0 }, 1200);         // the words fade out ...
         await s.to('paper', 1, 1200);           // ... as the paper fades in over the figure, folded along the river: home is on its back half
         await s.wait(400);
-        s.to('sl', 1, 500, 1000);               // the slider
+        s.to('sw', 1, 500, 1000);               // the switch
         await s.to('view', 1, 1700);            // the paper rises until the river is across the middle, and is seen from the side
         await s.wait(700);
-        if (!touched) await s.to('unf', 1, 3000);   // unfold: the back half swings down, carrying home across the river
+        if (!touched) {                         // unfold: the back half swings down, carrying home across the river
+          setSwitch(true);
+          await s.to('unf', 1, 3000);
+        }
         await s.to('hint', 1, 600, 400);        // now your turn: fold and unfold it
       } },
   ],
@@ -338,69 +333,30 @@ deck.onChange(i => {
   prob.setAttribute('aria-hidden', i >= FOLD ? 'true' : 'false');
 });
 
-/* ---------- step 3: the slider folds and unfolds the paper ---------- */
-// Drag the knob or tap the track; tap "fold" or "unfold" to glide all the way; or the up and down arrow keys.
-// The taps matter on phones: an app showing the page may keep up-and-down swipes for itself (to scroll or close it).
-let dragging = false;
-function setSlider(on) {
+/* ---------- step 3: a switch folds and unfolds the paper ---------- */
+// Flipping it plays the fold or the unfold, from wherever the paper is. "fold" and "unfold" beside it can be tapped too.
+let open = false;                   // where the switch points: false folded, true unfolded
+function setSwitch(on) {
+  open = on;
+  toggle.setAttribute('aria-checked', on ? 'true' : 'false');
+  foldAll.classList.toggle('now', !on);
+  unfoldAll.classList.toggle('now', on);
+}
+function setControls(on) {
   fold.classList.toggle('on', on);
-  slider.tabIndex = foldAll.tabIndex = unfoldAll.tabIndex = on ? 0 : -1;
-  if (on) slider.removeAttribute('aria-disabled'); else slider.setAttribute('aria-disabled', 'true');
-  if (!on) { dragging = false; slider.classList.remove('drag'); }
+  toggle.tabIndex = on ? 0 : -1;
+  if (on) toggle.removeAttribute('aria-disabled'); else toggle.setAttribute('aria-disabled', 'true');
 }
-// Where the paper was last asked to go, and when: quick key presses build on it, not on the moving paper.
-let want = 0, wantAt = 0;
-// A tap ("fold", "unfold", or a point on the track): one smooth glide there.
-function glideTo(u, dur) {
-  stopChase(); touched = true; want = clamp(u, 0, 1); wantAt = performance.now();
-  deck.tween('unf', want, dur ?? 300 + 1500 * Math.abs(want - deck.S.unf));
-}
-// A finger dragging the knob, or the arrow keys: the paper chases the asked-for place every frame, closing a share of
-// the distance each time (tau: how quickly, in s). A glide restarted on every move would stay in its slow start, so
-// the paper would lag far behind the finger and feel stuck.
-let chasing = 0, lastT = 0, tau = .08;
-function chase(u, t) {
-  touched = true; want = clamp(u, 0, 1); wantAt = performance.now(); tau = t;
-  if (chasing) return;
-  deck.tween('unf', deck.S.unf, 0);                                    // stop any glide where it is
-  lastT = performance.now(); chasing = requestAnimationFrame(chaseFrame);
-}
-function chaseFrame(now) {
-  const S = deck.S, dt = Math.min(.05, Math.max(0, now - lastT) / 1000);
-  lastT = now;
-  S.unf += (want - S.unf) * (1 - Math.exp(-dt / tau));
-  if (Math.abs(want - S.unf) < .0005) { S.unf = want; chasing = 0; } else chasing = requestAnimationFrame(chaseFrame);
-  deck.dirty();
-}
-function stopChase() { if (chasing) cancelAnimationFrame(chasing); chasing = 0; }
-
-const atPointer = e => { const r = track.getBoundingClientRect(); return clamp((e.clientY - r.top) / r.height, 0, 1); };
-slider.addEventListener('pointerdown', e => {
+function flip(on) {
   if (deck.index !== FOLD) return;
-  e.preventDefault(); dragging = true; slider.classList.add('drag');
-  try { slider.setPointerCapture(e.pointerId); } catch (_) {}
-  slider.focus({ preventScroll: true });
-  const u = atPointer(e);
-  glideTo(u, 150 + 600 * Math.abs(u - deck.S.unf));                  // a tap on the track glides the knob there
-});
-slider.addEventListener('pointermove', e => { if (dragging) chase(atPointer(e), .03); });    // the knob stays under the finger
-['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => slider.addEventListener(ev, () => { dragging = false; slider.classList.remove('drag'); }));
-// tell the browser this finger is the slider's, not a scroll of the page
-['touchstart', 'touchmove'].forEach(t => slider.addEventListener(t, e => { if (deck.index === FOLD) e.preventDefault(); }, { passive: false }));
-foldAll.addEventListener('click', () => { if (deck.index === FOLD) glideTo(0); });
-unfoldAll.addEventListener('click', () => { if (deck.index === FOLD) glideTo(1); });
-// the up and down arrow keys fold and unfold anywhere on the step (Home and End too, on the slider itself);
-// the left and right arrows still change step. Holding a key down keeps the paper moving smoothly.
-document.addEventListener('keydown', e => {
-  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || deck.index !== FOLD) return;
-  const u = chasing || performance.now() - wantAt < 400 ? want : deck.S.unf;
-  const keys = { ArrowUp: u - .1, ArrowDown: u + .1 };
-  if (document.activeElement === slider) Object.assign(keys, { Home: 1, End: 0 });
-  const to = keys[e.key];
-  if (to === undefined) return;
-  e.preventDefault();
-  chase(Math.round(to * 10) / 10, .09);
-});
+  touched = true;
+  setSwitch(on);
+  const to = on ? 1 : 0;
+  deck.tween('unf', to, Math.max(400, 2600 * Math.abs(to - deck.S.unf)));
+}
+toggle.addEventListener('click', () => flip(!open));
+foldAll.addEventListener('click', () => flip(false));
+unfoldAll.addEventListener('click', () => flip(true));
 
 /* ---------- start ---------- */
 layout();

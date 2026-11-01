@@ -14,6 +14,7 @@ framework, StepDeck, so new problems are quick to add and every demo looks and b
 | --- | --- |
 | [Qiang's Trip](demos/qiangs-trip/) | 15 miles at 30 mph, then 55 mph: how far to average 50 mph? Solved with areas on a speed–time chart. |
 | [Two Sticks, Two Strings](demos/two-sticks/) | AB + CD = 10 cm: how long is AC? The figure is rebuilt with sticks, which are laid end to end on a ruler. |
+| [Danny's Walk](demos/dannys-walk/) | From the playground to the river and on home: how short can the walk be? A paper folded along the river unfolds, and the shortest walk becomes a straight line. |
 | [Template](demos/template/) | A three-step example to copy when starting a new demo. |
 
 ## Looking at the demos

@@ -15,6 +15,9 @@
 //   Step 5: the switch and the question go, then C1, C2 and C4 with their walks: only the walk through C3 is left, a
 //   straight line on the unfolded paper, and the words say so. Leaving with Next turns the paper back to face the
 //   reader: the unfolded paper, seen straight on in the middle of the slide (step 5 hands over a flat drawing).
+//   Step 6: the picture rises to the top. Lines east from home and south from the playground meet at D: a right
+//   triangle ABD with BD = 30 + 20 = 50 m and AD = 120 m (the 120 m along the river goes), whose long side is the
+//   straight walk. Under it: AB = sqrt(120^2 + 50^2) = sqrt(16 900) = 130 m, and the answer is circled.
 //
 // For steps 3-4 the figure lives in 3D. The paper is the plane z = 0 (z points at the viewer). Its front half, north
 // of the river, stays put. Its back half turns about the river by phi: 0 is folded up behind the front half, pi is flat
@@ -22,7 +25,8 @@
 // `view` turns the camera from straight on (step 2: a flat drawing) to a little west of the paper. The eyes are level
 // with the river and not too far away: the far (east) end looks smaller, so the paper's top and bottom edges close in
 // towards it, while its upright sides stay upright and parallel, and the river stays level. Straight on, `flat` says
-// where the drawing sits: 0 under the words (step 2), 1 in the middle with room for the unfolded paper (after step 5).
+// where the drawing sits: 0 under the words (step 2), 1 in the middle with room for the unfolded paper (after step 5);
+// then `rise` lifts it to the top (step 6).
 
 import { createDeck, onFontsLoaded, clamp } from '../../framework/deck.js';
 import { createNav } from '../../framework/nav.js';
@@ -48,14 +52,16 @@ const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long o
 const slide = $('#board'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
 const switcher = $('#switcher'), toggle = $('#toggle'), wordFold = $('#wordFold'), wordUnfold = $('#wordUnfold');
 const hint3 = $('#hint3'), hint4 = $('#hint4'), hint5 = $('#hint5'), hints = [hint3, hint4, hint5];
+const math = $('#math'), segs = [...math.querySelectorAll('.seg')], ring = $('#ring'), ringPath = ring.querySelector('path');
 let SW = 0, SH = 0;                        // the slide, in px
 let fs = 18, compact = false;              // label size; short screen: "home" and "playground" beside the letters, not above
-let V2 = null, V3 = null, V5 = null;       // the view in steps 1-2 (the figure under the words), in steps 3-5 (from the
-                                           // side), and after step 5 (the unfolded paper straight on)
+let V2 = null, V3 = null, V5 = null, V6 = null;   // the view in steps 1-2 (the figure under the words), in steps 3-5
+                                           // (from the side), after step 5 (the unfolded paper straight on) and in step 6 (at the top)
 let PAPER = null;                          // the sheet of paper, in metres { x0, x1, h } (it takes in the labels around the figure)
 let RIVER = null;                          // the river's ends in step 2, in metres [west, east]
 let gapW = 0;                              // the gap the 120 m measure leaves for its label
-let hintY = 0, hintY5 = 0;                 // where the words under the paper go: in steps 3-5, and after step 5
+let hintY = 0, hintY5 = 0, mathY = 0;      // where the words under the paper go: in steps 3-5, after step 5; step 6's working
+let ringLen = 0;                           // the length of the ring round the answer, in px
 
 /* ---------- views: where a point of the scene lands on the screen ---------- */
 // t: 0 straight on, 1 step 3's camera. k: px per metre. (ox, oy): where the middle of the river (60, 0, 0) lands.
@@ -127,6 +133,16 @@ function layout() {
   V5 = makeView(0, k5, fx + W / 2 + k5 * (MID - (PAPER.x0 + PAPER.x1) / 2), oy5);
   hintY5 = oy5 + ph * k5 + hg;
 
+  // step 6: the same, risen to the top with the working under it (smaller only if the two would not fit). With the
+  // switch gone, it is centred on the slide.
+  math.style.width = (SW - 2 * side) + 'px'; math.style.left = side + 'px';
+  const mh = math.offsetHeight;
+  const k6 = Math.max(.5, Math.min(k5, (SH - 2 * pad - hg - mh) / (2 * ph)));
+  const oy6 = pad + ph * k6;
+  V6 = makeView(0, k6, SW / 2 + k6 * (MID - (PAPER.x0 + PAPER.x1) / 2), oy6);
+  mathY = oy6 + ph * k6 + hg;
+  drawRing();
+
   // the switch: in the strip right of the figure, level with the river (as far as the slide allows)
   const sy = clamp(oy3 - switcher.offsetHeight / 2, 0, Math.max(0, SH - switcher.offsetHeight));
   switcher.style.transform = 'translate(' + ((fx + W + SW) / 2 - switcher.offsetWidth / 2) + 'px,' + sy + 'px)';
@@ -171,6 +187,29 @@ function build() {
   R.ext = el('path', { class: 'ext' }, svg);             // where A's and B's lines meet the river, carried down
   R.dimE = el('path', { class: 'dim' }, svg);            // along the river, between those two points: 120 m
   R.tE = text(svg, 'len', '120 m');
+  // step 6 (on the unfolded paper): the right triangle ABD, with its right angle at D, east of home and south of the playground
+  R.legs = el('path', { class: 'leg' }, svg);            // A to D and B to D
+  R.sqD = el('path', { class: 'sq' }, svg);
+  R.pD = el('circle', { class: 'pt' }, svg);
+  R.lD = text(svg, 'lbl', 'D');
+  R.tBD = text(svg, 'len', '50 m');
+  R.tAD = text(svg, 'len', '120 m');
+}
+const D = { x: B.x, y: -A.y };     // (on the unfolded paper: home is 20 m south of the river)
+
+// step 6: a hand-drawn ring round the answer: a little more than once round, its ends overlapping
+function drawRing() {
+  const r = ring.getBoundingClientRect(), w = r.width, h = r.height;
+  if (!w || !h) return;
+  const n = 64, a0 = -2.5, sweep = 2 * Math.PI + .55, pts = [];
+  for (let i = 0; i <= n; i++) {
+    const u = i / n, a = a0 + sweep * u, g = 1.035 - .07 * u;          // it ends a little inside where it began
+    pts.push([(w / 2 + (w / 2 - 3) * g * Math.cos(a)).toFixed(1), (h / 2 + (h / 2 - 3) * g * Math.sin(a)).toFixed(1)]);
+  }
+  ring.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+  ringPath.setAttribute('d', 'M' + pts.join('L'));
+  ringLen = ringPath.getTotalLength();
+  ringPath.style.strokeDasharray = ringLen;
 }
 
 /* ---------- helpers (positions are screen points [x, y]) ---------- */
@@ -227,8 +266,8 @@ function under(n, op, y) {
 const lagNow = CS.map(() => 0);
 function render(S) {
   if (!V2) return;
-  const t = S.view, F = S.flat, k0 = lerp(V2.k, V5.k, F), ox0 = lerp(V2.ox, V5.ox, F), oy0 = lerp(V2.oy, V5.oy, F);
-  const v = makeView(t, lerp(k0, V3.k, t), lerp(ox0, V3.ox, t), lerp(oy0, V3.oy, t));
+  const t = S.view, F = S.flat, U = S.rise, flat = key => lerp(lerp(V2[key], V5[key], F), V6[key], U);
+  const v = makeView(t, lerp(flat('k'), V3.k, t), lerp(flat('ox'), V3.ox, t), lerp(flat('oy'), V3.oy, t));
   const phi = Math.PI * S.unf, cf = Math.cos(phi), sf = Math.sin(phi);     // 0: folded flat behind the front half; pi: unfolded
   const front = (x, y) => proj(v, x, y);
   const back = (x, y) => proj(v, x, y * cf, -y * sf);       // y: how far from the fold, on the back half
@@ -238,10 +277,18 @@ function render(S) {
   prob.style.opacity = S.txt;
   ask.style.opacity = clamp(S.ask, 0, 1);
   ask.style.transform = 'translateY(' + (1 - S.ask) * 10 + 'px)';
-  const hy = lerp(hintY, hintY5, F * (1 - t));
+  const hy = lerp(lerp(hintY, hintY5, F * (1 - t)), mathY, U);
   under(hint3, S.hint3, hy);
   under(hint4, S.hint4, hy);
   under(hint5, S.hint5, hy);
+  // step 6's working, a piece at a time, and the ring round the answer
+  math.style.transform = 'translateY(' + mathY + 'px)';
+  [S.m1, S.m2, S.m3].forEach((o, i) => {
+    segs[i].style.opacity = clamp(o, 0, 1);
+    segs[i].style.transform = 'translateY(' + (1 - o) * 8 + 'px)';
+  });
+  ringPath.style.strokeDashoffset = ringLen * (1 - S.ring);
+  ring.style.opacity = S.ring > 0 ? 1 : 0;
 
   // the paper, folded along the river: it fades in over the figure; later its back half swings down behind
   sheet(R.sheetB, back, PAPER.h, S.paper);
@@ -309,7 +356,9 @@ function render(S) {
   const at = q => ((q[0] - p0[0]) * (p1[0] - p0[0]) + (q[1] - p0[1]) * (p1[1] - p0[1])) / len2;   // screen point -> fraction
   const P = f => [lerp(p0[0], p1[0], f), lerp(p0[1], p1[1], f)];                                      // fraction -> screen point
   R.ext.setAttribute('d', 'M' + front(A.x, -om) + 'L' + front(A.x, -dm - om) + 'M' + front(B.x, -om) + 'L' + front(B.x, -dm - om));
-  setOpacity(R.ext, clamp(S.bEast * 5, 0, 1));
+  const gone = 1 - S.swap;                                              // (in step 6, AD takes over its job)
+  setOpacity(R.ext, clamp(S.bEast * 5, 0, 1) * gone);
+  setOpacity(R.dimE, gone);
   const half = gapW / 2 / len, room = half + fs * .25 / len, fmid = at(front((A.x + B.x) / 2, -dm));
   // where a walk from q0 to q1 passes the label's height (the label is about one label size tall): a range of fractions
   // along the measure (a walk crossing at a shallow slant covers a wide range), or null if it does not pass
@@ -336,7 +385,21 @@ function render(S) {
     R.dimE.setAttribute('d', d + head(A.x, -1) + head(tx, 1));
   } else R.dimE.setAttribute('d', '');
   const lp = P(fl);
-  setText(R.tE, lp[0], lp[1], fadeIn(S.bEast));
+  setText(R.tE, lp[0], lp[1], fadeIn(S.bEast) * gone);
+
+  // step 6: the right triangle on the unfolded paper. Its legs set out from home (east) and from the playground (south)
+  // together and meet at D; they start at the edge of the points, so as not to cross them. Its long side is the walk.
+  if (S.tri > 0) {
+    const r = fs * .34 / v.k, d = front(D.x, D.y);
+    R.legs.setAttribute('d', 'M' + front(A.x + r, D.y) + 'L' + front(lerp(A.x + r, D.x, S.tri), D.y) +
+      'M' + front(B.x, B.y - r) + 'L' + front(B.x, lerp(B.y - r, D.y, S.tri)));
+    point(R.pD, d, S.dpt);
+  } else { R.legs.setAttribute('d', ''); setOpacity(R.pD, 0); }
+  corner(R.sqD, front, D.x, D.y, [-1, 0], [0, 1], s, S.dpt);
+  label(R.lD, front, D.x, D.y, .85, -.95, S.dpt, v.k);                  // D: below and to the right of its corner
+  // BD's length inside the triangle, beside its middle (B's 30 m is on the other side of the line); AD's under it
+  label(R.tBD, front, D.x, (B.y + D.y) / 2, -2.05, 0, S.swap, v.k);   // (clear of the right angle at the river)
+  label(R.tAD, front, (A.x + D.x) / 2, D.y, 0, -1, S.swap, v.k);
 
   // the switch of steps 3-4
   switcher.style.opacity = S.sw;
@@ -357,6 +420,8 @@ const ALT = [
     'Unfolding the paper shows it.',
   'The paper unfolded, home now 20 meters south of the river. Only the walk through C3 is left: from the playground B ' +
     'it crosses the river at C3 and goes on to home in one straight line. BC3 + C3A is the shortest, because it is a straight line.',
+  'The unfolded paper, straight on. A line east from home A and a line south from the playground B meet at D, making a ' +
+    'right triangle ABD whose long side is the straight walk. BD is 50 meters (30 + 20) and AD is 120 meters.',
 ];
 
 build();
@@ -367,6 +432,7 @@ const deck = createDeck({
     txt: 1, view: 0, paper: 0, unf: 0, sw: 0, hint3: 0,                           // step 3: words, camera, paper, unfolding, switch, closing words
     sub: 0, c2: 0, c3: 0, c4: 0, w2: 0, w3: 0, w4: 0, lab4: 0, hint4: 0,          // step 4: C -> C1, C2-C4, walks 2-4, the 120 m label, question
     focus: 0, hint5: 0, flat: 0,                    // step 5: only C3's walk left, its words, and the flat view to come
+    rise: 0, tri: 0, dpt: 0, swap: 0, m1: 0, m2: 0, m3: 0, ring: 0,   // step 6: to the top, the triangle, D, its lengths, the working
   },
   linear: ['walk', 'w2', 'w3', 'w4'],
   steps: [
@@ -444,6 +510,21 @@ const deck = createDeck({
         await s.to({ sw: 0, hint4: 0 }, 600);   // the switch and the question go
         await s.to('focus', 1, 900, 250);       // then C1, C2 and C4, with their walks: the walk through C3 is left
         await s.to('hint5', 1, 600, 400);       // it is the shortest: on the unfolded paper it is a straight line
+      } },
+
+    // (begins flat: see step 5)
+    { name: 'The answer', title: 'Solve the Problem', slide: 'board',
+      set: { hint5: 0, rise: 1, tri: 1, dpt: 1, swap: 1, m1: 1, m2: 1, m3: 1, ring: 1 },
+      async play(s) {
+        s.to('hint5', 0, 500);                  // the words go ...
+        await s.to('rise', 1, 1300);            // ... as the picture rises to the top
+        await s.to('tri', 1, 1400, 250);        // east from home and south from the playground, until the lines meet ...
+        await s.to('dpt', 1, 450);              // ... at D, with a right angle: a right triangle, its long side the walk
+        await s.to('swap', 1, 900, 300);        // BD = 50 m, AD = 120 m (instead of the 120 m along the river)
+        await s.to('m1', 1, 600, 500);          // AB = sqrt(120^2 + 50^2)
+        await s.to('m2', 1, 600, 600);          //    = sqrt(16 900)
+        await s.to('m3', 1, 600, 600);          //    = 130 m
+        await s.to('ring', 1, 900, 250);        // the answer
       } },
   ],
 });

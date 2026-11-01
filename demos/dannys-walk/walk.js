@@ -108,9 +108,11 @@ function layout() {
   // steps 3-5: the paper, at every stage of the unfolding, with the words of steps 3-5 under it. The figure keeps its
   // size, unless that would not fit with the river across the middle; then the paper and the words are centred as one
   // block, which lifts the river a little above the middle and leaves room under the words. Across, the paper as it
-  // lies (folded or unfolded) is centred over the words, and the swing of its back half stays within the same width.
+  // lies (folded or unfolded) is centred in the figure's strip, and the swing of its back half stays within it. The
+  // words have the whole width of the slide, centred on it: the switch is beside the paper, not under it.
   PAPER = { x0: -(m.l + (compact ? fs * .8 : 0)) / k, x1: SPAN.w + m.r / k, h: SPAN.h + m.t * .92 / k };   // ("home" beside A needs a bit more)
-  hints.forEach(n => { n.style.width = W + 'px'; n.style.left = fx + 'px'; });
+  const side = 16;
+  hints.forEach(n => { n.style.width = (SW - 2 * side) + 'px'; n.style.left = side + 'px'; });
   const e = reach(), pad = fs * .6, hg = fs * .9, hh = Math.max(...hints.map(n => n.offsetHeight)), up = e.y1, down = -e.y0;
   const wide = 2 * Math.max(e.mid - e.x0, e.x1 - e.mid);
   const k3 = Math.max(.5, Math.min(k, W / wide, (SH / 2 - pad) / up, (SH / 2 - pad - hg - hh) / down));

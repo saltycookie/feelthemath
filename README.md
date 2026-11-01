@@ -38,14 +38,6 @@ python3 -m http.server
 
 then open <http://localhost:8000>. Any other static server works too.
 
-## Publishing with GitHub Pages
-
-1. Push this repository to GitHub. On a free GitHub plan the repository has to be public.
-2. In the repository's **Settings → Pages**, choose **Deploy from a branch**, then the `main` branch and the `/ (root)` folder.
-3. After a minute the site is live. Every push to `main` updates it.
-
-Nothing needs to be built first: GitHub Pages serves the files as they are.
-
 ## Folder layout
 
 ```

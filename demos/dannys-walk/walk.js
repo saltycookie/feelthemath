@@ -332,12 +332,16 @@ slider.addEventListener('pointerdown', e => {
 });
 slider.addEventListener('pointermove', e => { if (dragging) unfoldTo(atPointer(e), 60); });
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => slider.addEventListener(ev, () => { dragging = false; slider.classList.remove('drag'); }));
-slider.addEventListener('keydown', e => {
-  if (deck.index !== FOLD) return;
+// the up and down arrow keys fold and unfold anywhere on the step (Home and End too, on the slider itself);
+// the left and right arrows still change step
+document.addEventListener('keydown', e => {
+  if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || deck.index !== FOLD) return;
   const u = performance.now() - wantAt < 400 ? want : deck.S.unf;
-  const to = { ArrowUp: u - .1, ArrowDown: u + .1, Home: 1, End: 0 }[e.key];
+  const keys = { ArrowUp: u - .1, ArrowDown: u + .1 };
+  if (document.activeElement === slider) Object.assign(keys, { Home: 1, End: 0 });
+  const to = keys[e.key];
   if (to === undefined) return;
-  e.preventDefault();                                                // the left and right arrows still change step
+  e.preventDefault();
   unfoldTo(Math.round(to * 10) / 10, 250);
 });
 

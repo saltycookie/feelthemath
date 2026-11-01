@@ -10,7 +10,8 @@
 //   river, and a switch folds and unfolds it again. Leaving with Next folds the paper up again (however the reader
 //   left it) as the closing words go: step 3 hands over a folded paper.
 //   Step 4: C becomes C1, and C2, C3, C4 join it on the bank, each with its own walk from B to home in its own colour:
-//   which is the shortest? (Unfolding shows it: the walk through C3 is a straight line.)
+//   which is the shortest? (Unfolding shows it: the walk through C3 is a straight line.) Leaving with Next unfolds the
+//   paper (however the reader left it): step 4 hands over an unfolded paper, ready for step 5.
 //
 // For steps 3-4 the figure lives in 3D. The paper is the plane z = 0 (z points at the viewer). Its front half, north
 // of the river, stays put. Its back half turns about the river by phi: 0 is folded up behind the front half, pi is flat
@@ -381,10 +382,16 @@ const deck = createDeck({
         await s.to('hint3', 1, 600, 400);       // now your turn: fold and unfold it
       } },
 
-    { name: 'Four walks', title: 'Which Path Is the Shortest?', slide: 'board',     // (begins folded: see step 3)
-      set: { sub: 1, c2: 1, c3: 1, c4: 1, w2: 1, w3: 1, w4: 1, lab4: 1, hint4: 1 },
+    // (begins folded: see step 3. Its finished look, the look it hands over: the four walks drawn, the question shown,
+    // and the paper unfolded; leave() gets there)
+    { name: 'Four walks', title: 'Which Path Is the Shortest?', slide: 'board',
+      set: { sub: 1, c2: 1, c3: 1, c4: 1, w2: 1, w3: 1, w4: 1, lab4: 1, hint4: 1, unf: 1 },
       enter() { setSwitch(false); setControls(true); },
-      leave() { setControls(false); },
+      async leave(info, s) {                    // on Next: unfold the paper, from wherever the reader left it
+        setControls(false);
+        setSwitch(true);
+        await s.to('unf', 1, 2600 * (1 - s.S.unf));                    // (no time if it is unfolded already)
+      },
       async play(s) {
         s.to('lab4', 1, 900);                   // the 120 m label moves to where no walk will cross it, as ...
         await s.to('sub', 1, 600);              // ... C becomes C1 ...

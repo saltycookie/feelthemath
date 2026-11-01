@@ -90,19 +90,22 @@ function layout() {
   V2 = makeView(0, k, fx + W / 2, box.offsetTop + m.t + SPAN.h * k);
   RIVER = [MID + (fx + 3 - V2.ox) / k, MID + (fx + W - 3 - V2.ox) / k];
 
-  // step 3: the river across the middle of the slide. The figure keeps its size, unless the paper would not fit
-  // at some stage of the unfolding, with the closing words ("Fold and unfold ...") under it.
+  // step 3: the paper, at every stage of the unfolding, with the closing words ("Fold and unfold ...") under it.
+  // The figure keeps its size, unless that would not fit with the river across the middle; then the paper and the
+  // words are centred as one block, which lifts the river a little above the middle and leaves room under the words.
   PAPER = { x0: -(m.l + (compact ? fs * .8 : 0)) / k, x1: SPAN.w + m.r / k, h: SPAN.h + m.t * .92 / k };   // ("home" beside A needs a bit more)
   hint.style.width = W + 'px';
-  const e = reach(), pad = fs * .6, hg = fs * .7, hh = hint.offsetHeight;
-  const k3 = Math.max(.5, Math.min(k, W / (e.x1 - e.x0), (SH / 2 - pad) / e.y1, (SH / 2 - pad - hg - hh) / -e.y0));
-  V3 = makeView(1, k3, fx + W / 2 - k3 * (e.x0 + e.x1) / 2, SH / 2);
-  hintY = SH / 2 - e.y0 * k3 + hg;                                     // just under the lowest the paper reaches
+  const e = reach(), pad = fs * .6, hg = fs * .9, hh = hint.offsetHeight, up = e.y1, down = -e.y0;
+  const k3 = Math.max(.5, Math.min(k, W / (e.x1 - e.x0), (SH / 2 - pad) / up, (SH / 2 - pad - hg - hh) / down));
+  const oy3 = (SH - (up + down) * k3 - hg - hh) / 2 + up * k3;        // the river
+  V3 = makeView(1, k3, fx + W / 2 - k3 * (e.x0 + e.x1) / 2, oy3);
+  hintY = oy3 + down * k3 + hg;                                        // just under the lowest the paper reaches
   hint.style.left = fx + 'px';
 
-  // the slider: in the strip right of the figure, centred on the river
+  // the slider: in the strip right of the figure, centred on the river (as far as the slide allows)
   track.style.height = Math.round(clamp(PAPER.h * k3 * 1.6, 110, 380)) + 'px';
-  fold.style.transform = 'translate(' + ((fx + W + SW) / 2 - fold.offsetWidth / 2) + 'px,' + (SH / 2 - fold.offsetHeight / 2) + 'px)';
+  const sy = clamp(oy3 - fold.offsetHeight / 2, 0, Math.max(0, SH - fold.offsetHeight));
+  fold.style.transform = 'translate(' + ((fx + W + SW) / 2 - fold.offsetWidth / 2) + 'px,' + sy + 'px)';
 
   svg.setAttribute('viewBox', '0 0 ' + SW + ' ' + SH);
   svg.style.setProperty('--fs', fs + 'px');
@@ -146,10 +149,10 @@ function build() {
 const fadeIn = (t, from = .6) => clamp((t - from) / (1 - from), 0, 1);     // a label appears as its line finishes
 function line(n, p, q, on) { n.setAttribute('d', on ? 'M' + p + 'L' + q : ''); }
 // a horizontal measure at height y from x0 towards x1, drawn up to fraction t: arrowheads at both ends,
-// and a gap of width gap around the middle for its label
-function span(n, x0, x1, y, t, gap) {
+// and a gap of width gap around gx for its label
+function span(n, x0, x1, y, t, gap, gx) {
   if (t <= 0) { n.setAttribute('d', ''); return; }
-  const tip = lerp(x0, x1, t), gl = (x0 + x1 - gap) / 2, gr = (x0 + x1 + gap) / 2, h = fs * .45;
+  const tip = lerp(x0, x1, t), gl = gx - gap / 2, gr = gx + gap / 2, h = fs * .45;
   const head = (x, dir) => 'M' + (x - dir * h) + ' ' + (y - h * .55) + 'L' + x + ' ' + y + 'L' + (x - dir * h) + ' ' + (y + h * .55);
   let d = 'M' + x0 + ' ' + y + 'L' + Math.min(tip, gl) + ' ' + y;
   if (tip > gr) d += 'M' + gr + ' ' + y + 'L' + tip + ' ' + y;
@@ -226,13 +229,7 @@ function render(S) {
   line(R.dimB, b, front(B.x, B.y * (1 - S.bRiver)), S.bRiver > 0);
   corner(R.sqB, front, B.x, 0, [-1, 0], [0, 1], s, fadeIn(S.bRiver));
   label(R.tB, front, B.x, B.y / 2, 1.75, 0, fadeIn(S.bRiver), v.k);
-  // ... and 120 m east of A, measured along the river, under C's name (step 2 only)
-  const fa = front(A.x, 0), fb = front(B.x, 0), ey = (fa[1] + fb[1]) / 2 + fs * 2.15;
-  R.ext.setAttribute('d', 'M' + fa[0] + ' ' + (fa[1] + fs * .4) + 'V' + (ey + fs * .4) + 'M' + fb[0] + ' ' + (fb[1] + fs * .4) + 'V' + (ey + fs * .4));
-  setOpacity(R.ext, clamp(S.bEast * 5, 0, 1) * S.m120);
-  span(R.dimE, fa[0], fb[0], ey, S.bEast, gapW);
-  setOpacity(R.dimE, S.m120);
-  setText(R.tE, (fa[0] + fb[0]) / 2, ey, fadeIn(S.bEast) * S.m120);
+  // (and 120 m east of A: drawn after the walk, below)
 
   // a point C on the bank
   const c = front(C.x, C.y);
@@ -247,6 +244,20 @@ function render(S) {
   // the dashes run on from one part into the next: the second part's march lags by the first part's length
   const lag = (Math.hypot(b[0] - c[0], b[1] - c[1]) % DASH) / DASH * MARCH - MARCH;
   if (Math.abs(lag - lagNow) > .004) { R.walkCA.style.animationDelay = lag + 's'; lagNow = lag; }
+
+  // the playground is also 120 m east of A, measured along the river, under C's name. Once the paper unfolds, the
+  // walk from C to home crosses this measure: its label then slides east, just clear of the crossing.
+  const fa = front(A.x, 0), fb = front(B.x, 0), ey = (fa[1] + fb[1]) / 2 + fs * 2.15;
+  R.ext.setAttribute('d', 'M' + fa[0] + ' ' + (fa[1] + fs * .4) + 'V' + (ey + fs * .4) + 'M' + fb[0] + ' ' + (fb[1] + fs * .4) + 'V' + (ey + fs * .4));
+  setOpacity(R.ext, clamp(S.bEast * 5, 0, 1));
+  let lx = (fa[0] + fb[0]) / 2;
+  const wend = back(lerp(C.x, A.x, u2), lerp(C.y, A.y, u2));
+  if (u2 > 0 && (wend[1] - ey) * (c[1] - ey) < 0) {
+    const xc = c[0] + (wend[0] - c[0]) * (ey - c[1]) / (wend[1] - c[1]);
+    lx = clamp(Math.max(lx, xc + gapW / 2 + fs * .25), lx, fb[0] - gapW / 2);
+  }
+  span(R.dimE, fa[0], fb[0], ey, S.bEast, gapW, lx);
+  setText(R.tE, lx, ey, fadeIn(S.bEast));
 
   // step 3's slider follows the paper (top: folded, bottom: unfolded)
   fold.style.opacity = S.sl;
@@ -277,7 +288,7 @@ deck = createDeck({
   render,
   state: {
     river: 0, a: 0, aDim: 0, b: 0, bRiver: 0, bEast: 0, c: 0, walk: 0, ask: 0,   // step 2: the figure, drawn bit by bit
-    txt: 1, m120: 1, view: 0, paper: 0, unf: 0, sl: 0, hint: 0,                   // step 3: words, 120 m, camera, paper, unfolding, slider, closing words
+    txt: 1, view: 0, paper: 0, unf: 0, sl: 0, hint: 0,                            // step 3: words, camera, paper, unfolding, slider, closing words
   },
   linear: ['walk'],
   steps: [
@@ -298,11 +309,11 @@ deck = createDeck({
       } },
 
     { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper', slide: 'board',
-      set: { txt: 0, ask: 0, m120: 0, view: 1, paper: 1, unf: 1, sl: 1, hint: 1 },
+      set: { txt: 0, ask: 0, view: 1, paper: 1, unf: 1, sl: 1, hint: 1 },
       enter() { touched = false; setSlider(true); },
       leave() { setSlider(false); },
       async play(s) {
-        s.to({ txt: 0, ask: 0, m120: 0 }, 1200);   // the words fade out ...
+        s.to({ txt: 0, ask: 0 }, 1200);         // the words fade out ...
         await s.to('paper', 1, 1200);           // ... as the paper fades in over the figure, folded along the river: home is on its back half
         await s.wait(400);
         s.to('sl', 1, 500, 1000);               // the slider

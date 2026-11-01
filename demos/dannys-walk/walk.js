@@ -12,13 +12,17 @@
 //   Step 4: C becomes C1, and C2, C3, C4 join it on the bank, each with its own walk from B to home in its own colour:
 //   which is the shortest? (Unfolding shows it: the walk through C3 is a straight line.) Leaving with Next unfolds the
 //   paper (however the reader left it): step 4 hands over an unfolded paper, ready for step 5.
+//   Step 5: the switch and the question go, then C1, C2 and C4 with their walks: only the walk through C3 is left, a
+//   straight line on the unfolded paper, and the words say so. Leaving with Next turns the paper back to face the
+//   reader: the unfolded paper, seen straight on in the middle of the slide (step 5 hands over a flat drawing).
 //
 // For steps 3-4 the figure lives in 3D. The paper is the plane z = 0 (z points at the viewer). Its front half, north
 // of the river, stays put. Its back half turns about the river by phi: 0 is folded up behind the front half, pi is flat
 // south of the river. A point of the back half x metres east and v metres from the fold is at (x, v cos phi, -v sin phi).
 // `view` turns the camera from straight on (step 2: a flat drawing) to a little west of the paper. The eyes are level
 // with the river and not too far away: the far (east) end looks smaller, so the paper's top and bottom edges close in
-// towards it, while its upright sides stay upright and parallel, and the river stays level.
+// towards it, while its upright sides stay upright and parallel, and the river stays level. Straight on, `flat` says
+// where the drawing sits: 0 under the words (step 2), 1 in the middle with room for the unfolded paper (after step 5).
 
 import { createDeck, onFontsLoaded, clamp } from '../../framework/deck.js';
 import { createNav } from '../../framework/nav.js';
@@ -43,14 +47,15 @@ const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long o
 /* ---------- the page ---------- */
 const slide = $('#board'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
 const switcher = $('#switcher'), toggle = $('#toggle'), wordFold = $('#wordFold'), wordUnfold = $('#wordUnfold');
-const hint3 = $('#hint3'), hint4 = $('#hint4');
+const hint3 = $('#hint3'), hint4 = $('#hint4'), hint5 = $('#hint5'), hints = [hint3, hint4, hint5];
 let SW = 0, SH = 0;                        // the slide, in px
 let fs = 18, compact = false;              // label size; short screen: "home" and "playground" beside the letters, not above
-let V2 = null, V3 = null;                  // the view in steps 1-2 (the figure under the words) and in steps 3-4
+let V2 = null, V3 = null, V5 = null;       // the view in steps 1-2 (the figure under the words), in steps 3-5 (from the
+                                           // side), and after step 5 (the unfolded paper straight on)
 let PAPER = null;                          // the sheet of paper, in metres { x0, x1, h } (it takes in the labels around the figure)
 let RIVER = null;                          // the river's ends in step 2, in metres [west, east]
 let gapW = 0;                              // the gap the 120 m measure leaves for its label
-let hintY = 0;                             // where the words of steps 3-4 go: under the paper
+let hintY = 0, hintY5 = 0;                 // where the words under the paper go: in steps 3-5, and after step 5
 
 /* ---------- views: where a point of the scene lands on the screen ---------- */
 // t: 0 straight on, 1 step 3's camera. k: px per metre. (ox, oy): where the middle of the river (60, 0, 0) lands.
@@ -101,13 +106,19 @@ function layout() {
   // size, unless that would not fit with the river across the middle; then the paper and the words are centred as one
   // block, which lifts the river a little above the middle and leaves room under the words.
   PAPER = { x0: -(m.l + (compact ? fs * .8 : 0)) / k, x1: SPAN.w + m.r / k, h: SPAN.h + m.t * .92 / k };   // ("home" beside A needs a bit more)
-  hint3.style.width = hint4.style.width = W + 'px';
-  const e = reach(), pad = fs * .6, hg = fs * .9, hh = Math.max(hint3.offsetHeight, hint4.offsetHeight), up = e.y1, down = -e.y0;
+  hints.forEach(n => { n.style.width = W + 'px'; n.style.left = fx + 'px'; });
+  const e = reach(), pad = fs * .6, hg = fs * .9, hh = Math.max(...hints.map(n => n.offsetHeight)), up = e.y1, down = -e.y0;
   const k3 = Math.max(.5, Math.min(k, W / (e.x1 - e.x0), (SH / 2 - pad) / up, (SH / 2 - pad - hg - hh) / down));
   const oy3 = (SH - (up + down) * k3 - hg - hh) / 2 + up * k3;        // the river
   V3 = makeView(1, k3, fx + W / 2 - k3 * (e.x0 + e.x1) / 2, oy3);
   hintY = oy3 + down * k3 + hg;                                        // just under the lowest the paper reaches
-  hint3.style.left = hint4.style.left = fx + 'px';
+
+  // after step 5: the unfolded paper straight on, no bigger than in step 2, centred with step 5's words under it
+  const ph = PAPER.h, h5 = hint5.offsetHeight;
+  const k5 = Math.max(.5, Math.min(k, W / (PAPER.x1 - PAPER.x0), (SH - 2 * pad - hg - h5) / (2 * ph)));
+  const oy5 = (SH - 2 * ph * k5 - hg - h5) / 2 + ph * k5;             // the river
+  V5 = makeView(0, k5, fx + W / 2 + k5 * (MID - (PAPER.x0 + PAPER.x1) / 2), oy5);
+  hintY5 = oy5 + ph * k5 + hg;
 
   // the switch: in the strip right of the figure, level with the river (as far as the slide allows)
   const sy = clamp(oy3 - switcher.offsetHeight / 2, 0, Math.max(0, SH - switcher.offsetHeight));
@@ -199,17 +210,18 @@ function point(n, p, op) {
   n.setAttribute('r', fs * .34 * (.4 + .6 * op));
   setOpacity(n, op);
 }
-// words under the paper (steps 3-4): they fade in rising a little
-function under(n, op) {
+// words under the paper (steps 3-5) at height y: they fade in rising a little
+function under(n, op, y) {
   n.style.opacity = clamp(op, 0, 1);
-  n.style.transform = 'translateY(' + (hintY + (1 - op) * 10) + 'px)';
+  n.style.transform = 'translateY(' + (y + (1 - op) * 10) + 'px)';
 }
 
 /* ---------- render: the figure for given animated values ---------- */
 const lagNow = CS.map(() => 0);
 function render(S) {
   if (!V2) return;
-  const t = S.view, v = makeView(t, lerp(V2.k, V3.k, t), lerp(V2.ox, V3.ox, t), lerp(V2.oy, V3.oy, t));
+  const t = S.view, F = S.flat, k0 = lerp(V2.k, V5.k, F), ox0 = lerp(V2.ox, V5.ox, F), oy0 = lerp(V2.oy, V5.oy, F);
+  const v = makeView(t, lerp(k0, V3.k, t), lerp(ox0, V3.ox, t), lerp(oy0, V3.oy, t));
   const phi = Math.PI * S.unf, cf = Math.cos(phi), sf = Math.sin(phi);     // 0: folded flat behind the front half; pi: unfolded
   const front = (x, y) => proj(v, x, y);
   const back = (x, y) => proj(v, x, y * cf, -y * sf);       // y: how far from the fold, on the back half
@@ -219,8 +231,10 @@ function render(S) {
   prob.style.opacity = S.txt;
   ask.style.opacity = clamp(S.ask, 0, 1);
   ask.style.transform = 'translateY(' + (1 - S.ask) * 10 + 'px)';
-  under(hint3, S.hint3);
-  under(hint4, S.hint4);
+  const hy = lerp(hintY, hintY5, F * (1 - t));
+  under(hint3, S.hint3, hy);
+  under(hint4, S.hint4, hy);
+  under(hint5, S.hint5, hy);
 
   // the paper, folded along the river: it fades in over the figure; later its back half swings down behind
   sheet(R.sheetB, back, PAPER.h, S.paper);
@@ -250,12 +264,14 @@ function render(S) {
   label(R.tB, front, B.x, B.y / 2, 1.75, 0, fadeIn(S.bRiver), v.k);
   // (and 120 m east of A: drawn after the walks, below)
 
-  // the points on the bank: C (pink), which in step 4 becomes C1 in its walk's colour, and C2-C4
-  const cs = CS.map(p => front(p.x, p.y)), shown = [S.c * S.sub, S.c2, S.c3, S.c4];
+  // the points on the bank: C (pink), which in step 4 becomes C1 in its walk's colour, and C2-C4. In step 5 all but
+  // C3 go, with their walks.
+  const keep = CS.map((_, i) => i === 2 ? 1 : 1 - S.focus);
+  const cs = CS.map(p => front(p.x, p.y)), shown = [S.c * S.sub, S.c2, S.c3, S.c4].map((o, i) => o * keep[i]);
   point(R.pC, cs[0], S.c); setOpacity(R.pC, S.c * (1 - S.sub));
   setText(R.lC, cs[0][0], cs[0][1] + fs * 1.15, S.c * (1 - S.sub));
   cs.forEach((q, i) => {
-    point(R.pCs[i], q, i ? shown[i] : S.c); setOpacity(R.pCs[i], shown[i]);     // (C1 keeps C's size as it changes colour)
+    point(R.pCs[i], q, i ? shown[i] : S.c * keep[0]); setOpacity(R.pCs[i], shown[i]);   // (C1 keeps C's size as it changes colour)
     setText(R.lCs[i], q[0], q[1] + fs * 1.15, shown[i]);
   });
 
@@ -267,6 +283,7 @@ function render(S) {
     const t1 = clamp(d / bc, 0, 1), t2 = clamp((d - bc) / ca, 0, 1);
     line(R.walkB[i], b, front(lerp(B.x, p.x, t1), lerp(B.y, p.y, t1)), d > 0);
     line(R.walkA[i], cs[i], back(lerp(p.x, A.x, t2), lerp(p.y, A.y, t2)), t2 > 0);
+    setOpacity(R.walkB[i], keep[i]); setOpacity(R.walkA[i], keep[i]);
     // the dashes run on from one piece into the next: the second piece's march lags by the first piece's length
     const lag = (Math.hypot(b[0] - cs[i][0], b[1] - cs[i][1]) % DASH) / DASH * MARCH - MARCH;
     if (Math.abs(lag - lagNow[i]) > .004) { R.walkA[i].style.animationDelay = lag + 's'; lagNow[i] = lag; }
@@ -331,6 +348,8 @@ const ALT = [
   'The paper folded again. Four points on the river bank: C2 near home, C3, C1, and C4 near the playground. Four walks, ' +
     'each in its own colour, go from the playground B to one of the points and on to home A. Which one is the shortest? ' +
     'Unfolding the paper shows it.',
+  'The paper unfolded, home now 20 meters south of the river. Only the walk through C3 is left: from the playground B ' +
+    'it crosses the river at C3 and goes on to home in one straight line. BC3 + C3A is the shortest, because it is a straight line.',
 ];
 
 build();
@@ -340,6 +359,7 @@ const deck = createDeck({
     river: 0, a: 0, aDim: 0, b: 0, bRiver: 0, bEast: 0, c: 0, walk: 0, ask: 0,   // step 2: the figure, drawn bit by bit
     txt: 1, view: 0, paper: 0, unf: 0, sw: 0, hint3: 0,                           // step 3: words, camera, paper, unfolding, switch, closing words
     sub: 0, c2: 0, c3: 0, c4: 0, w2: 0, w3: 0, w4: 0, lab4: 0, hint4: 0,          // step 4: C -> C1, C2-C4, walks 2-4, the 120 m label, question
+    focus: 0, hint5: 0, flat: 0,                    // step 5: only C3's walk left, its words, and the flat view to come
   },
   linear: ['walk', 'w2', 'w3', 'w4'],
   steps: [
@@ -402,6 +422,21 @@ const deck = createDeck({
         await s.to('w3', 1, 1500, 200);
         await s.to('w4', 1, 1500, 200);
         await s.to('hint4', 1, 600, 400);       // which one is the shortest? unfold to find out
+      } },
+
+    // (begins unfolded: see step 4. Its finished look, the look it hands over: only the walk through C3 left, the words
+    // under it, and the unfolded paper seen straight on again; leave() gets there)
+    { name: 'The straight walk', title: 'Which Path Is the Shortest?', slide: 'board',
+      set: { sw: 0, hint4: 0, focus: 1, hint5: 1, flat: 1, view: 0 },
+      enter() { setSwitch(true); setControls(false); },      // the paper stays unfolded from here on
+      async leave(info, s) {                    // on Next: the paper turns back to face the reader, flat in the middle
+        s.to('flat', 1, 0);                     // (straight on, the drawing will sit in the middle, not under step 2's words)
+        await s.to('view', 0, 1700);
+      },
+      async play(s) {
+        await s.to({ sw: 0, hint4: 0 }, 600);   // the switch and the question go
+        await s.to('focus', 1, 900, 250);       // then C1, C2 and C4, with their walks: the walk through C3 is left
+        await s.to('hint5', 1, 600, 400);       // it is the shortest: on the unfolded paper it is a straight line
       } },
   ],
 });

@@ -54,16 +54,18 @@
 
 /* step 6: the right triangle, and the working under the picture (walk.js places it) */
 #fig .leg{fill:none;stroke:var(--chalk);stroke-width:2.2;stroke-linecap:butt}
-.math{position:absolute;left:0;top:0;margin:0;color:var(--chalk);text-align:center;text-wrap:balance;pointer-events:none;
-  font:700 clamp(19px, min(max(22px, 3.1vw), 4.6vh), 36px)/1.5 var(--font-hand);text-shadow:0 0 .3em var(--halo)}
-.math .seg{display:inline-block;white-space:nowrap;opacity:0;will-change:transform, opacity}
+.math{position:absolute;left:50%;top:0;width:max-content;margin:0;color:var(--chalk);pointer-events:none;white-space:nowrap;
+  display:grid;grid-template-columns:repeat(3, max-content);column-gap:.35em;align-items:baseline;
+  font:700 clamp(19px, min(max(22px, 3.1vw), 4.6vh), 36px)/1.45 var(--font-hand);text-shadow:0 0 .3em var(--halo)}
+.math .ml{justify-self:end}                               /* AB, then nothing: so the equals signs line up */
+.math [data-s]{display:inline-block;opacity:0;will-change:transform, opacity}
 .math sup{position:relative;top:-.62em;font-size:.62em;line-height:0;vertical-align:baseline}   /* raised without raising the line */
 .rad{display:inline-block;white-space:nowrap}
 .rad::before{content:"";display:inline-block;width:.5em;height:1.1em;margin-right:-.04em;vertical-align:-.27em;background:currentColor;
   -webkit-mask:var(--rad-svg) no-repeat 0 0/100% 100%;mask:var(--rad-svg) no-repeat 0 0/100% 100%}
 .rad > span{display:inline-block;padding:.02em .08em 0 .05em;border-top:.075em solid currentColor;line-height:1.02}
-.math .ans{position:relative;display:inline-block;margin:0 .32em 0 .3em}   /* room for the ring */
-.math .ring{position:absolute;left:-.4em;top:-.12em;width:calc(100% + .8em);height:calc(100% + .24em);
+.math .ans{position:relative;margin:0 .32em 0 .12em}      /* room for the ring */
+.math .ring{position:absolute;left:-.32em;top:-.12em;width:calc(100% + .64em);height:calc(100% + .24em);
   overflow:visible;opacity:0}
 .math .ring path{fill:none;stroke:var(--orange);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 

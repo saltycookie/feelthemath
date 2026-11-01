@@ -32,12 +32,15 @@
       <p class="hint" id="hint4">Which path is the shortest? Unfold to find it out!</p>
       <p class="hint" id="hint5"><i>BC</i><sub>3</sub> + <i>C</i><sub>3</sub><i>A</i> is the shortest because it forms a straight line!</p>
 
-      <!-- step 6: the working under the picture, a piece at a time; the line breaks only between the pieces -->
-      <p class="math" id="math"><span class="seg"><i>AB</i> = <span class="rad"><span>120<sup>2</sup> + 50<sup>2</sup></span></span></span>
-        <span class="seg">= 10 × <span class="rad"><span>12<sup>2</sup> + 5<sup>2</sup></span></span></span>
-        <span class="seg">= 10 × <span class="rad"><span>169</span></span></span>
-        <span class="seg">= 10 × 13</span>
-        <span class="seg">= <span class="ans">130 m<svg class="ring" id="ring" aria-hidden="true"><path/></svg></span></span></p>
+      <!-- step 6: the working under the picture, in three lines with their first equals signs lined up (a grid: what is
+           worked out, =, the rest), the answer on a line of its own. It appears a piece at a time: data-s numbers the pieces. -->
+      <div class="math" id="math">
+        <span class="ml" data-s="1"><i>AB</i></span><span class="me" data-s="1">=</span><span class="mr"><span data-s="1"><span class="rad"><span>120<sup>2</sup> + 50<sup>2</sup></span></span></span>
+          <span data-s="2">= 10 × <span class="rad"><span>12<sup>2</sup> + 5<sup>2</sup></span></span></span></span>
+        <span class="ml"></span><span class="me" data-s="3">=</span><span class="mr"><span data-s="3">10 × <span class="rad"><span>169</span></span></span>
+          <span data-s="4">= 10 × 13</span></span>
+        <span class="ml"></span><span class="me" data-s="5">=</span><span class="mr"><span class="ans" data-s="5">130 m<svg class="ring" id="ring" aria-hidden="true"><path/></svg></span></span>
+      </div>
 
       <!-- steps 3-4: a switch on the right folds and unfolds the paper (up: folded, down: unfolded); the words beside it
            can be tapped too -->

@@ -17,8 +17,10 @@
 //   reader: the unfolded paper, seen straight on in the middle of the slide (step 5 hands over a flat drawing).
 //   Step 6: the picture rises to the top. Lines east from home and south from the playground meet at D: a right
 //   triangle ABD with BD = 30 + 20 = 50 m and AD = 120 m (the 120 m along the river goes), whose long side is the
-//   straight walk. Under it: AB = sqrt(120^2 + 50^2) = 10 x sqrt(12^2 + 5^2) = 10 x sqrt(169) = 10 x 13 = 130 m, and
-//   the answer is circled.
+//   straight walk. Under it, in three lines with their first equals signs lined up:
+//     AB = sqrt(120^2 + 50^2) = 10 x sqrt(12^2 + 5^2)
+//        = 10 x sqrt(169) = 10 x 13
+//        = 130 m           (circled)
 //
 // For steps 3-4 the figure lives in 3D. The paper is the plane z = 0 (z points at the viewer). Its front half, north
 // of the river, stays put. Its back half turns about the river by phi: 0 is folded up behind the front half, pi is flat
@@ -53,7 +55,8 @@ const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long o
 const slide = $('#board'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
 const switcher = $('#switcher'), toggle = $('#toggle'), wordFold = $('#wordFold'), wordUnfold = $('#wordUnfold');
 const hint3 = $('#hint3'), hint4 = $('#hint4'), hint5 = $('#hint5'), hints = [hint3, hint4, hint5];
-const math = $('#math'), segs = [...math.querySelectorAll('.seg')], ring = $('#ring'), ringPath = ring.querySelector('path');
+const math = $('#math'), ring = $('#ring'), ringPath = ring.querySelector('path');
+const pieces = [1, 2, 3, 4, 5].map(i => [...math.querySelectorAll('[data-s="' + i + '"]')]);   // step 6's working, piece by piece
 let SW = 0, SH = 0;                        // the slide, in px
 let fs = 18, compact = false;              // label size; short screen: "home" and "playground" beside the letters, not above
 let V2 = null, V3 = null, V5 = null, V6 = null;   // the view in steps 1-2 (the figure under the words), in steps 3-5
@@ -136,7 +139,10 @@ function layout() {
 
   // step 6: the same, risen to the top with the working under it (smaller only if the two would not fit). With the
   // switch gone, it is centred on the slide.
-  math.style.width = (SW - 2 * side) + 'px'; math.style.left = side + 'px';
+  // (the working's lines do not wrap: on a narrow slide its letters get smaller instead)
+  math.style.fontSize = '';
+  const mw = math.offsetWidth, mf = parseFloat(getComputedStyle(math).fontSize);
+  if (mw > SW - 2 * side) math.style.fontSize = Math.floor(mf * (SW - 2 * side) / mw) + 'px';
   const mh = math.offsetHeight;
   const k6 = Math.max(.5, Math.min(k5, (SH - 2 * pad - hg - mh) / (2 * ph)));
   const oy6 = pad + ph * k6;
@@ -283,11 +289,11 @@ function render(S) {
   under(hint4, S.hint4, hy);
   under(hint5, S.hint5, hy);
   // step 6's working, a piece at a time, and the ring round the answer
-  math.style.transform = 'translateY(' + mathY + 'px)';
-  [S.m1, S.m2, S.m3, S.m4, S.m5].forEach((o, i) => {
-    segs[i].style.opacity = clamp(o, 0, 1);
-    segs[i].style.transform = 'translateY(' + (1 - o) * 8 + 'px)';
-  });
+  math.style.transform = 'translate(-50%,' + mathY + 'px)';
+  [S.m1, S.m2, S.m3, S.m4, S.m5].forEach((o, i) => pieces[i].forEach(n => {
+    n.style.opacity = clamp(o, 0, 1);
+    n.style.transform = 'translateY(' + (1 - o) * 8 + 'px)';
+  }));
   ringPath.style.strokeDashoffset = ringLen * (1 - S.ring);
   ring.style.opacity = S.ring > 0 ? 1 : 0;
 

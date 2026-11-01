@@ -7,9 +7,10 @@
 //   Step 1: the problem.  Step 2: the problem drawn as a figure, ending on "How short can BC + CA be?".
 //   Step 3: the figure is on a sheet of paper folded along the river, with home on the back half. The words fade as
 //   the paper fades in; the paper rises and turns to be seen from the side; then it unfolds, carrying home across the
-//   river, and a switch folds and unfolds it again.
-//   Step 4: the paper folds up again. C becomes C1, and C2, C3, C4 join it on the bank, each with its own walk from B
-//   to home in its own colour: which is the shortest? (Unfolding shows it: the walk through C3 is a straight line.)
+//   river, and a switch folds and unfolds it again. Leaving with Next folds the paper up again (however the reader
+//   left it) as the closing words go: step 3 hands over a folded paper.
+//   Step 4: C becomes C1, and C2, C3, C4 join it on the bank, each with its own walk from B to home in its own colour:
+//   which is the shortest? (Unfolding shows it: the walk through C3 is a straight line.)
 //
 // For steps 3-4 the figure lives in 3D. The paper is the plane z = 0 (z points at the viewer). Its front half, north
 // of the river, stays put. Its back half turns about the river by phi: 0 is folded up behind the front half, pi is flat
@@ -357,10 +358,15 @@ const deck = createDeck({
         await s.to('ask', 1, 600, 350);         // how short can it be?
       } },
 
+    // (its finished look, the look it hands over: the paper folded again and the closing words gone; leave() gets there)
     { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper', slide: 'board',
-      set: { txt: 0, ask: 0, view: 1, paper: 1, unf: 1, sw: 1, hint3: 1 },
+      set: { txt: 0, ask: 0, view: 1, paper: 1, unf: 0, sw: 1, hint3: 0 },
       enter() { touched = false; setSwitch(false); setControls(true); },    // the step begins folded
-      leave() { setControls(false); },
+      async leave(info, s) {                    // on Next: fold the paper up again, from wherever the reader left it, as the words go
+        setControls(false);
+        setSwitch(false);
+        await Promise.all([s.to('hint3', 0, 600 * s.S.hint3), s.to('unf', 0, 2600 * s.S.unf)]);   // (no time if already so)
+      },
       async play(s) {
         s.to({ txt: 0, ask: 0 }, 1200);         // the words fade out ...
         await s.to('paper', 1, 1200);           // ... as the paper fades in over the figure, folded along the river: home is on its back half
@@ -375,15 +381,13 @@ const deck = createDeck({
         await s.to('hint3', 1, 600, 400);       // now your turn: fold and unfold it
       } },
 
-    { name: 'Four walks', title: 'Which Path Is the Shortest?', slide: 'board',
-      set: { hint3: 0, unf: 0, sub: 1, c2: 1, c3: 1, c4: 1, w2: 1, w3: 1, w4: 1, lab4: 1, hint4: 1 },
-      enter(info) { keepFold(info); setSwitch(false); setControls(true); },
+    { name: 'Four walks', title: 'Which Path Is the Shortest?', slide: 'board',     // (begins folded: see step 3)
+      set: { sub: 1, c2: 1, c3: 1, c4: 1, w2: 1, w3: 1, w4: 1, lab4: 1, hint4: 1 },
+      enter() { setSwitch(false); setControls(true); },
       leave() { setControls(false); },
       async play(s) {
-        s.to('hint3', 0, 600);                  // step 3's words go ...
-        s.to('lab4', 1, 900);                   // (the 120 m label moves to where no walk will cross it)
-        await s.to('unf', 0, Math.max(600, 2600 * s.S.unf));   // ... as the paper folds up again, if it is not folded already
-        await s.to('sub', 1, 600, 300);         // C becomes C1 ...
+        s.to('lab4', 1, 900);                   // the 120 m label moves to where no walk will cross it, as ...
+        await s.to('sub', 1, 600);              // ... C becomes C1 ...
         await s.to('c2', 1, 450, 200);          // ... and C2, C3, C4 join it on the bank
         await s.to('c3', 1, 450, 150);
         await s.to('c4', 1, 450, 150);
@@ -425,14 +429,6 @@ function flip(on) {
 toggle.addEventListener('click', () => flip(!open));
 wordFold.addEventListener('click', () => flip(false));
 wordUnfold.addEventListener('click', () => flip(true));
-// Arriving with Next from a step where the reader may have folded or unfolded the paper: leave it as it is, rather than
-// letting it glide back to how that step ended (the new step then folds it from there). The deck starts that glide right
-// after enter(), so it is stopped a moment later.
-function keepFold(info) {
-  if (!info.glide) return;
-  const u = deck.S.unf;
-  queueMicrotask(() => deck.tween('unf', u, 0));
-}
 
 /* ---------- start ---------- */
 layout();

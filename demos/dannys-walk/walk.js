@@ -5,13 +5,15 @@
 // The figure is drawn to scale, in metres: the river bank is the line y = 0 (east to the right, north up),
 // home A = (0, 20), playground B = (120, 30), and C is a point on the bank. Danny walks B -> C -> A.
 //   Step 1: the problem.  Step 2: the problem drawn as a figure, ending on "How short can BC + CA be?".
-//   Step 3: the figure is on a sheet of paper folded along the river, with home on the back half. The paper unfolds,
-//   carrying home across the river, and a slider folds and unfolds it again.
+//   Step 3: the figure is on a sheet of paper folded along the river, with home on the back half. The words fade as
+//   the paper fades in; the paper rises and turns to be seen from the side; then it unfolds, carrying home across the
+//   river, and a slider folds and unfolds it again.
 //
 // For step 3 the figure lives in 3D. The paper is the plane z = 0 (z points at the viewer). Its front half, north of
 // the river, stays put. Its back half turns about the river by phi: 0 is folded up behind the front half, pi is flat
 // south of the river. A point of the back half x metres east and v metres from the fold is at (x, v cos phi, -v sin phi).
-// `view` turns the camera from straight on (step 2: a flat drawing) to a little to the left of the paper and above it.
+// `view` turns the camera from straight on (step 2: a flat drawing) to the left of the paper and a little above it.
+// The camera is very far away, so there is no perspective: lines that are parallel on the paper stay parallel.
 
 import { createDeck, onFontsLoaded, clamp } from '../../framework/deck.js';
 import { createNav } from '../../framework/nav.js';
@@ -27,8 +29,7 @@ const C = { x: 80, y: 0 };        // a point on the river bank (any point will d
 const SPAN = { w: 120, h: 30 };   // what the step-2 figure has to show: from A to B, and from the river up to B
 const MID = 60;                   // the figure turns about the middle of the river under it, (60, 0, 0)
 const MAX_K = 7.5;                // largest scale, px per metre
-const CAM = { yaw: 24 * Math.PI / 180, pitch: 14 * Math.PI / 180, dist: 260 };   // step 3's camera: to the left, above, how far (m)
-const OPEN = .12;                 // radians: the folded paper is held open a crack, so both halves show
+const CAM = { yaw: 28 * Math.PI / 180, pitch: 18 * Math.PI / 180 };   // step 3's camera: this far to the left, and above
 const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long one dash takes to march along it (s): see walk.css
 
 /* ---------- the page ---------- */
@@ -44,15 +45,13 @@ let gapW = 0;                              // the gap the 120 m measure leaves f
 /* ---------- views: where a point of the scene lands on the screen ---------- */
 // t: 0 straight on, 1 step 3's camera. k: px per metre. (ox, oy): where the middle of the river (60, 0, 0) lands.
 function makeView(t, k, ox, oy) {
-  return { k, ox, oy, cy: Math.cos(CAM.yaw * t), sy: Math.sin(CAM.yaw * t), cp: Math.cos(CAM.pitch * t), sp: Math.sin(CAM.pitch * t),
-    q: t / CAM.dist };
+  return { k, ox, oy, cy: Math.cos(CAM.yaw * t), sy: Math.sin(CAM.yaw * t), cp: Math.cos(CAM.pitch * t), sp: Math.sin(CAM.pitch * t) };
 }
 function proj(v, x, y, z = 0) {
   const px = x - MID;
   const x1 = px * v.cy + z * v.sy, z1 = z * v.cy - px * v.sy;      // turn about the upright axis: the west end comes nearer
-  const y2 = y * v.cp - z1 * v.sp, z2 = y * v.sp + z1 * v.cp;      // tip the top towards the viewer: seen from a little above
-  const f = 1 / (1 - z2 * v.q);                                     // nearer things look bigger
-  return [v.ox + v.k * x1 * f, v.oy - v.k * y2 * f];
+  const y2 = y * v.cp - z1 * v.sp;                                  // tip the top towards the viewer: seen from a little above
+  return [v.ox + v.k * x1, v.oy - v.k * y2];                        // (from far away: no perspective)
 }
 // how far the paper reaches in step 3's view, at 1 px per metre around the middle of the river: its front half, and
 // its back half all the way through the unfolding (up and down are positive and negative y)
@@ -90,7 +89,7 @@ function layout() {
 
   // step 3: the river across the middle of the slide. The figure keeps its size, unless the paper would not fit
   // at some stage of the unfolding.
-  PAPER = { x0: -m.l / k, x1: SPAN.w + m.r / k, h: SPAN.h + m.t * .92 / k };
+  PAPER = { x0: -(m.l + (compact ? fs * .8 : 0)) / k, x1: SPAN.w + m.r / k, h: SPAN.h + m.t * .92 / k };   // ("home" beside A needs a bit more)
   const e = reach(), pad = fs * .6;
   const k3 = Math.max(.5, Math.min(k, W / (e.x1 - e.x0), (SH / 2 - pad) / Math.max(e.y1, -e.y0)));
   V3 = makeView(1, k3, fx + W / 2 - k3 * (e.x0 + e.x1) / 2, SH / 2);
@@ -184,7 +183,7 @@ let lagNow = 0, foldNow = -1;
 function render(S) {
   if (!V2) return;
   const t = S.view, v = makeView(t, lerp(V2.k, V3.k, t), lerp(V2.ox, V3.ox, t), lerp(V2.oy, V3.oy, t));
-  const phi = OPEN * S.paper + (Math.PI - OPEN * S.paper) * S.unf, cf = Math.cos(phi), sf = Math.sin(phi);
+  const phi = Math.PI * S.unf, cf = Math.cos(phi), sf = Math.sin(phi);     // 0: folded flat behind the front half; pi: unfolded
   const front = (x, y) => proj(v, x, y);
   const back = (x, y) => proj(v, x, y * cf, -y * sf);       // y: how far from the fold, on the back half
   const s = fs * .6 / v.k;                                   // the right-angle marks, in metres
@@ -194,10 +193,9 @@ function render(S) {
   ask.style.opacity = clamp(S.ask, 0, 1);
   ask.style.transform = 'translateY(' + (1 - S.ask) * 10 + 'px)';
 
-  // the paper: both halves rise from the river together, folded; then the back half swings down behind
-  const h = PAPER.h * S.paper, op = clamp(S.paper * 4, 0, 1);
-  sheet(R.sheetB, back, h, op);
-  sheet(R.sheetF, front, h, op);
+  // the paper, folded along the river: it fades in over the figure; later its back half swings down behind
+  sheet(R.sheetB, back, PAPER.h, S.paper);
+  sheet(R.sheetF, front, PAPER.h, S.paper);
   setOpacity(R.back, 1 - .45 * S.paper * clamp(.5 + cf, 0, 1));    // home shows dimly through the front half while behind it
 
   // the river, drawn from west to east; in step 3 it is the fold, as wide as the paper
@@ -296,12 +294,12 @@ deck = createDeck({
       enter() { touched = false; setSlider(true); },
       leave() { setSlider(false); },
       async play(s) {
-        s.to({ txt: 0, ask: 0, m120: 0 }, 600); // the words go
-        await s.wait(350);
-        await s.to('view', 1, 1500);            // the river moves to the middle, and the figure is seen a little from the side
-        s.to('sl', 1, 500, 400);                // the slider
-        await s.to('paper', 1, 1200);           // a sheet of paper rises from the river, folded: home is on its back half
-        await s.wait(800);
+        s.to({ txt: 0, ask: 0, m120: 0 }, 1200);   // the words fade out ...
+        await s.to('paper', 1, 1200);           // ... as the paper fades in over the figure, folded along the river: home is on its back half
+        await s.wait(400);
+        s.to('sl', 1, 500, 1000);               // the slider
+        await s.to('view', 1, 1700);            // the paper rises until the river is across the middle, and is seen from the side
+        await s.wait(700);
         if (!touched) await s.to('unf', 1, 3000);   // unfold: the back half swings down, carrying home across the river
       } },
   ],

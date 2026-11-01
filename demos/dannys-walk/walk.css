@@ -72,6 +72,8 @@
 .switcher{position:absolute;left:0;top:0;width:56px;display:flex;flex-direction:column;align-items:center;gap:4px;
   opacity:0;pointer-events:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .switcher.on{pointer-events:auto}
+.switcher:not(.on){filter:opacity(.4)}                   /* dimmed while it does not work: while the step plays */
+.switcher{transition:filter .3s}
 .switch-word{font:400 16px/1.15 var(--font-hand);color:var(--muted);background:none;border:0;border-radius:10px;padding:10px 4px;
   cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .25s}
 .switch-word.now{color:var(--chalk);font-weight:700}                                /* the side the switch points to */
@@ -90,4 +92,4 @@
   .problem{max-width:48em}
   .switch-word{font-size:14px;padding:6px 4px}
 }
-@media (prefers-reduced-motion: reduce){ #fig .walk{animation:none} .switch .knob{transition:none} }
+@media (prefers-reduced-motion: reduce){ #fig .walk{animation:none} .switch .knob,.switcher{transition:none} }

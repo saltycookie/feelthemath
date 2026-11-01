@@ -410,8 +410,7 @@ function render(S) {
 }
 
 /* ---------- the steps ---------- */
-const FOLD = 2, PATHS = 3;          // the steps with the switch: the folded paper, and which path is the shortest
-let touched = false;                // the switch has been used since step 3 began
+const FOLD = 2;                     // the first step with the paper (steps 3-4 also have the switch)
 const ALT = [
   '',
   "A straight river running from west to east. Danny's home, A, is 20 meters north of it. The playground, B, is 120 meters " +
@@ -460,7 +459,7 @@ const deck = createDeck({
     // (its finished look, the look it hands over: the paper folded again and the closing words gone; leave() gets there)
     { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper', slide: 'board',
       set: { txt: 0, ask: 0, view: 1, paper: 1, unf: 0, sw: 1, hint3: 0 },
-      enter() { touched = false; setSwitch(false); setControls(true); },    // the step begins folded
+      enter() { setSwitch(false); setControls(false); },   // the step begins folded; the switch comes at the end
       async leave(info, s) {                    // on Next: fold the paper up again, from wherever the reader left it, as the words go
         setControls(false);
         setSwitch(false);
@@ -470,21 +469,20 @@ const deck = createDeck({
         s.to({ txt: 0, ask: 0 }, 1200);         // the words fade out ...
         await s.to('paper', 1, 1200);           // ... as the paper fades in over the figure, folded along the river: home is on its back half
         await s.wait(400);
-        s.to('sw', 1, 500, 1000);               // the switch
         await s.to('view', 1, 1700);            // the paper rises until the river is across the middle, and is seen from the side
         await s.wait(700);
-        if (!touched) {                         // unfold: the back half swings down, carrying home across the river
-          setSwitch(true);
-          await s.to('unf', 1, 3000);
-        }
-        await s.to('hint3', 1, 600, 400);       // now your turn: fold and unfold it
+        setSwitch(true);                        // unfold: the back half swings down, carrying home across the river
+        await s.to('unf', 1, 3000);
+        await s.wait(400);
+        setControls(true);                      // now your turn: the switch appears with the words, ready to use
+        await s.to({ sw: 1, hint3: 1 }, 600);
       } },
 
     // (begins folded: see step 3. Its finished look, the look it hands over: the four walks drawn, the question shown,
     // and the paper unfolded; leave() gets there)
     { name: 'Four walks', title: 'Which Path Is the Shortest?', slide: 'board',
       set: { sub: 1, c2: 1, c3: 1, c4: 1, w2: 1, w3: 1, w4: 1, lab4: 1, hint4: 1, unf: 1 },
-      enter() { setSwitch(false); setControls(true); },
+      enter() { setSwitch(false); setControls(false); },   // the switch waits until the walks are drawn
       async leave(info, s) {                    // on Next: unfold the paper, from wherever the reader left it
         setControls(false);
         setSwitch(true);
@@ -500,6 +498,7 @@ const deck = createDeck({
         await s.to('w3', 1, 1500, 200);
         await s.to('w4', 1, 1500, 200);
         await s.to('hint4', 1, 600, 400);       // which one is the shortest? unfold to find out
+        setControls(true);                      // over to the reader
       } },
 
     // (begins unfolded: see step 4. Its finished look, the look it hands over: only the walk through C3 left, the words
@@ -544,6 +543,7 @@ deck.onChange(i => {
 
 /* ---------- steps 3-4: a switch folds and unfolds the paper ---------- */
 // Flipping it plays the fold or the unfold, from wherever the paper is. The words "fold" and "unfold" can be tapped too.
+// It works only once the step has played (setControls(true)); while the step animates it is shown dimmed.
 let open = false;                   // where the switch points: false folded, true unfolded
 function setSwitch(on) {
   open = on;
@@ -557,8 +557,7 @@ function setControls(on) {
   if (on) toggle.removeAttribute('aria-disabled'); else toggle.setAttribute('aria-disabled', 'true');
 }
 function flip(on) {
-  if (deck.index !== FOLD && deck.index !== PATHS) return;
-  touched = true;
+  if (!switcher.classList.contains('on')) return;     // (a key press on a switch that still has the focus)
   setSwitch(on);
   const to = on ? 1 : 0;
   deck.tween('unf', to, Math.max(400, 2600 * Math.abs(to - deck.S.unf)));

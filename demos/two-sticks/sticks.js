@@ -63,7 +63,7 @@ const ALT = [
   'BD is taken from the corner, laid under AC and marked the same way. Then BD is laid across AC at a right angle at O.',
   'AB is taken from the corner and laid on top, labeled root 2 times y, then CD, labeled root 2 times x minus y.',
   'The two thin sticks are laid end to end on the ruler and reach 10 centimetres: root 2 times y plus root 2 times x minus y equals 10.',
-  'The equation moves to the top of the board and is solved line by line. x equals 10 divided by root 2, which is 5 root 2, so AC is 5 root 2 centimetres.',
+  'The equation moves to the top of the page and is solved line by line. x equals 10 divided by root 2, which is 5 root 2, so AC is 5 root 2 centimetres.',
 ];
 
 /* ================= helpers ================= */
@@ -125,7 +125,7 @@ function buildStatic() {
   setXY(text(gRuler, 'ruler-unit', 'cm'), { x: RUL.x0 - .22, y: RUL.top + 1.16 });
 }
 
-// steps 1 and 2: the homework drawing in chalk
+// steps 1 and 2: the homework drawing in ink
 const gMarks = mk('g', null, svg);
 const drTickY = mk('path', { class: 'tick tick-y' }, gMarks);
 const drTickZ = mk('path', { class: 'tick tick-z' }, gMarks);
@@ -155,13 +155,13 @@ function makeStick() {
 }
 const stAC = makeStick();
 const stBD = makeStick();
-// the four sides start as chalk lines, turn into thin sticks (step 2) and go to the pile (step 3);
+// the four sides start as ink lines, turn into thin sticks (step 2) and go to the pile (step 3);
 // AB and CD are fetched from the pile again later in step 3
 function makeThin() {
   const w = mk('g', null, gSticks);
   return {
     w,
-    chalk: mk('line', { class: 'pencil' }, w),
+    ink: mk('line', { class: 'pencil' }, w),
     shadow: mk('line', { class: 'thin-shadow', filter: 'url(#softU)' }, w),
     edge: mk('line', { class: 'thin-edge' }, w),
     paint: mk('line', { class: 'thin thin-n' }, w),
@@ -271,10 +271,10 @@ function trimSeg(p, q) {
 }
 // how high a stick is while it is carried a fraction t of the way (0: lying on the mat, 1: in the air)
 const airborne = t => clamp(Math.sin(Math.PI * clamp(t)) * 3);
-// seg: where the stick is; stk: 0 = still a chalk line, 1 = a stick; rise: how high it is lifted
+// seg: where the stick is; stk: 0 = still an ink line, 1 = a stick; rise: how high it is lifted
 function placeThin(th, seg, stk, rise, alpha) {
-  setLine(th.chalk, seg[0], seg[1]);
-  op(th.chalk, 1 - stk);
+  setLine(th.ink, seg[0], seg[1]);
+  op(th.ink, 1 - stk);
   const [p, q] = trimSeg(seg[0], seg[1]);
   const so = { x: REST.x + .1 * rise, y: REST.y + .14 * rise };
   setLine(th.shadow, add(p, so, 1), add(q, so, 1));
@@ -579,7 +579,7 @@ const deck = createDeck({
   ],
 });
 createNav(document.querySelector('.nav'), deck);
-deck.onChange(i => svg.setAttribute('aria-label', `The board, step ${i + 1} of ${deck.count}. ${ALT[i]}`));
+deck.onChange(i => svg.setAttribute('aria-label', `The figure, step ${i + 1} of ${deck.count}. ${ALT[i]}`));
 
 layout();
 onFontsLoaded(layout);

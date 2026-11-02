@@ -1,12 +1,12 @@
-/* Danny's Walk: styles for this demo only. Colours, font, navigation and the board come from framework/theme.css.
+/* Danny's Walk: styles for this demo only. Colours, font, navigation and the page come from framework/theme.css.
    Colour code: blue = the river, orange = Danny's walk from B to C to A (and the words about it),
-   pink = the point C on the river bank, chalk = the given places and distances, the paper of steps 3-6, and step 6's
+   pink = the point C on the river bank, ink = the given places and distances, the see-through paper of steps 3-6, and step 6's
    triangle and working. Step 4 gives each of its four walks (through C1-C4) a colour of its own; walk 1 stays orange.
    The ring round the answer in step 6 is orange: it is the length of Danny's walk. */
 
 :root{
-  --chalk-dim:color-mix(in srgb, var(--chalk) 62%, transparent);      /* measuring lines */
-  --walk1:var(--orange); --walk2:#c8acff; --walk3:#f2de6a; --walk4:#ff8cc4;   /* step 4's walks: orange, lavender, yellow, rose */
+  --ink-dim:color-mix(in srgb, var(--ink) 62%, transparent);      /* measuring lines */
+  --walk1:var(--orange); --walk2:#8d5fd6; --walk3:#2e9a5e; --walk4:#d9478f;   /* step 4's walks: orange, violet, green, rose */
   /* the square-root sign (as in Two Sticks): a mask, so that it takes the colour of the text */
   --rad-svg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 24'%3E%3Cpath d='M1 13.6 3.9 12.2 7.3 22.2 11.4 1.2' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
@@ -16,37 +16,37 @@
 .problem{margin:0;max-width:34em;font:400 clamp(14px, min(max(19px, 2.7vw), 4vh), 31px)/1.35 var(--font-hand);text-wrap:pretty}   /* smaller on short screens */
 .problem b{font-weight:700}
 .figbox{flex:none;width:100%;height:220px}         /* the figure's place under the words: walk.js sets its height */
-.ask{margin:0;color:var(--orange);font:700 clamp(16px, min(max(21px, 3vw), 4.4vh), 34px)/1.2 var(--font-hand);text-align:center;opacity:0;
+.ask{margin:0;color:var(--orange-ink);font:700 clamp(16px, min(max(21px, 3vw), 4.4vh), 34px)/1.2 var(--font-hand);text-align:center;opacity:0;
   will-change:transform, opacity}
 
 /* the figure, drawn over the whole slide (sizes in px; --fs is the label size worked out by walk.js) */
 #fig{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;pointer-events:none}
 #fig .river{fill:none;stroke:var(--blue);stroke-width:4;stroke-linecap:round}
-#fig .dim{fill:none;stroke:var(--chalk-dim);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-#fig .ext{fill:none;stroke:var(--chalk-faint);stroke-width:1.2}     /* extension lines down to the 120 m measure */
-#fig .sq{fill:none;stroke:var(--chalk-dim);stroke-width:1.4;stroke-linejoin:round}
+#fig .dim{fill:none;stroke:var(--ink-dim);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#fig .ext{fill:none;stroke:var(--ink-faint);stroke-width:1.2}     /* extension lines down to the 120 m measure */
+#fig .sq{fill:none;stroke:var(--ink-dim);stroke-width:1.4;stroke-linejoin:round}
 #fig .walk{fill:none;stroke:var(--walk1);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;
   stroke-dasharray:11 9;animation:march .8s linear infinite}
 #fig .walk.w2{stroke:var(--walk2)} #fig .walk.w3{stroke:var(--walk3)} #fig .walk.w4{stroke:var(--walk4)}
 @keyframes march{to{stroke-dashoffset:-20}}      /* the dashes travel along the path: from B, through C, towards home */
-#fig .pt{fill:var(--chalk);stroke:var(--board);stroke-width:2.5}
+#fig .pt{fill:var(--ink);stroke:var(--paper);stroke-width:2.5}
 #fig .pt.c{fill:var(--pink)}
 #fig .pt.w1{fill:var(--walk1)} #fig .pt.w2{fill:var(--walk2)} #fig .pt.w3{fill:var(--walk3)} #fig .pt.w4{fill:var(--walk4)}
 #fig text{font-family:var(--font-hand);text-anchor:middle;dominant-baseline:central;
   paint-order:stroke;stroke:var(--halo);stroke-linejoin:round}
-#fig .lbl{font-weight:700;font-size:calc(var(--fs, 18px) * 1.3);stroke-width:6px;fill:var(--chalk)}
+#fig .lbl{font-weight:700;font-size:calc(var(--fs, 18px) * 1.3);stroke-width:6px;fill:var(--ink)}
 #fig .lbl.c{fill:var(--pink-ink)}
 #fig .lbl.w1{fill:var(--walk1)} #fig .lbl.w2{fill:var(--walk2)} #fig .lbl.w3{fill:var(--walk3)} #fig .lbl.w4{fill:var(--walk4)}
 #fig .sub{font-size:.68em}                         /* the small number in C1 ... C4 */
 #fig .cap{font-weight:400;font-size:calc(var(--fs, 18px) * .85);stroke-width:5px;fill:var(--muted)}
 #fig .cap.river-cap{fill:var(--blue-ink)}
-#fig .len{font-weight:700;font-size:var(--fs, 18px);stroke-width:5px;fill:var(--chalk)}
+#fig .len{font-weight:700;font-size:var(--fs, 18px);stroke-width:5px;fill:var(--ink)}
 
 /* ---- steps 3-6: a sheet of see-through paper, folded along the river ----
    Both halves are one layer of the same paper. Where they lie over each other (folded, or part way through the
-   unfolding) the two layers add up: about 19% chalk, with edges about 70%. Wherever there is only one layer, the
+   unfolding) the two layers add up: about 9% ink, with edges about 56%. Wherever there is only one layer, the
    paper looks more see-through: once unfolded, the whole sheet. */
-#fig .sheet{fill:color-mix(in srgb, var(--chalk) 10%, transparent);stroke:color-mix(in srgb, var(--chalk) 45%, transparent);
+#fig .sheet{fill:color-mix(in srgb, var(--ink) 4.5%, transparent);stroke:color-mix(in srgb, var(--ink) 34%, transparent);
   stroke-width:1.5;stroke-linejoin:round}
 /* the marks home leaves on the front half as the paper unfolds: copies of home's drawings in a mask on the front half's
    sheet, black (see-through) on white. The walks' marks are solid lines, still. */
@@ -55,13 +55,13 @@
 #fig .imprint text{fill:#000;stroke:#000;stroke-width:1px}
 
 /* the words under the paper in steps 3-5 (walk.js places them) */
-.hint{position:absolute;left:0;top:0;margin:0;color:var(--orange);text-align:center;text-wrap:balance;opacity:0;pointer-events:none;
+.hint{position:absolute;left:0;top:0;margin:0;color:var(--orange-ink);text-align:center;text-wrap:balance;opacity:0;pointer-events:none;
   font:700 clamp(17px, min(max(20px, 2.7vw), 4vh), 29px)/1.3 var(--font-hand);will-change:transform, opacity}
 .hint sub{font-size:.68em;line-height:0}                 /* the 3 in BC3 and C3A */
 
 /* step 6: the right triangle, and the working under the picture (walk.js places it) */
-#fig .leg{fill:none;stroke:var(--chalk);stroke-width:2.2;stroke-linecap:butt}
-.math{position:absolute;left:50%;top:0;width:max-content;margin:0;color:var(--chalk);pointer-events:none;white-space:nowrap;
+#fig .leg{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linecap:butt}
+.math{position:absolute;left:50%;top:0;width:max-content;margin:0;color:var(--ink);pointer-events:none;white-space:nowrap;
   display:grid;grid-template-columns:repeat(3, max-content);column-gap:.35em;align-items:baseline;
   font:700 clamp(19px, min(max(22px, 3.1vw), 4.6vh), 36px)/1.45 var(--font-hand);text-shadow:0 0 .3em var(--halo)}
 .math .ml{justify-self:end}                               /* AB, then nothing: so the equals signs line up */
@@ -85,14 +85,14 @@
 .switcher{transition:filter .3s}
 .switch-word{font:400 16px/1.15 var(--font-hand);color:var(--muted);background:none;border:0;border-radius:10px;padding:10px 4px;
   cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .25s}
-.switch-word.now{color:var(--chalk);font-weight:700}                                /* the side the switch points to */
-.switch-word:hover{color:var(--chalk)}
+.switch-word.now{color:var(--ink);font-weight:700}                                /* the side the switch points to */
+.switch-word:hover{color:var(--ink)}
 .switch{position:relative;width:36px;height:66px;padding:0;border-radius:18px;cursor:pointer;
-  border:2px solid var(--grid-strong);background:color-mix(in srgb, var(--chalk) 10%, transparent);
+  border:2px solid var(--grid-strong);background:color-mix(in srgb, var(--ink) 10%, transparent);
   -webkit-tap-highlight-color:transparent;transition:border-color .2s}
-.switch:hover{border-color:var(--chalk-dim)}
+.switch:hover{border-color:var(--ink-dim)}
 .switch:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
-.switch .knob{position:absolute;left:4px;top:4px;width:24px;height:24px;border-radius:50%;background:var(--chalk);
+.switch .knob{position:absolute;left:4px;top:4px;width:24px;height:24px;border-radius:50%;background:var(--ink);
   box-shadow:0 2px 6px var(--shadow);transition:transform .3s cubic-bezier(.3,.7,.4,1)}
 .switch[aria-checked="true"] .knob{transform:translateY(30px)}                     /* 66 - 2 x 2 border - 2 x 4 inset - 24 */
 

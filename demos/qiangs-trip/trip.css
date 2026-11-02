@@ -1,6 +1,6 @@
 /* Qiang's Trip: styles for this demo only. Colours, fonts, navigation and bubbles come from framework/theme.css.
    Colour code: blue = the first part of the trip, orange = the second part, pink = the gap that has to be made up,
-   white chalk = the 50 mph average. */
+   ink = the 50 mph average. */
 
 /* ---- steps 1-2: the problem, then the trip drawn as a road ---- */
 #intro{justify-content:center;align-items:center;gap:clamp(18px,5vh,48px)}
@@ -8,12 +8,12 @@
 .problem b{font-weight:700}
 .road{width:100%;max-width:880px;height:auto;display:block}
 .rline{fill:none;stroke-width:22}
-.road-base{stroke:var(--chalk-faint);stroke-linecap:butt}          /* the pale road, there before the car moves */
+.road-base{stroke:var(--ink-faint);stroke-linecap:butt}          /* the pale road, there before the car moves */
 .rt{font-family:var(--font-hand);font-weight:700;text-anchor:middle}
 .rt.big{font-size:46px} .rt.sm{font-size:38px}
 .car-body{fill:var(--blue)}
-.car-wheel{fill:var(--board);stroke:var(--chalk);stroke-width:2.5}
-.brace{fill:none;stroke:var(--chalk);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.car-wheel{fill:var(--paper);stroke:var(--ink);stroke-width:2.5}
+.brace{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .rline.a1,.rline.a2{stroke-dasharray:1;stroke-dashoffset:0}
 /* The road plays on step 2 (#intro.play); step 1 is the problem text alone.
    Timeline (s): 0-0.5 the pale road fades in; 0.2 "30 mph" -> 0.8-2.0 the car drives part 1, drawing it -> 2.1 "15 mi"
@@ -58,21 +58,21 @@
 .rc{stroke-width:2;stroke-linejoin:round}
 .r1{fill:var(--blue-fill);stroke:var(--blue)}
 .r2{fill:var(--orange-fill);stroke:var(--orange)}
-.avg{stroke:var(--chalk);stroke-width:2.5;stroke-dasharray:9 6}
+.avg{stroke:var(--ink);stroke-width:2.5;stroke-dasharray:9 6}
 .brk{fill:none;stroke:var(--orange);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .hi{fill:none;stroke:var(--pink);stroke-width:4;stroke-linejoin:round}     /* bold inner outline on the deficit and the surplus */
-.eqa{fill:none;stroke:var(--chalk);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.eqa{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* the small car that drives along the time axis */
 .tcb{fill:var(--blue)}
-.tcw{fill:var(--board);stroke:var(--chalk);stroke-width:1.8}
+.tcw{fill:var(--paper);stroke:var(--ink);stroke-width:1.8}
 
 /* the draggable point (step 3) */
 .handle{outline:none}
-.hcore{fill:var(--blue);stroke:var(--board);stroke-width:3}
-.hicon{fill:none;stroke:var(--board-deep);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.hcore{fill:var(--blue);stroke:var(--paper);stroke-width:3}
+.hicon{fill:none;stroke:var(--paper);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .hring{fill:none;stroke:var(--blue);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:ring 1.6s ease-out infinite}
-.hfocus{fill:none;stroke:var(--chalk);stroke-width:2;opacity:0}
+.hfocus{fill:none;stroke:var(--ink);stroke-width:2;opacity:0}
 .handle:focus-visible .hfocus{opacity:1}
 @keyframes ring{0%{transform:scale(.7);opacity:.9}100%{transform:scale(1.5);opacity:0}}
 .cap-hit{fill:transparent}

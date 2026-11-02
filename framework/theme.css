@@ -1,102 +1,141 @@
 /* ==========================================================================
-   StepDeck theme: the chalkboard look shared by every demo.
+   StepDeck theme: the book look shared by every demo.
+
+   Each step is a page of a book: white paper, written on in ink, lying on a
+   light wooden desk. The home link sits on the desk above the page, and
+   Back / the step dots / Replay / Next sit on the desk below it.
 
    To restyle every demo, change the values in section 1. Everything in
    section 2 is worked out from them, so the colours that have to match the
-   board (bubbles, outlines behind text, grid lines, ...) follow on their own.
+   paper (bubbles, outlines behind text, grid lines, ...) follow on their own.
    Override these on :root (not on an inner element) so the derived colours
    are recalculated too.
    ========================================================================== */
 
 :root{
   /* ---- 1. the values you would normally change ---------------------------- */
-  --board:  #3d6856;                     /* the board as seen: RGB 61, 104, 86 */
-  --chalk:  #f4f1e8;                     /* white chalk: text and lines */
+  --paper:  #fefdfa;                     /* the page */
+  --ink:    #263248;                     /* blue-black ink: text and lines */
 
-  /* chalk pastels for marks; each has a lighter "-ink" twin for text */
-  --blue:   #8fcbff;  --blue-ink:   #a9d8ff;
-  --orange: #ffa347;  --orange-ink: #ffc078;
-  --pink:   #ff9c94;  --pink-ink:   #ffb5ae;
+  /* coloured pens for marks; each has a darker "-ink" twin for text, so words stay easy to read on white */
+  --blue:   #2f80d0;  --blue-ink:   #1b62a8;
+  --orange: #f08a24;  --orange-ink: #c25c06;
+  --pink:   #e5574f;  --pink-ink:   #c23a33;
+
+  /* the desk the book lies on: light maple, with walnut-brown for the controls drawn on it */
+  --wood:      #e4cea9;                  /* the average colour of wood.webp, shown until it loads */
+  --wood-ink:  #5c3d20;
+
+  /* the widest a page gets; wider screens show more of the desk */
+  --page-max: 1000px;
 
   /* one handwritten face everywhere (Kalam is loaded from Google Fonts by each page) */
   --font-hand: "Kalam", "Chalkboard SE", "Comic Sans MS", "Segoe Print", sans-serif;
 
-  /* ---- 2. derived: colours that match the board ---------------------------- */
-  --board-glow:  color-mix(in srgb, var(--board), white 3%);     /* the lighter middle of the board */
-  --board-edge:  color-mix(in srgb, var(--board), black 8%);     /* the darker edges */
-  --board-deep:  color-mix(in srgb, var(--board), black 62%);    /* bubbles; text on chalk-coloured chips */
-  --halo:        var(--board);                                    /* knock-out outline behind text drawn over marks */
-  --muted:       color-mix(in srgb, var(--chalk), var(--board) 20%);   /* units, secondary text */
-  --grid:        color-mix(in srgb, var(--chalk) 13%, transparent);
-  --grid-strong: color-mix(in srgb, var(--chalk) 30%, transparent);
-  --chalk-faint: color-mix(in srgb, var(--chalk) 34%, transparent);
-  --panel:       color-mix(in srgb, var(--board-deep) 12%, transparent);  /* chart plot area */
-  --shadow:      rgba(0, 0, 0, .35);
+  /* ---- 2. derived: colours that match the paper ---------------------------- */
+  --halo:        var(--paper);                                     /* knock-out outline behind text drawn over marks */
+  --muted:       color-mix(in srgb, var(--ink), var(--paper) 30%); /* units, secondary text */
+  --grid:        color-mix(in srgb, var(--ink) 9%, transparent);
+  --grid-strong: color-mix(in srgb, var(--ink) 20%, transparent);
+  --ink-faint:   color-mix(in srgb, var(--ink) 22%, transparent);
+  --panel:       color-mix(in srgb, var(--ink) 1.5%, transparent);  /* chart plot area: a faint wash on the page */
+  --page-edge:   color-mix(in srgb, var(--paper), var(--wood-ink) 16%);   /* the edges of the pages underneath */
+  --shadow:      color-mix(in srgb, var(--wood-ink) 30%, transparent);
+  --wood-line:   color-mix(in srgb, var(--wood-ink) 32%, transparent);    /* outlines and idle dots on the desk */
 
-  /* accent fills: the pastel at low opacity, for shaded areas */
-  --blue-fill:   color-mix(in srgb, var(--blue) 42%, transparent);
-  --orange-fill: color-mix(in srgb, var(--orange) 38%, transparent);
-  --pink-fill:   color-mix(in srgb, var(--pink) 30%, transparent);
+  /* accent fills: the pen colour at low opacity, for shaded areas */
+  --blue-fill:   color-mix(in srgb, var(--blue) 24%, transparent);
+  --orange-fill: color-mix(in srgb, var(--orange) 28%, transparent);
+  --pink-fill:   color-mix(in srgb, var(--pink) 20%, transparent);
 
-  color-scheme: dark;                    /* one deliberate look: there is no light/dark switch */
+  color-scheme: light;                   /* one deliberate look: there is no light/dark switch */
 }
 
-/* ---- the board ------------------------------------------------------------ */
+/* ---- the desk ------------------------------------------------------------- */
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
   margin:0;
-  color:var(--chalk);
+  color:var(--ink);
   font-family:var(--font-hand);
-  background-color:var(--board);
-  /* chalk dust: a grey noise blended with "overlay", which leaves the average colour exactly --board */
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.16 0 0 0 .42 .16 0 0 0 .42 .16 0 0 0 .42 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse at 50% 28%, var(--board-glow) 0%, var(--board) 55%, var(--board-edge) 100%);
-  background-blend-mode:overlay, normal;
+  background:var(--wood) url("wood.webp") 0 0 / 1200px 900px;   /* maple: made by tools/wood.py, it tiles without seams */
   padding-left:max(16px, env(safe-area-inset-left, 0px));
   padding-right:max(16px, env(safe-area-inset-right, 0px));
-  padding-block:12px;
+  padding-top:max(8px, env(safe-area-inset-top, 0px));
+  padding-bottom:max(12px, env(safe-area-inset-bottom, 0px));
   overflow:hidden;
 }
 
-/* ---- deck layout: slides stacked in one stage, navigation underneath ------- */
-.deck{position:relative;height:100%;display:flex;flex-direction:column;gap:8px;max-width:1200px;margin:0 auto}
+/* light on the desk: a little brighter in the middle of the screen, a little darker towards its edges */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 35%, rgb(255 250 240 / .22), transparent 55%, color-mix(in srgb, var(--wood-ink) 10%, transparent) 100%)}
+
+/* ---- a page of the book ----------------------------------------------------
+   White paper, bound on the left (a soft shadow along that edge), with a few pages stacked underneath that show
+   along the right and bottom edges. Used by every step (nav.js wraps the title band and the stage in it) and by
+   the front page. */
+.page{
+  position:relative;
+  background-color:var(--paper);
+  /* paper fibres: very faint specks */
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='p' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .36 0 0 0 0 .28 .3 0 0 0 -.17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+  border-radius:2px 5px 5px 2px;
+  box-shadow:
+    1px 1px 0 var(--page-edge),
+    3px 3px 0 var(--paper), 4px 4px 0 var(--page-edge),
+    6px 6px 0 var(--paper), 7px 7px 0 var(--page-edge),
+    6px 12px 26px var(--shadow),
+    0 1px 3px var(--shadow);
+}
+.page::before{content:"";position:absolute;inset:0 auto 0 0;width:34px;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(to right, color-mix(in srgb, var(--wood-ink) 13%, transparent), transparent)}   /* the binding */
+
+/* ---- deck layout: home link, then the page (title band and the stage of slides), then the navigation ------- */
+.deck{position:relative;height:100%;display:flex;flex-direction:column;gap:8px;max-width:var(--page-max);margin:0 auto}
+.deck > .page{flex:1;min-height:0;display:flex;flex-direction:column;
+  padding:0 clamp(12px, 3vw, 32px) 18px clamp(16px, 3.4vw, 40px)}         /* a little more room on the bound side */
 .stage{position:relative;flex:1;min-height:0}
 .slide{position:absolute;inset:0;display:flex;flex-direction:column;min-width:0;opacity:0;visibility:hidden;
   transition:opacity .4s ease, visibility 0s linear .4s}
 .slide.active{opacity:1;visibility:visible;transition:opacity .4s ease}
 
-/* ---- navigation (built by nav.js) ----------------------------------------- */
-/* title band across the top of every step (built by nav.js): twice the home icon's height, its top level with the icon's */
-.titlebar{flex:none;height:48px;display:flex;align-items:center;justify-content:center;padding:0 52px;
+/* ---- the title band at the top of the page (built by nav.js) --------------- */
+.titlebar{flex:none;height:56px;display:flex;align-items:center;justify-content:center;padding:4px 8px 0;
   -webkit-user-select:none;user-select:none}
-.step-title{margin:0;color:var(--orange);font:700 clamp(16px, 3vw, 30px)/1.1 var(--font-hand);text-align:center;
+.step-title{margin:0;color:var(--orange-ink);font:700 clamp(17px, 3vw, 30px)/1.1 var(--font-hand);text-align:center;
   text-wrap:balance;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}   /* a long title takes two lines on a phone */
-/* home link: a chalk house in the top-left corner, back to the list of demos (44px tap target, 24px glyph at the very top) */
-.home{position:absolute;top:-10px;left:-6px;z-index:5;width:44px;height:44px;display:grid;place-items:center;
+
+/* ---- on the desk: the home link above the page (built by nav.js) ---------- */
+/* a house and the word "Contents": back to the front page, the book's table of contents */
+.home{flex:none;align-self:flex-start;height:40px;margin-left:-8px;padding:0 12px 0 8px;display:inline-flex;align-items:center;gap:7px;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
-  border-radius:10px;color:var(--chalk);opacity:.7;transition:opacity .2s}
+  border-radius:10px;color:var(--wood-ink);text-decoration:none;font:400 18px/1 var(--font-hand);opacity:.82;transition:opacity .2s}
 .home:hover{opacity:1}
 .home:focus-visible{outline:2px solid var(--blue);outline-offset:0;opacity:1}
-.home svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding-top:4px;
+.home svg{flex:none;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.home span{padding-top:.14em}                 /* Kalam sits high in its line: nudged down to centre on the house */
+
+/* ---- on the desk: the navigation below the page (built by nav.js) --------- */
+.nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding-top:6px;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}                 /* button labels can't be selected */
 .nav-l{justify-self:start}
 .nav-r{justify-self:end;display:flex;align-items:center;gap:8px}
-.btn{font:400 17px var(--font-hand);height:44px;padding:0 16px;border-radius:10px;cursor:pointer;
+/* Back and Next: little cards of the same paper as the page */
+.btn{font:400 17px var(--font-hand);height:44px;padding:0 16px;border-radius:9px;cursor:pointer;
   display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;min-width:0;
-  background:var(--chalk);color:var(--board);border:1px solid var(--chalk)}        /* Back and Next look the same */
-.btn.ghost{background:transparent;color:var(--chalk);border-color:var(--grid-strong)}  /* Replay: outlined */
-.btn.ghost:hover:not(:disabled){border-color:var(--chalk)}
-.btn:disabled,.btn[aria-disabled="true"]{opacity:.35;cursor:default}      /* aria-disabled: Next waiting for an animation */
+  background:var(--paper);color:var(--ink);border:1px solid var(--wood-line);
+  box-shadow:0 1px 0 var(--page-edge), 0 3px 8px var(--shadow);transition:box-shadow .2s, transform .2s}
+.btn:hover:not(:disabled):not([aria-disabled="true"]){box-shadow:0 1px 0 var(--page-edge), 0 5px 12px var(--shadow);transform:translateY(-1px)}
+.btn.ghost{background:transparent;color:var(--wood-ink);box-shadow:none}                 /* Replay: drawn on the desk */
+.btn.ghost:hover:not(:disabled){border-color:var(--wood-ink);box-shadow:none;transform:none}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:default;box-shadow:none}      /* aria-disabled: Next waiting for an animation */
 .btn:focus-visible,.dot:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
 .dots{display:flex;gap:2px}
 .dot{width:26px;height:36px;border:0;background:none;display:grid;place-items:center;cursor:pointer;padding:0}
-.dot i{display:block;width:8px;height:8px;border-radius:50%;background:var(--grid-strong);
+.dot i{display:block;width:8px;height:8px;border-radius:50%;background:var(--wood-line);
   transition:width .3s, background .3s, border-radius .3s}
-.dot.done i{background:var(--muted)}
-.dot[aria-current="step"] i{width:20px;border-radius:4px;background:var(--chalk)}
+.dot.done i{background:color-mix(in srgb, var(--wood-ink) 62%, transparent)}
+.dot[aria-current="step"] i{width:20px;border-radius:4px;background:var(--wood-ink)}
 @media (max-width:480px){
   .nav{grid-template-columns:auto 1fr auto}
   .dots{justify-self:center}
@@ -105,25 +144,35 @@ body{
   .btn.ghost{min-width:44px;padding:0}
   .dot{width:16px}
   .dot[aria-current="step"] i{width:14px}
+  .titlebar{height:52px}
+}
+@media (max-height:500px){                 /* phones on their side: less desk and margin, more room for the drawing */
+  body{padding-top:max(2px, env(safe-area-inset-top, 0px));padding-bottom:max(6px, env(safe-area-inset-bottom, 0px))}
+  .deck{gap:4px}
+  .home{height:32px}
+  .titlebar{height:40px;padding-top:2px}
+  .deck > .page{padding-bottom:8px}
+  .nav{padding-top:2px}
+  .btn{height:40px}
 }
 
 /* ---- callout bubbles (placed by bubbles.js); data-tail says which edge carries the tail ---- */
-.bubble{position:absolute;left:0;top:0;width:max-content;padding:7px 14px 8px;border:2px solid var(--chalk);border-radius:14px;
-  background:var(--board-deep);color:var(--chalk);box-shadow:0 3px 12px var(--shadow);
+.bubble{position:absolute;left:0;top:0;width:max-content;padding:7px 14px 8px;border:2px solid var(--ink);border-radius:14px;
+  background:var(--paper);color:var(--ink);box-shadow:0 4px 14px var(--shadow);
   font:400 clamp(16px, 2vw, 21px)/1.25 var(--font-hand);font-variant-numeric:tabular-nums;text-align:center;
   pointer-events:none;opacity:0;will-change:transform, opacity}
 .bubble b{font-weight:700}
 .bubble u{text-decoration:none;color:var(--muted);font-size:.78em;margin-left:.18em}      /* units: 15<u>mi</u> */
-.bubble::before{content:"";position:absolute;width:12px;height:12px;box-sizing:border-box;background:var(--board-deep);
-  border:2px solid var(--chalk);transform:rotate(45deg)}
-.bubble[data-tail="right"]::before{left:-8px;top:var(--tp);border-color:transparent transparent var(--chalk) var(--chalk)}
-.bubble[data-tail="left"]::before{right:-8px;top:var(--tp);border-color:var(--chalk) var(--chalk) transparent transparent}
-.bubble[data-tail="below"]::before{top:-8px;left:var(--tp);border-color:var(--chalk) transparent transparent var(--chalk)}
-.bubble[data-tail="above"]::before{bottom:-8px;left:var(--tp);border-color:transparent var(--chalk) var(--chalk) transparent}
+.bubble::before{content:"";position:absolute;width:12px;height:12px;box-sizing:border-box;background:var(--paper);
+  border:2px solid var(--ink);transform:rotate(45deg)}
+.bubble[data-tail="right"]::before{left:-8px;top:var(--tp);border-color:transparent transparent var(--ink) var(--ink)}
+.bubble[data-tail="left"]::before{right:-8px;top:var(--tp);border-color:var(--ink) var(--ink) transparent transparent}
+.bubble[data-tail="below"]::before{top:-8px;left:var(--tp);border-color:var(--ink) transparent transparent var(--ink)}
+.bubble[data-tail="above"]::before{bottom:-8px;left:var(--tp);border-color:transparent var(--ink) var(--ink) transparent}
 .bubble[data-tail="mid"]::before{display:none}                                            /* centred, no tail */
 
-/* ---- chalk colours as classes: work on HTML text (color) and SVG (fill) --- */
-.c-chalk{color:var(--chalk);fill:var(--chalk)}
+/* ---- pen colours as classes: work on HTML text (color) and SVG (fill) ------ */
+.c-ink{color:var(--ink);fill:var(--ink)}
 .c-muted{color:var(--muted);fill:var(--muted)}
 .c-blue{color:var(--blue-ink);fill:var(--blue-ink)}
 .c-orange{color:var(--orange-ink);fill:var(--orange-ink)}
@@ -136,18 +185,21 @@ body{
 .plot{fill:var(--panel);stroke:var(--grid-strong);stroke-width:1}
 .gl{stroke:var(--grid);stroke-width:1}
 .gl.major{stroke:var(--grid-strong)}
-.axis{stroke:var(--chalk);stroke-opacity:.85;stroke-width:1.6}
-.tick{font:400 14px var(--font-hand);fill:var(--chalk)}
-.atitle{font:400 21px var(--font-hand);fill:var(--chalk)}
+.axis{stroke:var(--ink);stroke-opacity:.85;stroke-width:1.6}
+.tick{font:400 14px var(--font-hand);fill:var(--ink)}
+.atitle{font:400 21px var(--font-hand);fill:var(--ink)}
 .halo{paint-order:stroke;stroke:var(--halo);stroke-width:5px;stroke-linejoin:round}
-/* chips: small filled labels that mark a known value on an axis */
-.chip rect{rx:4;ry:4}
-.chip text{fill:var(--board-deep);font:700 14px var(--font-hand);text-anchor:middle}
-.chip.blue rect{fill:var(--blue)}
-.chip.orange rect{fill:var(--orange)}
-.chip.pink rect{fill:var(--pink)}
-.chip.chalk rect{fill:var(--chalk)}
-.chip.chalk text{fill:var(--board)}
+/* chips: small labels that mark a known value on an axis, a pale wash of their colour with a pen outline */
+.chip rect{rx:4;ry:4;stroke-width:1.4}
+.chip text{font:700 14px var(--font-hand);text-anchor:middle}
+.chip.blue rect{fill:color-mix(in srgb, var(--blue) 16%, var(--paper));stroke:var(--blue)}
+.chip.blue text{fill:var(--blue-ink)}
+.chip.orange rect{fill:color-mix(in srgb, var(--orange) 18%, var(--paper));stroke:var(--orange)}
+.chip.orange text{fill:var(--orange-ink)}
+.chip.pink rect{fill:color-mix(in srgb, var(--pink) 16%, var(--paper));stroke:var(--pink)}
+.chip.pink text{fill:var(--pink-ink)}
+.chip.ink rect{fill:color-mix(in srgb, var(--ink) 8%, var(--paper));stroke:var(--ink)}
+.chip.ink text{fill:var(--ink)}
 
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}

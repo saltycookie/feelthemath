@@ -1,9 +1,11 @@
 // StepDeck navigation: Back, one dot per step, Replay and Next, plus the arrow keys,
-// a home link in the top-left corner of the page that leads back to the list of demos,
-// and a title band across the top that shows the current step's `title` (empty when it has none).
+// a home link above the page that leads back to the list of demos (the book's contents),
+// and a title band across the top of the page that shows the current step's `title` (empty when it has none).
 // On the last step Next turns into Finish: it waits, like Next, until the step has finished animating,
 // then leads to the same place as the home link.
 // createNav(container, deck) fills an empty <nav class="nav"> and keeps it in step with the deck.
+// It also puts the title band and the .stage on one page of the book: a <div class="page"> (made here unless the
+// demo's HTML already has one), with the home link above it and the navigation below it, both on the desk.
 //   home: where the home link and Finish go. Default: <meta name="stepdeck-home" content="..."> if the page has one,
 //         otherwise '../../' (the site's front page, seen from demos/<name>/).
 //         false: no home link and no Finish (Next is simply disabled on the last step).
@@ -13,7 +15,17 @@ const NEXT_HTML = 'Next <span class="arrow">→</span>';
 const FINISH_HTML = 'Finish';
 
 export function createNav(container, deck, { keys = true, home } = {}) {
-  const page = container.closest('.deck') || document.body;
+  const deckEl = container.closest('.deck') || document.body;
+  const stage = deckEl.querySelector('.stage');
+  // the page of the book: the title band and the stage, between the home link and the navigation
+  let page = deckEl.querySelector('.page');
+  if (!page) {
+    page = document.createElement('div');
+    page.className = 'page';
+    const spot = stage || container;
+    spot.parentNode.insertBefore(page, spot);
+    if (stage) page.appendChild(stage);
+  }
   // the title band: always there, so every step's drawing starts at the same height
   const bar = document.createElement('header');
   bar.className = 'titlebar';
@@ -27,9 +39,9 @@ export function createNav(container, deck, { keys = true, home } = {}) {
   if (home !== false) {
     const a = document.createElement('a');
     a.className = 'home'; a.href = home;
-    a.setAttribute('aria-label', 'All demos'); a.title = 'All demos';
-    a.innerHTML = HOUSE;
-    page.prepend(a);
+    a.title = 'All demos';
+    a.innerHTML = HOUSE + '<span>Contents</span>';
+    page.parentNode.insertBefore(a, page);
   }
   container.innerHTML =
     '<div class="nav-l"><button class="btn" type="button" data-act="back" aria-label="Previous step"><span class="arrow">←</span> Back</button></div>' +

@@ -44,21 +44,21 @@ function build() {
   R.eqA = el('path', { class: 'eqa', opacity: 0 }, svg);      // step 7: arrows from the bubble to both areas
   R.eqB = el('path', { class: 'eqa', opacity: 0 }, svg);
   // labels
-  R.l1 = text(svg, 'tx c-chalk');
-  R.l2q = text(svg, 'tx c-chalk', '? mi'); R.l2f = text(svg, 'tx c-chalk', '110 mi');
-  R.hl1 = text(svg, 'tx c-chalk');                            // "10 mi" in the deficit (on two lines when it is narrow)
+  R.l1 = text(svg, 'tx c-ink');
+  R.l2q = text(svg, 'tx c-ink', '? mi'); R.l2f = text(svg, 'tx c-ink', '110 mi');
+  R.hl1 = text(svg, 'tx c-ink');                            // "10 mi" in the deficit (on two lines when it is narrow)
   R.hl1a = el('tspan', {}, R.hl1); R.hl1a.textContent = '10';
   R.hl1b = el('tspan', {}, R.hl1); R.hl1b.textContent = ' mi';
-  R.hl2 = text(svg, 'tx c-chalk', '10 mi');                   // ... and in the surplus
-  R.avgT = text(svg, 'tx c-chalk halo'); R.avgT.style.textAnchor = 'start';   // "average speed", just past the line's end
+  R.hl2 = text(svg, 'tx c-ink', '10 mi');                   // ... and in the surplus
+  R.avgT = text(svg, 'tx c-ink halo'); R.avgT.style.textAnchor = 'start';   // "average speed", just past the line's end
   R.avgTa = el('tspan', {}, R.avgT); R.avgTa.textContent = 'average';
   R.avgTb = el('tspan', {}, R.avgT); R.avgTb.textContent = ' speed';
-  R.bq = text(svg, 'tx c-chalk', '? h'); R.bf = text(svg, 'tx c-chalk', '2 h');
+  R.bq = text(svg, 'tx c-ink', '? h'); R.bf = text(svg, 'tx c-ink', '2 h');
   R.bq.style.fontSize = '18px'; R.bf.style.fontSize = '18px';
   R.xt = text(svg, 'atitle', 'time (hours)'); R.xt.style.textAnchor = 'middle';
   R.yt = text(svg, 'atitle', 'average speed (mph)'); R.yt.style.textAnchor = 'middle';
   // chips: known values on the axes
-  R.cx = chip(svg, 'blue'); R.c25 = chip(svg, 'orange'); R.cy = chip(svg, 'blue'); R.c55 = chip(svg, 'orange'); R.c50 = chip(svg, 'chalk');
+  R.cx = chip(svg, 'blue'); R.c25 = chip(svg, 'orange'); R.cy = chip(svg, 'blue'); R.c55 = chip(svg, 'orange'); R.c50 = chip(svg, 'ink');
   // the small car (origin = the middle of its wheels, on the axis)
   R.car = el('g', { opacity: 0 }, svg);
   el('rect', { class: 'tcb', x: -15, y: -14, width: 30, height: 8, rx: 3 }, R.car);

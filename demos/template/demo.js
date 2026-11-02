@@ -11,7 +11,7 @@ let W = 0, H = 0, unit = 0, ox = 0, oy = 0;          // size of 1 m in px, and w
 
 // 1. what is drawn
 const rect = el('rect', { class: 'area', opacity: 0 }, svg);
-const answer = text(svg, 'big c-chalk', '6 m²');
+const answer = text(svg, 'big c-ink', '6 m²');
 
 // 2. how the drawing looks for given animated values
 function render(S) {

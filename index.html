@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Feel the Math</title>
+<link rel="icon" href="favicon.ico" sizes="32x32">   <!-- the site icon: favicon.svg; the other two are made from it (tools/icons.py) -->
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
@@ -11,7 +14,15 @@
 <style>
   body{overflow:auto}
   main{max-width:760px;margin:0 auto;padding:clamp(24px,6vh,64px) 0}
-  h1{font-size:clamp(32px,5vw,46px);margin:0 0 .2em;font-weight:700;color:var(--orange)}
+  /* the logo: a touch point on a rising curve, with ripples, then the name in lower case with "feel" in orange */
+  h1{display:flex;align-items:center;gap:.3em;font-size:clamp(30px,9vw,52px);line-height:1;margin:0 0 .4em;font-weight:700}
+  h1 .mark{flex:none;width:1.9em;height:1.9em}
+  h1 .name{padding-top:.12em}                     /* Kalam sits high in its line: nudged down to centre on the mark */
+  h1 .feel{color:var(--orange)}
+  .mark .ripple{fill:none;stroke:var(--blue);stroke-width:4.5;stroke-linecap:round}
+  .mark .ripple.far{stroke-width:4;stroke-opacity:.55}
+  .mark .curve{fill:none;stroke:var(--chalk);stroke-width:5;stroke-linecap:round}
+  .mark .dot{fill:var(--orange);stroke:var(--halo);stroke-width:3}
   .lead{color:var(--muted);font-size:clamp(18px,2.4vw,22px);margin:0 0 2em}
   ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
   /* a demo: its thumbnail on the left; on the right, the title above the short description */
@@ -35,7 +46,15 @@
 </head>
 <body>
 <main>
-  <h1>Feel the Math</h1>
+  <h1>
+    <svg class="mark" viewBox="0 0 120 120" aria-hidden="true">
+      <path class="ripple far" d="M32.06 56.14A28 28 0 0 1 55.04 30.44M87.94 59.86A28 28 0 0 1 64.96 85.56"/>
+      <path class="ripple" d="M43.04 56.87A17 17 0 0 1 56.99 41.27M76.96 59.13A17 17 0 0 1 63.01 74.73"/>
+      <path class="curve" d="M8 96C44 96 76 20 112 20"/>
+      <circle class="dot" cx="60" cy="58" r="9"/>
+    </svg>
+    <span class="name"><span class="feel">feel</span> the math</span>
+  </h1>
   <p class="lead">Learn math by interacting with visual demos. Feel the connection between math and the things you interact with in everyday life.</p>
   <!-- thumbnails: made with tools/thumbnail.py (see the README) -->
   <ul>

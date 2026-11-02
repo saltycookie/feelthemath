@@ -7,18 +7,20 @@
     python3 tools/single_file.py demos/qiangs-trip --home URL     (where the home link goes; default: the live site)
 
 It inlines local stylesheets and bundles the page's JavaScript modules into one script.
-Web fonts still load from Google Fonts. Only the plain import/export forms used in this
+Web fonts still load from Google Fonts, and the site icon from the live site. Only the plain import/export forms used in this
 repository are understood:  import { a, b as c } from './x.js';  export function / const / let / class.
 GitHub Pages does not need this: it serves the separate files as they are.
 """
 import argparse, os, re, sys
 
 SITE = 'https://feelthemath.app/'   # the home link of a packed file goes here
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # the repository, which the site serves
 
 LINK_RE = re.compile(r'<link\s+[^>]*rel="stylesheet"[^>]*href="(?!https?:)([^"]+)"[^>]*>\s*')
 SCRIPT_RE = re.compile(r'<script\s+type="module"\s+src="([^"]+)"\s*>\s*</script>\s*')
 IMPORT_RE = re.compile(r'^\s*import\s*\{([^}]*)\}\s*from\s*[\'"]([^\'"]+)[\'"]\s*;?\s*$', re.M)
 EXPORT_RE = re.compile(r'^export\s+(?:async\s+)?(function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)', re.M)
+ICON_RE = re.compile(r'(<link\s+[^>]*rel="(?:icon|apple-touch-icon)"[^>]*href=")(?!https?:)([^"]+)(")')
 
 
 def bundle(entry):
@@ -57,6 +59,11 @@ def pack(demo_dir, fragment=False, home=SITE):
     html = open(page, encoding='utf-8').read()
     # a packed file has no front page beside it: point the home link at the live site
     html = html.replace('</title>', '</title>\n<meta name="stepdeck-home" content="%s">' % home, 1)
+    # nor the site's icons: take them from the live site too
+    def icon(m):
+        path = os.path.relpath(os.path.abspath(os.path.join(demo_dir, m.group(2))), ROOT)
+        return m.group(1) + SITE + path.replace(os.sep, '/') + m.group(3)
+    html = ICON_RE.sub(icon, html)
     scripts = []
 
     def css(m):

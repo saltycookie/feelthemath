@@ -1,12 +1,9 @@
 // StepDeck navigation: Back, one dot per step, Replay and Next, plus the arrow keys,
-// a home link above the paper that leads back to the list of demos,
-// and a title band across the top of the paper that shows the current step's `title` (empty when it has none).
+// and a title band across the top of the box that shows the current step's `title` (empty when it has none), with a
+// home link at its left end that leads back to the list of demos.
 // On the last step Next turns into Finish: it waits, like Next, until the step has finished animating,
 // then leads to the same place as the home link.
 // createNav(container, deck) fills an empty <nav class="nav"> and keeps it in step with the deck.
-// It also puts the title band and the .stage on the magic paper: a <div class="paper"> (made here unless the demo's
-// HTML already has one), with the home link above it and the navigation below it, all inside the box (the .deck).
-// Each time a step begins, the paper glints (theme.css: .paper.glint).
 //   home: where the home link and Finish go. Default: <meta name="stepdeck-home" content="..."> if the page has one,
 //         otherwise '../../' (the site's front page, seen from demos/<name>/).
 //         false: no home link and no Finish (Next is simply disabled on the last step).
@@ -18,15 +15,6 @@ const FINISH_HTML = 'Finish';
 export function createNav(container, deck, { keys = true, home } = {}) {
   const deckEl = container.closest('.deck') || document.body;
   const stage = deckEl.querySelector('.stage');
-  // the magic paper: the title band and the stage, between the home link and the navigation
-  let paper = deckEl.querySelector('.paper');
-  if (!paper) {
-    paper = document.createElement('div');
-    paper.className = 'paper';
-    const spot = stage || container;
-    spot.parentNode.insertBefore(paper, spot);
-    if (stage) paper.appendChild(stage);
-  }
   // the title band: always there, so every step's drawing starts at the same height
   const bar = document.createElement('header');
   bar.className = 'titlebar';
@@ -34,14 +22,15 @@ export function createNav(container, deck, { keys = true, home } = {}) {
   title.className = 'step-title';
   title.setAttribute('aria-live', 'polite');
   bar.appendChild(title);
-  paper.insertBefore(bar, paper.querySelector('.stage') || paper.firstChild);
+  (stage || container).parentNode.insertBefore(bar, stage || container);
 
   if (home === undefined) home = document.querySelector('meta[name="stepdeck-home"]')?.content || '../../';
   if (home !== false) {
     const a = document.createElement('a');
     a.className = 'home'; a.href = home;
+    a.setAttribute('aria-label', 'All demos');      // the words are hidden on narrow screens
     a.innerHTML = HOUSE + '<span>All demos</span>';
-    paper.parentNode.insertBefore(a, paper);
+    bar.prepend(a);
   }
   container.innerHTML =
     '<div class="nav-l"><button class="btn" type="button" data-act="back" aria-label="Previous step"><span class="arrow">←</span> Back</button></div>' +
@@ -98,9 +87,6 @@ export function createNav(container, deck, { keys = true, home } = {}) {
 
   function update(i) {
     title.textContent = deck.steps[i].title || '';      // straight away, before the step's animation starts
-    paper.classList.remove('glint');                    // the paper glints as the step begins (restarted each time)
-    void paper.offsetWidth;
-    paper.classList.add('glint');
     const was = document.activeElement;
     back.disabled = i === 0;
     labelNext();

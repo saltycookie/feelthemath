@@ -12,45 +12,43 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="framework/theme.css">
 <style>
-  /* the front page: the magic box on the desk, with the title on its velvet lining and one sheet of magic paper
-     per demo lying in it */
-  body{overflow:auto}
-  .magic-box{max-width:860px;margin:0 auto;padding:clamp(20px,4.5vw,48px) clamp(14px,4.5vw,48px) clamp(22px,4.5vw,48px)}
+  /* the front page: the same box as every demo, with the title and one card per demo written on its paper, in a
+     column narrower than the box. When the column is taller than the box, it scrolls inside the box. */
+  .paper-box{overflow:auto}
+  .front{max-width:720px;margin:0 auto;padding:clamp(20px,4vw,40px) clamp(10px,3vw,24px) clamp(20px,3vw,28px)}
 
   /* the title "Feel the Math": the logo (a touch point on a rising curve, with ripples) stands in for the F,
      followed by "eel the Math" in orange. The curve is drawn like an italic f: a straight, steep stem through the
-     touch point, with a round hook at each end. On the velvet, the curve is drawn in the box's cream. */
-  h1{display:flex;align-items:center;font-size:clamp(34px,9vw,56px);line-height:1;margin:0 0 .35em;font-weight:700;color:var(--orange)}
+     touch point, with a round hook at each end. */
+  h1{display:flex;align-items:center;font-size:clamp(34px,9vw,56px);line-height:1;margin:0 0 .35em;font-weight:700;color:var(--orange-ink)}
   h1 .mark{flex:none;width:calc(1.9em * 104 / 120);height:1.9em}   /* the viewBox drops the empty left 16 units, so the f lines up with the text below */
   h1 .name{padding-top:.12em;                     /* Kalam sits high in its line: nudged down to centre on the mark */
     margin-left:-.46em}                           /* tucked under the curve's raised end, up to the outer ripple, so the mark and "eel" read as one word */
-  .mark .ripple{fill:none;stroke:color-mix(in srgb, var(--blue), white 45%);stroke-width:4.5;stroke-linecap:round}
+  .mark .ripple{fill:none;stroke:var(--blue);stroke-width:4.5;stroke-linecap:round}
   .mark .ripple.far{stroke-width:4;stroke-opacity:.55}
-  .mark .curve{fill:none;stroke:var(--on-velvet);stroke-width:5;stroke-linecap:round}
-  .mark .dot{fill:var(--orange);stroke:var(--velvet);stroke-width:3}
-  .lead{color:color-mix(in srgb, var(--on-velvet) 82%, transparent);font-size:clamp(18px,2.4vw,21px);line-height:1.45;
-    margin:0 0 clamp(24px,4vw,36px);max-width:34em;text-wrap:pretty}
+  .mark .curve{fill:none;stroke:var(--ink);stroke-width:5;stroke-linecap:round}
+  .mark .dot{fill:var(--orange);stroke:var(--halo);stroke-width:3}
+  .lead{color:var(--muted);font-size:clamp(18px,2.4vw,21px);line-height:1.45;margin:0 0 clamp(20px,3.5vw,30px);text-wrap:pretty}
 
-  /* the demos: each one a sheet of magic paper, with its picture (made with tools/thumbnail.py), its title and a
-     line about it. Pointing at one makes it glow brighter and lift a little. */
-  .demos{list-style:none;margin:0;padding:0;display:grid;gap:clamp(16px,2.6vw,22px)}
-  a.demo{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:clamp(14px,3vw,22px);align-items:start;
-    padding:clamp(10px,2vw,14px);color:inherit;text-decoration:none;transition:box-shadow .25s, transform .25s}
-  a.demo:hover,a.demo:focus-visible{outline:none;transform:translateY(-2px);
-    box-shadow:0 0 0 2px color-mix(in srgb, var(--glow) 85%, transparent), 0 0 30px 6px color-mix(in srgb, var(--glow) 40%, transparent),
-      0 0 80px 14px color-mix(in srgb, var(--glow) 14%, transparent), 0 12px 22px rgb(0 0 0 / .4)}
-  .demo .thumb{display:block;width:120px;height:120px;border:1px solid var(--grid-strong);border-radius:2px}
+  /* the demos: one card each, with its picture (made with tools/thumbnail.py), its title and a line about it */
+  .demos{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+  a.demo{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:clamp(14px,3vw,20px);align-items:start;
+    padding:clamp(10px,2vw,14px);border:1.5px solid var(--grid-strong);border-radius:12px;color:inherit;text-decoration:none;
+    transition:border-color .2s}
+  a.demo:hover{border-color:var(--ink)}
+  a.demo:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .demo .thumb{display:block;width:104px;height:104px;border:1px solid var(--grid-strong);border-radius:4px}
   .demo h2{margin:.1em 0 .2em;font-size:clamp(21px,3.2vw,26px);line-height:1.2}
   .demo p{margin:0;font-size:18px;line-height:1.4;color:var(--muted);text-wrap:pretty}
   @media (max-width:480px){
     .demo .thumb{width:72px;height:72px}
     .demo p{font-size:16px}
   }
-  @media (prefers-reduced-motion: reduce){ a.demo:hover,a.demo:focus-visible{transform:none} }
 </style>
 </head>
 <body>
-<main class="magic-box">
+<main class="paper-box">
+<div class="front">
   <h1 aria-label="Feel the Math">
     <svg class="mark" viewBox="16 0 104 120" aria-hidden="true">
       <path class="ripple far" d="M85.77 47.06A28 28 0 0 1 76.85 80.36M34.23 68.94A28 28 0 0 1 43.15 35.64"/>
@@ -62,23 +60,23 @@
   </h1>
   <p class="lead">Learn math by interacting with visual demos. Feel the connection between math and the things you interact with in everyday life.</p>
 
-  <!-- one sheet of paper per demo; thumbnails: made with tools/thumbnail.py (see the README) -->
+  <!-- one card per demo; thumbnails: made with tools/thumbnail.py (see the README) -->
   <ul class="demos">
-    <li><a class="paper demo" href="demos/dannys-walk/">
+    <li><a class="demo" href="demos/dannys-walk/">
       <img class="thumb" src="demos/dannys-walk/thumbnail.png" srcset="demos/dannys-walk/thumbnail@2x.png 2x" width="120" height="120" alt="">
       <div>
         <h2>Danny's Walk</h2>
         <p>Imagine living on an unfolded paper.</p>
       </div>
     </a></li>
-    <li><a class="paper demo" href="demos/qiangs-trip/">
+    <li><a class="demo" href="demos/qiangs-trip/">
       <img class="thumb" src="demos/qiangs-trip/thumbnail.png" srcset="demos/qiangs-trip/thumbnail@2x.png 2x" width="120" height="120" alt="">
       <div>
         <h2>Qiang's Trip</h2>
         <p>Distance is an area on a speed–time chart.</p>
       </div>
     </a></li>
-    <li><a class="paper demo" href="demos/two-sticks/">
+    <li><a class="demo" href="demos/two-sticks/">
       <img class="thumb" src="demos/two-sticks/thumbnail.png" srcset="demos/two-sticks/thumbnail@2x.png 2x" width="120" height="120" alt="">
       <div>
         <h2>Two Perpendicular Sticks</h2>
@@ -86,6 +84,7 @@
       </div>
     </a></li>
   </ul>
+</div>
 </main>
 </body>
 </html>

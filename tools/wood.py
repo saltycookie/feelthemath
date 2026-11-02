@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Make framework/wood.webp: the light maple desk that the magic box stands on (see framework/theme.css; the box's
-walls are the same picture, darkened to walnut).
+"""Make framework/wood.webp: the light maple desk that the paper box stands on (see framework/theme.css).
 
     python3 tools/wood.py                  -> framework/wood.webp
     python3 tools/wood.py --seed 5         (another piece of the same wood)

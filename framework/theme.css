@@ -1,10 +1,10 @@
 /* ==========================================================================
-   StepDeck theme: the magic box shared by every demo.
+   StepDeck theme: the paper box shared by every demo.
 
-   A wooden box lies on a light wooden desk. Inside, on its velvet lining,
-   lies a sheet of magic paper that glows a little: the demo is written on it
-   in ink. The home link sits in the box above the paper, and Back / the step
-   dots / Replay / Next sit in the box below it.
+   A box made of white paper stands on a light wooden desk, with a sheet of
+   the same paper inside it that fills it from wall to wall. The demo is written on the paper in ink,
+   and everything is on it: the home link and the step's title at the top,
+   the drawing, and Back / the step dots / Replay / Next at the bottom.
 
    To restyle every demo, change the values in section 1. Everything in
    section 2 is worked out from them, so the colours that have to match the
@@ -15,7 +15,7 @@
 
 :root{
   /* ---- 1. the values you would normally change ---------------------------- */
-  --paper:  #fefdfa;                     /* the magic paper */
+  --paper:  #fefdfa;                     /* the paper in the box */
   --ink:    #263248;                     /* blue-black ink: text and lines */
 
   /* coloured pens for marks; each has a darker "-ink" twin for text, so words stay easy to read on white */
@@ -27,12 +27,8 @@
   --wood:      #e4cea9;                  /* the average colour of wood.webp, shown until it loads */
   --wood-ink:  #5c3d20;                  /* the brown of shadows on the desk */
 
-  /* the magic box: a walnut rim around a midnight-velvet lining, and the warm light the paper gives off */
-  --box:       #6a4428;                  /* walnut (the desk's grain shows through it, darkened) */
-  --velvet:    #232a4c;
-  --glow:      #ffd68a;
-  --on-velvet: #f3e8cf;                  /* the home link and the navigation, in the box */
-  --rim:       14px;                     /* how thick the box's walls look from above */
+  /* the box: thin walls of the same paper */
+  --rim:       6px;                      /* how thick the walls look from above */
 
   /* the widest the paper gets; wider screens show more of the desk */
   --paper-max: 1000px;
@@ -49,13 +45,6 @@
   --ink-dim:     color-mix(in srgb, var(--ink) 64%, transparent);   /* measuring lines, notes beside the working */
   --panel:       color-mix(in srgb, var(--ink) 1.5%, transparent);  /* chart plot area: a faint wash on the paper */
   --shadow:      color-mix(in srgb, var(--wood-ink) 30%, transparent);
-  /* ... and the box */
-  --on-velvet-dim: color-mix(in srgb, var(--on-velvet) 36%, transparent);   /* outlines and idle dots in the box */
-  --paper-glow:
-    0 0 0 1px color-mix(in srgb, var(--glow) 55%, transparent),    /* a bright edge */
-    0 0 24px 3px color-mix(in srgb, var(--glow) 38%, transparent),  /* the light it gives off */
-    0 0 64px 10px color-mix(in srgb, var(--glow) 10%, transparent),
-    0 8px 18px rgb(0 0 0 / .35);                                    /* lying on the velvet */
 
   /* accent fills: the pen colour at low opacity, for shaded areas */
   --blue-fill:   color-mix(in srgb, var(--blue) 24%, transparent);
@@ -83,101 +72,77 @@ body{
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:radial-gradient(ellipse at 50% 35%, rgb(255 250 240 / .22), transparent 55%, color-mix(in srgb, var(--wood-ink) 10%, transparent) 100%)}
 
-/* ---- the magic box ---------------------------------------------------------
-   Walnut walls (the rim: the border), lit from above, around a midnight-velvet lining (the padding box) with a few
-   specks of gold dust in it, and the light of the paper spreading over the velvet. Every demo's .deck is a box, and so is the front page's .magic-box. */
-.magic-box,.deck{
-  position:relative;isolation:isolate;
-  border:var(--rim) solid transparent;
-  border-radius:calc(var(--rim) + 9px);
-  background:
-    radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--glow) 9%, transparent), transparent 70%) padding-box,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='240'%3E%3Cg fill='%23ffd68a'%3E%3Ccircle cx='134' cy='193' r='1.0' fill-opacity='0.25'/%3E%3Ccircle cx='242' cy='202' r='0.8' fill-opacity='0.25'/%3E%3Ccircle cx='84' cy='32' r='1.0' fill-opacity='0.70'/%3E%3Ccircle cx='130' cy='101' r='0.6' fill-opacity='0.35'/%3E%3Ccircle cx='10' cy='191' r='0.8' fill-opacity='0.70'/%3E%3Ccircle cx='147' cy='50' r='1.2' fill-opacity='0.35'/%3E%3Ccircle cx='40' cy='39' r='1.2' fill-opacity='0.35'/%3E%3Ccircle cx='71' cy='4' r='0.6' fill-opacity='0.35'/%3E%3Ccircle cx='114' cy='46' r='0.8' fill-opacity='0.50'/%3E%3C/g%3E%3C/svg%3E") padding-box,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='v' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .8 0 0 0 0 .82 0 0 0 0 1 .26 0 0 0 -.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23v)'/%3E%3C/svg%3E") padding-box,
-    linear-gradient(var(--velvet), var(--velvet)) padding-box,
-    linear-gradient(rgb(255 238 205 / .30), rgb(255 238 205 / 0) 18%, rgb(0 0 0 / 0) 72%, rgb(0 0 0 / .30)) border-box,
-    url("wood.webp") 0 0 / 1200px 900px border-box;
-  background-color:var(--box);
-  background-blend-mode:normal, normal, normal, normal, normal, multiply;   /* the desk's grain, darkened to walnut */
-  box-shadow:
-    inset 0 5px 14px rgb(0 0 0 / .55),                             /* the inside of the walls */
-    inset 0 0 0 1px rgb(0 0 0 / .45),
-    0 0 0 1px color-mix(in srgb, var(--box), black 35%),            /* the outer edge of the rim */
-    0 18px 36px color-mix(in srgb, var(--wood-ink) 45%, transparent), /* standing on the desk */
-    0 3px 6px color-mix(in srgb, var(--wood-ink) 35%, transparent);
-}
-
-/* ---- the magic paper ------------------------------------------------------
-   White paper lying on the velvet, giving off a soft warm light. On every step (nav.js wraps the title band and the
-   stage in it) and on each demo on the front page. When a step begins, nav.js adds .glint for a moment: the paper
-   lights up a little, then settles. */
-.paper{
+/* ---- the paper box, with the paper in it ----------------------------------
+   Thin walls of paper with square corners (the border), and the sheet of paper filling the inside (the padding box),
+   shaded where it meets the walls: most under the top and left walls, as if lit from the top left. Every demo's
+   .deck is one, and so is the front page's .paper-box: both are as tall as the window and as wide as --paper-max
+   allows, so the box is the same size everywhere. */
+.paper-box,.deck{
   position:relative;
+  height:100%;max-width:calc(var(--paper-max) + 2 * var(--rim));margin:0 auto;
+  border:var(--rim) solid var(--paper);
   background-color:var(--paper);
-  /* paper fibres: very faint specks */
+  /* paper fibres: very faint specks, on the walls and the sheet alike */
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='p' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .36 0 0 0 0 .28 .3 0 0 0 -.17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
-  border-radius:4px;
-  box-shadow:var(--paper-glow);
+  background-origin:border-box;
+  box-shadow:
+    inset 0 0 0 1px rgb(40 25 10 / .16),                            /* the fold where the walls meet the sheet */
+    inset 0 9px 11px -7px rgb(40 25 10 / .26),                      /* the walls' shade on the sheet */
+    inset 8px 0 11px -7px rgb(40 25 10 / .18),
+    inset -6px 0 10px -7px rgb(40 25 10 / .11),
+    inset 0 -6px 10px -7px rgb(40 25 10 / .09),
+    inset 0 0 36px color-mix(in srgb, var(--wood-ink) 7%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--wood-ink) 22%, transparent), /* the walls' outer edge */
+    0 10px 22px color-mix(in srgb, var(--wood-ink) 34%, transparent), /* standing on the desk */
+    0 2px 4px color-mix(in srgb, var(--wood-ink) 26%, transparent);
 }
-.paper::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
-  box-shadow:0 0 0 2px color-mix(in srgb, var(--glow) 85%, transparent), 0 0 36px 10px color-mix(in srgb, var(--glow) 45%, transparent)}
-.paper.glint::after{animation:glint 1.2s ease-out}
-@keyframes glint{0%{opacity:0}22%{opacity:1}100%{opacity:0}}
 
-/* ---- deck layout, inside the box: the home link, the paper (title band and the stage of slides), the navigation */
-.deck{height:100%;display:flex;flex-direction:column;gap:6px;margin:0 auto;padding:4px 14px 10px;
-  max-width:calc(var(--paper-max) + 2 * (var(--rim) + 14px))}
-.deck > .paper{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 clamp(12px, 3vw, 32px) 16px}
+/* ---- deck layout, on the paper: the title band (with the home link), the stage of slides, the navigation ---- */
+.deck{display:flex;flex-direction:column;padding:0 clamp(12px, 3vw, 32px) 12px}
 .stage{position:relative;flex:1;min-height:0}
 .slide{position:absolute;inset:0;display:flex;flex-direction:column;min-width:0;opacity:0;visibility:hidden;
   transition:opacity .4s ease, visibility 0s linear .4s}
 .slide.active{opacity:1;visibility:visible;transition:opacity .4s ease}
 
-/* ---- the title band at the top of the paper (built by nav.js) -------------- */
-.titlebar{flex:none;height:56px;display:flex;align-items:center;justify-content:center;padding:4px 8px 0;
-  -webkit-user-select:none;user-select:none}
-.step-title{margin:0;color:var(--orange-ink);font:700 clamp(17px, 3vw, 30px)/1.1 var(--font-hand);text-align:center;
+/* ---- the title band at the top (built by nav.js): the home link on the left, the step's title in the middle ---- */
+.titlebar{flex:none;height:56px;display:grid;grid-template-columns:var(--side, 120px) minmax(0,1fr) var(--side, 120px);
+  align-items:center;column-gap:8px;padding-top:4px;-webkit-user-select:none;user-select:none}
+.step-title{grid-column:2;margin:0;color:var(--orange-ink);font:700 clamp(17px, 3vw, 30px)/1.1 var(--font-hand);text-align:center;
   text-wrap:balance;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}   /* a long title takes two lines on a phone */
-
-/* ---- in the box: the home link above the paper (built by nav.js) ----------- */
-/* a house and "All demos": back to the front page */
-.home{flex:none;align-self:flex-start;height:40px;margin-left:-6px;padding:0 12px 0 6px;display:inline-flex;align-items:center;gap:7px;
+/* the home link: a house and "All demos", back to the front page */
+.home{grid-column:1;grid-row:1;justify-self:start;height:44px;margin-left:-8px;padding:0 10px 0 8px;display:inline-flex;align-items:center;gap:7px;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
-  border-radius:10px;color:var(--on-velvet);text-decoration:none;font:400 18px/1 var(--font-hand);opacity:.8;transition:opacity .2s}
+  border-radius:10px;color:var(--ink);text-decoration:none;font:400 18px/1 var(--font-hand);opacity:.7;transition:opacity .2s}
 .home:hover{opacity:1}
-.home:focus-visible{outline:2px solid var(--glow);outline-offset:0;opacity:1}
+.home:focus-visible{outline:2px solid var(--blue);outline-offset:0;opacity:1}
 .home svg{flex:none;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.home span{padding-top:.14em}                 /* Kalam sits high in its line: nudged down to centre on the house */
+.home span{padding-top:.14em;white-space:nowrap}   /* Kalam sits high in its line: nudged down to centre on the house */
 
-/* ---- in the box: the navigation below the paper (built by nav.js) --------- */
+/* ---- the navigation at the bottom (built by nav.js) ----------------------- */
 .nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding-top:6px;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}                 /* button labels can't be selected */
 .nav-l{justify-self:start}
 .nav-r{justify-self:end;display:flex;align-items:center;gap:8px}
-/* Back and Next: little cards of the same paper, glowing faintly like it */
-.btn{font:400 17px var(--font-hand);height:44px;padding:0 16px;border-radius:9px;cursor:pointer;
+.btn{font:400 17px var(--font-hand);height:44px;padding:0 16px;border-radius:10px;cursor:pointer;
   display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;min-width:0;
-  background:var(--paper);color:var(--ink);border:0;
-  box-shadow:0 0 0 1px color-mix(in srgb, var(--glow) 40%, transparent), 0 0 12px color-mix(in srgb, var(--glow) 18%, transparent),
-    0 3px 8px rgb(0 0 0 / .35);
-  transition:box-shadow .2s, transform .2s}
-.btn:hover:not(:disabled):not([aria-disabled="true"]){transform:translateY(-1px);
-  box-shadow:0 0 0 1px color-mix(in srgb, var(--glow) 70%, transparent), 0 0 18px color-mix(in srgb, var(--glow) 35%, transparent),
-    0 5px 12px rgb(0 0 0 / .35)}
-.btn.ghost{background:transparent;color:var(--on-velvet);box-shadow:inset 0 0 0 1px var(--on-velvet-dim)}   /* Replay: drawn on the velvet */
-.btn.ghost:hover:not(:disabled){box-shadow:inset 0 0 0 1px var(--on-velvet);transform:none}
-.btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:default;box-shadow:none}      /* aria-disabled: Next waiting for an animation */
-.btn.ghost:disabled{box-shadow:inset 0 0 0 1px var(--on-velvet-dim)}
-.btn:focus-visible,.dot:focus-visible{outline:2px solid var(--glow);outline-offset:3px}
+  background:var(--ink);color:var(--paper);border:1px solid var(--ink)}           /* Back and Next look the same */
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--grid-strong)}  /* Replay: outlined */
+.btn.ghost:hover:not(:disabled){border-color:var(--ink)}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.35;cursor:default}      /* aria-disabled: Next waiting for an animation */
+.btn:focus-visible,.dot:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
 .dots{display:flex;gap:2px}
 .dot{width:26px;height:36px;border:0;background:none;display:grid;place-items:center;cursor:pointer;padding:0}
-.dot i{display:block;width:8px;height:8px;border-radius:50%;background:var(--on-velvet-dim);
-  transition:width .3s, background .3s, border-radius .3s, box-shadow .3s}
-.dot.done i{background:color-mix(in srgb, var(--on-velvet) 68%, transparent)}
-.dot[aria-current="step"] i{width:20px;border-radius:4px;background:var(--glow);box-shadow:0 0 8px color-mix(in srgb, var(--glow) 60%, transparent)}
+.dot i{display:block;width:8px;height:8px;border-radius:50%;background:var(--grid-strong);
+  transition:width .3s, background .3s, border-radius .3s}
+.dot.done i{background:var(--muted)}
+.dot[aria-current="step"] i{width:20px;border-radius:4px;background:var(--ink)}
+@media (max-width:640px){
+  .titlebar{--side:44px}
+  .home span{display:none}                    /* just the house: the title needs the room */
+}
 @media (max-width:480px){
-  :root{--rim:9px}
-  .deck{padding:2px 8px 8px}
+  :root{--rim:5px}
+  .deck{padding:0 10px 8px}
   .nav{grid-template-columns:auto 1fr auto}
   .dots{justify-self:center}
   .btn{padding:0 12px}
@@ -188,16 +153,13 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   .titlebar{height:52px}
 }
 @media (max-height:500px){                 /* phones on their side: thinner walls and margins, more room for the drawing */
-  :root{--rim:8px}
+  :root{--rim:4px}
   body{--desk:4px}
-  .deck{gap:4px;padding:0 10px 4px}
-  .home{height:32px}
-  .titlebar{height:40px;padding-top:2px}
-  .deck > .paper{padding-bottom:8px}
+  .deck{padding-bottom:6px}
+  .titlebar{height:42px;padding-top:2px}
   .nav{padding-top:2px}
   .btn{height:40px}
 }
-@media (prefers-reduced-motion: reduce){ .paper.glint::after{animation:none} }
 
 /* ---- callout bubbles (placed by bubbles.js); data-tail says which edge carries the tail ---- */
 .bubble{position:absolute;left:0;top:0;width:max-content;padding:7px 14px 8px;border:2px solid var(--ink);border-radius:14px;

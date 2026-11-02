@@ -1,7 +1,7 @@
 # Feel the Math
 
 Feel the Math is a collection of interactive demos that help students *see* why the answer to a math
-problem is what it is. Each demo takes one word problem and solves it on a sheet of magic paper in a wooden box,
+problem is what it is. Each demo takes one word problem and solves it on a sheet of paper in a paper box,
 letting pictures do most of the explaining: a car driving along a speed–time chart turns distances into areas, wooden sticks
 rebuild a geometry figure and are measured on a ruler, and a sheet of paper folded along a river unfolds to straighten
 the shortest walk. Learners move through the solution one small step at a time, replay any step or drag and
@@ -19,7 +19,7 @@ run in any browser with nothing to install.
 ## One framework for every demo
 
 All the demos are built on the same small framework, StepDeck. That keeps them consistent: the same
-magic box and paper, the same handwriting, the same Back, Replay and Next, and the same step-by-step pacing, so a learner who
+box and paper, the same handwriting, the same Back, Replay and Next, and the same step-by-step pacing, so a learner who
 has used one demo already knows how to use the next. It also makes them easier to maintain: a demo only
 describes its own drawing and steps, and a fix or improvement to the framework reaches every demo at once.
 
@@ -41,7 +41,7 @@ then open <http://localhost:8000>. Any other static server works too.
 ## Folder layout
 
 ```
-index.html                 the site's home page: the magic box, with one sheet of paper per demo in it
+index.html                 the site's home page: the same box, with a card for each demo on its paper
 favicon.svg                the site icon, shown in browser tabs (see "The site icon" below)
 favicon.ico                the same icon for older browsers, made from favicon.svg by tools/icons.py
 apple-touch-icon.png       the same icon for iPhone and iPad home screens, made the same way
@@ -50,7 +50,7 @@ demos/<name>/              one folder per demo: index.html plus its own script a
                            and thumbnail.png / thumbnail@2x.png, its picture on the home page
 demos/template/            a small example to copy when starting a new demo
 tools/thumbnail.py         makes a demo's home-page thumbnail from a screenshot (see below)
-tools/wood.py              makes framework/wood.webp, the wooden desk (and, darkened, the box's walls)
+tools/wood.py              makes framework/wood.webp, the wooden desk the box stands on
 tools/single_file.py       packs a demo into one HTML file (optional)
 tools/icons.py             makes favicon.ico and apple-touch-icon.png from favicon.svg
 ```

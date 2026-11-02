@@ -104,6 +104,11 @@ def settings_for(demo, cli):
     return out
 
 
+# the colour of the paper (--paper in framework/theme.css), as rgb(...)
+PAPER_JS = '''() => { const d = document.createElement('div'); d.style.color = 'var(--paper)'; document.body.append(d);
+  const c = getComputedStyle(d).color; d.remove(); return c; }'''
+
+
 # ---- the local server ----------------------------------------------------------------------------------------------
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -153,7 +158,7 @@ def capture(browser, url, step, viewport, args):
         if not page.evaluate(KALAM_JS):
             print('  warning: the Kalam font did not load, so the text is in a fallback font', file=sys.stderr)
         page.wait_for_timeout(args.wait)                   # fades that run on CSS transitions
-        paper = page.evaluate('getComputedStyle(document.querySelector(".paper") || document.body).backgroundColor')
+        paper = page.evaluate(PAPER_JS)
         return page.locator(args.selector).first.screenshot(), paper
     finally:
         page.close()

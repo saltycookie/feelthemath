@@ -1,7 +1,7 @@
 # StepDeck
 
 StepDeck is the small framework that every Feel the Math demo is built on. It gives each demo the same
-look (a sheet of magic paper in a wooden box on a wooden desk), the same handwriting, the same title band and navigation (Back, the step dots, Replay and
+look (a sheet of paper in a paper box on a wooden desk), the same handwriting, the same title band and navigation (Back, the step dots, Replay and
 Next), and the same way of moving through a solution one animated step at a time. A demo only describes its
 own drawing and its steps; everything else comes from here, so the demos look and behave alike, and a fix or
 improvement made here reaches all of them.
@@ -12,7 +12,7 @@ It is plain JavaScript modules and CSS, with no dependencies and nothing to buil
 
 ```
 theme.css      colours, font, the desk, the box and the paper, navigation, bubbles, chart basics
-wood.webp      the wooden desk (darkened, also the box's walls), a picture that tiles without seams (made by tools/wood.py)
+wood.webp      the wooden desk, a picture that tiles without seams (made by tools/wood.py)
 deck.js        animated values, steps, and moving between steps
 nav.js         Back, step dots, Replay, Next (Finish on the last step), the arrow keys, and the home link
 bubbles.js     callout bubbles that point at things
@@ -24,18 +24,17 @@ svg.js         small helpers for drawing in SVG
 All colours and the font live at the top of `theme.css`:
 
 ```css
---paper:  #fefdfa;          /* the magic paper */
+--paper:  #fefdfa;          /* the paper in the box */
 --ink:    #263248;          /* blue-black ink for text and lines */
 --blue / --orange / --pink  /* coloured pens for marks, each with a darker -ink twin for text */
 --wood / --wood-ink         /* the desk (under wood.webp), and the brown of shadows on it */
---box / --velvet            /* the box: walnut walls, a midnight-velvet lining */
---glow / --on-velvet        /* the light the paper gives off; the home link and navigation in the box */
+--rim: 6px;                 /* how thick the box's paper walls look from above */
 --paper-max: 1000px;        /* the widest the paper gets: wider screens show more of the desk */
 --font-hand: "Kalam", ...;  /* the handwritten font */
 ```
 
 Everything that has to match the paper is worked out from `--paper` and `--ink`: the bubble background, the
-outline behind text, grid lines, muted text and the shaded fills; and the paper's glow from `--glow`. Change them
+outline behind text, grid lines, muted text and the shaded fills. Change them
 and those follow. To change a colour for one demo only, override it on `:root` in that demo's
 stylesheet.
 
@@ -77,12 +76,11 @@ createNav(document.querySelector('.nav'), deck);
 deck.start();
 ```
 
-`createNav` fills the empty `<nav class="nav">` with Back, the step dots, Replay and Next. It also lays the
-`.stage` on the magic paper (a `<div class="paper">`, made there unless the demo's HTML already has one), adds a
-title band across the top of the paper, which shows each step's `title` (and stays as empty space when a step
-has none), and puts a home link (a house and "All demos") above the paper, which leads back to the list of demos.
-The demo's `.deck` is the box: the home link, the paper and the navigation all lie inside it. Each time a step
-begins, the paper glints for a moment. By default it points to `../../`, the front page as seen from `demos/<name>/`. Pass
+`createNav` fills the empty `<nav class="nav">` with Back, the step dots, Replay and Next. It also adds a
+title band above the `.stage`, which shows each step's `title` (and stays as empty space when a step has none),
+and puts a home link (a house and "All demos"; just the house on narrow screens) at the band's left end, which
+leads back to the list of demos. The demo's `.deck` is the box, and the paper fills it: the title band, the
+drawing and the navigation are all written on the paper. The home link points by default to `../../`, the front page as seen from `demos/<name>/`. Pass
 `createNav(nav, deck, { home: 'url' })` to send it elsewhere, or `{ home: false }` to leave it out.
 
 On the last step, Next becomes **Finish**. Like Next, it waits (dimmed) until the step has finished

@@ -7,7 +7,8 @@
 //   Step 1: the problem.  Step 2: the problem drawn as a figure, ending on "How short can BC + CA be?".
 //   Step 3: the figure is on a sheet of paper folded along the river, with home on the back half. The words fade as
 //   the paper fades in; the paper rises and turns to be seen from the side; then it unfolds, carrying home across the
-//   river, and a switch folds and unfolds it again. Leaving with Next folds the paper up again (however the reader
+//   river and leaving see-through marks on the front half where home and its lines lay; and a switch folds and unfolds
+//   it again. Leaving with Next folds the paper up again (however the reader
 //   left it) as the closing words go: step 3 hands over a folded paper.
 //   Step 4: C becomes C1, and C2, C3, C4 join it on the bank, each with its own walk from B to home in its own colour:
 //   which is the shortest? (Unfolding shows it: the walk through C3 is a straight line.) Leaving with Next unfolds the
@@ -156,7 +157,10 @@ function layout() {
 
   svg.setAttribute('viewBox', '0 0 ' + SW + ' ' + SH);
   svg.style.setProperty('--fs', fs + 'px');
-  R.cA.style.textAnchor = R.cB.style.textAnchor = compact ? 'end' : '';
+  for (const n of [R.imp.mask, R.maskAll]) {                           // the marks' mask reaches well past the slide
+    n.setAttribute('x', -SW); n.setAttribute('y', -SH); n.setAttribute('width', 3 * SW); n.setAttribute('height', 3 * SH);
+  }
+  R.cA.style.textAnchor = R.cB.style.textAnchor = R.imp.cA.style.textAnchor = compact ? 'end' : '';
   gapW = (R.tE.getComputedTextLength() || fs * 2.6) + fs * .7;
   deck.redraw();
 }
@@ -166,18 +170,31 @@ function layout() {
 // two pieces: B -> Ci on the front half, then Ci -> A on the back half (R.walkB[i] and R.walkA[i], i counting from 0).
 const R = {};
 function build() {
-  // the back half of the paper and what is on it (home), first, so that the front half covers it
+  // the back half of the paper and what is on it (home), first, so that the front half covers it. The sheet is not in
+  // R.back: while folded, R.back is dimmed (home seen through the front half), and the sheet must not be, so that
+  // each layer of paper looks the same and two layers look less see-through than one
+  R.sheetB = el('path', { class: 'sheet' }, svg);
   R.back = el('g', {}, svg);
-  R.sheetB = el('path', { class: 'sheet back' }, R.back);
   R.dimA = el('path', { class: 'dim' }, R.back);         // A to the river: 20 m
   R.sqA = el('path', { class: 'sq' }, R.back);
   R.walkA = CS.map((_, i) => el('path', { class: 'walk w' + (i + 1) }, R.back));   // Ci -> A; their dashes march towards home
   R.pA = el('circle', { class: 'pt' }, R.back);
   R.lA = text(R.back, 'lbl', 'A'); R.cA = text(R.back, 'cap', 'home');
   R.tA = text(R.back, 'len', '20 m');
+  // the marks home leaves on the front half as the paper unfolds: where home and its lines lay while folded, the front
+  // half goes see-through, as if the unfolding took the paper's opaqueness away with them. They are a mask on the front
+  // half's sheet, white (the paper as it is) with home's drawings copied on in black (see walk.css): R.imp has the same
+  // parts as R, so that render() draws both with the same code
+  const mask = el('mask', { id: 'imprint', maskUnits: 'userSpaceOnUse' }, el('defs', {}, svg));
+  R.maskAll = el('rect', { fill: '#fff' }, mask);
+  const g = el('g', { class: 'imprint' }, mask);
+  R.imp = { g, mask,
+    dimA: el('path', { class: 'dim' }, g), sqA: el('path', { class: 'sq' }, g),
+    walkA: CS.map(() => el('path', { class: 'walk' }, g)), pA: el('circle', { class: 'pt' }, g),
+    lA: text(g, 'lbl', 'A'), cA: text(g, 'cap', 'home'), tA: text(g, 'len', '20 m') };
   // the front half and what is on it (the playground)
   R.front = el('g', {}, svg);
-  R.sheetF = el('path', { class: 'sheet' }, R.front);
+  R.sheetF = el('path', { class: 'sheet', mask: 'url(#imprint)' }, R.front);
   R.dimB = el('path', { class: 'dim' }, R.front);        // B to the river: 30 m
   R.sqB = el('path', { class: 'sq' }, R.front);
   R.walkB = CS.map((_, i) => el('path', { class: 'walk w' + (i + 1) }, R.front));  // B -> Ci
@@ -297,7 +314,9 @@ function render(S) {
   ringPath.style.strokeDashoffset = ringLen * (1 - S.ring);
   ring.style.opacity = S.ring > 0 ? 1 : 0;
 
-  // the paper, folded along the river: it fades in over the figure; later its back half swings down behind
+  // the paper, folded along the river: it fades in over the figure; later its back half swings down behind. Where the
+  // halves overlap on the screen the two layers add up; as the back half swings out from under the front half, the
+  // parts left with one layer look more see-through (see walk.css)
   sheet(R.sheetB, back, PAPER.h, S.paper);
   sheet(R.sheetF, front, PAPER.h, S.paper);
   setOpacity(R.back, 1 - .45 * S.paper * clamp(.5 + cf, 0, 1));    // home shows dimly through the front half while behind it
@@ -308,13 +327,21 @@ function render(S) {
   // its name near the east end, but east of B's line (where the paper is small, C4's name would be in the way)
   setText(R.riverT, Math.max(end[0] - fs * 1.9 + 3, (front(B.x, 0)[0] + end[0]) / 2), end[1] + fs * 1.05, fadeIn(S.river, .7));
 
-  // Danny's home, A, on the back half, and its 20 m to the river
-  const a = back(A.x, A.y);
-  point(R.pA, a, S.a);
-  names(R.lA, R.cA, back, A, S.a, v.k);
-  line(R.dimA, a, back(A.x, A.y * (1 - S.aDim)), S.aDim > 0);
-  corner(R.sqA, back, A.x, 0, [1, 0], [0, 1], s, fadeIn(S.aDim));
-  label(R.tA, back, A.x, A.y / 2, -1.75, 0, fadeIn(S.aDim), v.k);
+  // Danny's home, A, on the back half, and its 20 m to the river. The same again, on the front half where it lay while
+  // folded, is the marks it leaves there: they come as the back half swings away (most of the way by the time it stands
+  // straight out) and go again as it folds back
+  const home = (map, n) => {
+    const a = map(A.x, A.y);
+    point(n.pA, a, S.a);
+    names(n.lA, n.cA, map, A, S.a, v.k);
+    line(n.dimA, a, map(A.x, A.y * (1 - S.aDim)), S.aDim > 0);
+    corner(n.sqA, map, A.x, 0, [1, 0], [0, 1], s, fadeIn(S.aDim));
+    label(n.tA, map, A.x, A.y / 2, -1.75, 0, fadeIn(S.aDim), v.k);
+  };
+  home(back, R);
+  home(front, R.imp);
+  const im = clamp(S.unf / .6, 0, 1);
+  setOpacity(R.imp.g, S.paper * im * im * (3 - 2 * im));
 
   // the playground, B, on the front half: 30 m north of the river ...
   const b = front(B.x, B.y);
@@ -344,7 +371,8 @@ function render(S) {
     const t1 = clamp(d / bc, 0, 1), t2 = clamp((d - bc) / ca, 0, 1);
     line(R.walkB[i], b, front(lerp(B.x, p.x, t1), lerp(B.y, p.y, t1)), d > 0);
     line(R.walkA[i], cs[i], back(lerp(p.x, A.x, t2), lerp(p.y, A.y, t2)), t2 > 0);
-    setOpacity(R.walkB[i], keep[i]); setOpacity(R.walkA[i], keep[i]);
+    line(R.imp.walkA[i], cs[i], front(lerp(p.x, A.x, t2), lerp(p.y, A.y, t2)), t2 > 0);   // (its mark on the front half)
+    setOpacity(R.walkB[i], keep[i]); setOpacity(R.walkA[i], keep[i]); setOpacity(R.imp.walkA[i], keep[i]);
     // the dashes run on from one piece into the next: the second piece's march lags by the first piece's length
     const lag = (Math.hypot(b[0] - cs[i][0], b[1] - cs[i][1]) % DASH) / DASH * MARCH - MARCH;
     if (Math.abs(lag - lagNow[i]) > .004) { R.walkA[i].style.animationDelay = lag + 's'; lagNow[i] = lag; }
@@ -423,7 +451,8 @@ const ALT = [
     "east of A and 30 meters north of the river. C is a point on the river bank, and Danny's walk goes from B to C and then from C to A.",
   'The same figure on a sheet of see-through paper folded along the river, seen a little from the side. Home, A, is on the ' +
     "back half, behind the playground's half. The paper unfolds: the back half swings down, carrying home and the walk from " +
-    'C to A with it, until home is 20 meters south of the river.',
+    'C to A with it, until home is 20 meters south of the river. Where home and its lines lay, the front half is left ' +
+    'with see-through marks of them.',
   'The paper folded again. Four points on the river bank: C2 near home, C3, C1, and C4 near the playground. Four walks, ' +
     'each in its own colour, go from the playground B to one of the points and on to home A. Which one is the shortest? ' +
     'Unfolding the paper shows it.',

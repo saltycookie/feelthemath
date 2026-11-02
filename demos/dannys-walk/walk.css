@@ -42,10 +42,17 @@
 #fig .cap.river-cap{fill:var(--blue-ink)}
 #fig .len{font-weight:700;font-size:var(--fs, 18px);stroke-width:5px;fill:var(--chalk)}
 
-/* ---- steps 3-4: a sheet of see-through paper, folded along the river ---- */
-#fig .sheet{fill:color-mix(in srgb, var(--chalk) 14%, transparent);stroke:color-mix(in srgb, var(--chalk) 55%, transparent);
+/* ---- steps 3-6: a sheet of see-through paper, folded along the river ----
+   Both halves are one layer of the same paper. Where they lie over each other (folded, or part way through the
+   unfolding) the two layers add up: about 19% chalk, with edges about 70%. Wherever there is only one layer, the
+   paper looks more see-through: once unfolded, the whole sheet. */
+#fig .sheet{fill:color-mix(in srgb, var(--chalk) 10%, transparent);stroke:color-mix(in srgb, var(--chalk) 45%, transparent);
   stroke-width:1.5;stroke-linejoin:round}
-#fig .sheet.back{fill:color-mix(in srgb, var(--chalk) 9%, transparent)}
+/* the marks home leaves on the front half as the paper unfolds: copies of home's drawings in a mask on the front half's
+   sheet, black (see-through) on white. The walks' marks are solid lines, still. */
+#fig .imprint path{stroke:#000;stroke-dasharray:none;animation:none}
+#fig .imprint circle{fill:#000;stroke:#000}
+#fig .imprint text{fill:#000;stroke:#000;stroke-width:1px}
 
 /* the words under the paper in steps 3-5 (walk.js places them) */
 .hint{position:absolute;left:0;top:0;margin:0;color:var(--orange);text-align:center;text-wrap:balance;opacity:0;pointer-events:none;

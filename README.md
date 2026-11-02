@@ -108,7 +108,8 @@ and copy one of the `<li>` entries in the top-level `index.html`, changing its l
 ## The site icon
 
 The logo is a touch point on a rising curve, with ripples around it: the moment the math clicks, felt rather than
-read. It appears twice:
+read. The curve is drawn like an italic f, a straight, steep stem with a round hook at each end, so the logo doubles
+as the F of the name. It appears twice:
 
 - **At the top of the home page**, drawn inline in `index.html` in the theme's colours, standing in for the F of
   the title: the logo, then "eel the Math" in orange, set close enough that they read as one word.

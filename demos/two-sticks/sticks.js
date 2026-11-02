@@ -55,7 +55,7 @@ const SOLVE_SEQ = [[2300, 'sol2'], [3400, 'strike'], [4300, 'sol3'], [5600, 'sol
 const SOLVE = { sol2: 0, strike: 0, sol3: 0, sol4: 0, sol5: 0, sol6: 0 };
 const SOLVED = { sol2: 1, strike: 1, sol3: 1, sol4: 1, sol5: 1, sol6: 1 };
 
-// what the page shows, for screen readers
+// what the drawing shows, for screen readers
 const ALT = [
   'The homework figure on a mat, with the question written above it. AC and BD cross at O at a right angle, AO equals BO and OC equals OD.',
   'Above the ruler: Imagine, how would you build this shape using sticks? Then every line turns into a stick.',
@@ -63,7 +63,7 @@ const ALT = [
   'BD is taken from the corner, laid under AC and marked the same way. Then BD is laid across AC at a right angle at O.',
   'AB is taken from the corner and laid on top, labeled root 2 times y, then CD, labeled root 2 times x minus y.',
   'The two thin sticks are laid end to end on the ruler and reach 10 centimetres: root 2 times y plus root 2 times x minus y equals 10.',
-  'The equation moves to the top of the page and is solved line by line. x equals 10 divided by root 2, which is 5 root 2, so AC is 5 root 2 centimetres.',
+  'The equation moves to the top of the paper and is solved line by line. x equals 10 divided by root 2, which is 5 root 2, so AC is 5 root 2 centimetres.',
 ];
 
 /* ================= helpers ================= */

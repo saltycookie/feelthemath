@@ -1,4 +1,4 @@
-/* Two Perpendicular Sticks: styles for this demo only. Colours, font, navigation and the page come from framework/theme.css.
+/* Two Perpendicular Sticks: styles for this demo only. Colours, font, navigation, the box and the paper come from framework/theme.css.
    Colour code: blue = y, orange = x − y, pink = what to look at (the picked point, the 10 cm reading, crossings-out).
    The sticks and the ruler are real objects, so they keep their own colours (below). */
 
@@ -56,7 +56,7 @@
 .scene .read{stroke:var(--pink);stroke-width:2.6;stroke-linecap:round}
 .scene .pick{fill:var(--pink);stroke:var(--halo);stroke-width:2;stroke-linejoin:round}
 
-/* words and maths written on the page (HTML on top of the drawing) */
+/* words and maths written on the paper (HTML on top of the drawing) */
 .overlay{position:absolute;inset:0;pointer-events:none;color:var(--ink);font-family:var(--font-hand);
   --fs:calc(var(--cm, 30px) * .62 * var(--k, 1)); --ts:calc(var(--cm, 30px) * .48 * var(--kt, 1))}
 .ptxt{position:absolute;left:4%;width:92%;top:0;margin:0;text-align:center;font-size:var(--ts);font-weight:400;line-height:1.3;

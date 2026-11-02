@@ -136,7 +136,7 @@ def square_height(browser, url, width, args):
 
 
 def capture(browser, url, step, viewport, args):
-    """Open url at #step-N, wait for the step to finish, and return a PNG of the workspace and the page's colour."""
+    """Open url at #step-N, wait for the step to finish, and return a PNG of the workspace and the paper's colour."""
     width, height = viewport
     if height is None:
         height = square_height(browser, url, width, args)
@@ -153,7 +153,7 @@ def capture(browser, url, step, viewport, args):
         if not page.evaluate(KALAM_JS):
             print('  warning: the Kalam font did not load, so the text is in a fallback font', file=sys.stderr)
         page.wait_for_timeout(args.wait)                   # fades that run on CSS transitions
-        paper = page.evaluate('getComputedStyle(document.querySelector(".page") || document.body).backgroundColor')
+        paper = page.evaluate('getComputedStyle(document.querySelector(".paper") || document.body).backgroundColor')
         return page.locator(args.selector).first.screenshot(), paper
     finally:
         page.close()
@@ -168,7 +168,7 @@ def rgb(css):
 
 
 def square(img, fit, focus, zoom, background):
-    """Cut a square out of img (fit='cover'), or pad img out to a square with the page's colour (fit='contain')."""
+    """Cut a square out of img (fit='cover'), or pad img out to a square with the paper's colour (fit='contain')."""
     from PIL import Image
     w, h = img.size
     if fit == 'contain':
@@ -214,7 +214,7 @@ def main():
                     help='browser window in CSS pixels. A width alone makes the window as tall as it takes for a '
                          'square workspace (default: 860)')
     ap.add_argument('--fit', help='cover: cut a square out of the workspace (default); contain: show all of it, '
-                                  'padded out with the colour of the page')
+                                  'padded out with the colour of the paper')
     ap.add_argument('--focus', metavar='X,Y',
                     help='where the square is cut from when the workspace is not square or with --zoom, each between '
                          '0 and 1: 0,0 top left, .5,.5 the middle (default), 1,1 bottom right')

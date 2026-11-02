@@ -1,8 +1,8 @@
 # Feel the Math
 
 Feel the Math is a collection of interactive demos that help students *see* why the answer to a math
-problem is what it is. Each demo takes one word problem and solves it in a small book, one page per step, letting
-pictures do most of the explaining: a car driving along a speed–time chart turns distances into areas, wooden sticks
+problem is what it is. Each demo takes one word problem and solves it on a sheet of magic paper in a wooden box,
+letting pictures do most of the explaining: a car driving along a speed–time chart turns distances into areas, wooden sticks
 rebuild a geometry figure and are measured on a ruler, and a sheet of paper folded along a river unfolds to straighten
 the shortest walk. Learners move through the solution one small step at a time, replay any step or drag and
 flip things to explore, and the arithmetic arrives only once the picture has made it feel obvious. The demos
@@ -19,7 +19,7 @@ run in any browser with nothing to install.
 ## One framework for every demo
 
 All the demos are built on the same small framework, StepDeck. That keeps them consistent: the same
-book pages on a wooden desk, the same handwriting, the same Back, Replay and Next, and the same step-by-step pacing, so a learner who
+magic box and paper, the same handwriting, the same Back, Replay and Next, and the same step-by-step pacing, so a learner who
 has used one demo already knows how to use the next. It also makes them easier to maintain: a demo only
 describes its own drawing and steps, and a fix or improvement to the framework reaches every demo at once.
 
@@ -41,7 +41,7 @@ then open <http://localhost:8000>. Any other static server works too.
 ## Folder layout
 
 ```
-index.html                 the site's home page: the book's title page and contents, one chapter per demo
+index.html                 the site's home page: the magic box, with one sheet of paper per demo in it
 favicon.svg                the site icon, shown in browser tabs (see "The site icon" below)
 favicon.ico                the same icon for older browsers, made from favicon.svg by tools/icons.py
 apple-touch-icon.png       the same icon for iPhone and iPad home screens, made the same way
@@ -50,14 +50,14 @@ demos/<name>/              one folder per demo: index.html plus its own script a
                            and thumbnail.png / thumbnail@2x.png, its picture on the home page
 demos/template/            a small example to copy when starting a new demo
 tools/thumbnail.py         makes a demo's home-page thumbnail from a screenshot (see below)
-tools/wood.py              makes framework/wood.webp, the wooden desk the book lies on
+tools/wood.py              makes framework/wood.webp, the wooden desk (and, darkened, the box's walls)
 tools/single_file.py       packs a demo into one HTML file (optional)
 tools/icons.py             makes favicon.ico and apple-touch-icon.png from favicon.svg
 ```
 
 ## Thumbnails on the home page
 
-Each demo on the home page has a 120 × 120 picture: its workspace (the drawing on the page only, without the title
+Each demo on the home page has a 120 × 120 picture: its workspace (the drawing on the paper only, without the title
 band, the home link or Back/Next) at the end of one chosen step. `tools/thumbnail.py` makes them. Once:
 
 ```sh
@@ -104,9 +104,7 @@ load. It knows a step has finished because StepDeck marks the page while a step 
 [framework/README.md](framework/README.md#for-tools)).
 
 **Putting a new demo on the home page:** add the meta tag to the demo's `index.html`, run the tool on the demo,
-and copy one of the `<li>` entries in the top-level `index.html`, changing its links, picture, title and text, and
-its `--pages`: the demo's number of steps. Every step is a page of the book, so the contents works out from these
-which page each chapter starts on.
+and copy one of the `<li>` entries in the top-level `index.html`, changing its links, picture, title and text.
 
 ## The site icon
 

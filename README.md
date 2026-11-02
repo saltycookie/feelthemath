@@ -41,7 +41,7 @@ then open <http://localhost:8000>. Any other static server works too.
 ## Folder layout
 
 ```
-index.html                 the site's home page: the same box, with a card for each demo on its paper
+index.html                 the site's home page: the same box with its lid on, and a card for each demo on the lid
 favicon.svg                the site icon, shown in browser tabs (see "The site icon" below)
 favicon.ico                the same icon for older browsers, made from favicon.svg by tools/icons.py
 apple-touch-icon.png       the same icon for iPhone and iPad home screens, made the same way

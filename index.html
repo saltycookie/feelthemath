@@ -12,9 +12,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="framework/theme.css">
 <style>
-  /* the front page: the same box as every demo, with the title and one card per demo written on its paper, in a
-     column narrower than the box. When the column is taller than the box, it scrolls inside the box. */
-  .paper-box{overflow:auto}
+  /* the front page: the same box as every demo, with its lid on, and the title and one card per demo written on the
+     lid, in a column narrower than the box. When the column is taller than the box, it scrolls. */
+  .box-lid{overflow:auto}
   .front{max-width:720px;margin:0 auto;padding:clamp(20px,4vw,40px) clamp(10px,3vw,24px) clamp(20px,3vw,28px)}
 
   /* the title "Feel the Math": the logo (a touch point on a rising curve, with ripples) stands in for the F,
@@ -47,7 +47,7 @@
 </style>
 </head>
 <body>
-<main class="paper-box">
+<main class="box-lid">
 <div class="front">
   <h1 aria-label="Feel the Math">
     <svg class="mark" viewBox="16 0 104 120" aria-hidden="true">

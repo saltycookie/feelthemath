@@ -5,7 +5,8 @@
    the same paper inside it that fills it from wall to wall. The demo is
    written on that paper in ink, and everything is on it: the home link and
    the step's title at the top, the drawing, and Back / the step dots /
-   Replay / Next at the bottom.
+   Replay / Next at the bottom. The front page is the same box with its lid
+   on, written on the lid.
 
    To restyle every demo, change the values in section 1. Everything in
    section 2 is worked out from them, so the colours that have to match the
@@ -73,19 +74,26 @@ body{
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:radial-gradient(ellipse at 50% 35%, rgb(255 250 240 / .22), transparent 55%, color-mix(in srgb, var(--wood-ink) 10%, transparent) 100%)}
 
-/* ---- the paper box, with the paper in it ----------------------------------
-   Thin walls of paper with square corners (the border), and the sheet of paper filling the inside (the padding box),
-   shaded where it meets the walls: most under the top and left walls, as if lit from the top left. Every demo's
-   .deck is one, and so is the front page's .paper-box: both are as tall as the window and as wide as --paper-max
-   allows, so the box is the same size everywhere. */
-.paper-box,.deck{
+/* ---- the paper box ----------------------------------------------------------
+   Seen from above, on the desk: as tall as the window and as wide as --paper-max allows, the same size everywhere.
+   A demo's .deck is the box open, with the paper in it; the front page's .box-lid is the same box with its lid on. */
+.box-lid,.deck{
   position:relative;
   height:100%;max-width:calc(var(--paper-max) + 2 * var(--rim));margin:0 auto;
   border:var(--rim) solid var(--paper);
   background-color:var(--paper);
-  /* paper fibres: very faint specks, on the walls and the sheet alike */
+  /* paper fibres: very faint specks */
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='p' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .36 0 0 0 0 .28 .3 0 0 0 -.17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
   background-origin:border-box;
+  --on-desk:
+    0 0 0 1px color-mix(in srgb, var(--wood-ink) 22%, transparent), /* the box's outer edge */
+    0 10px 22px color-mix(in srgb, var(--wood-ink) 34%, transparent), /* standing on the desk */
+    0 2px 4px color-mix(in srgb, var(--wood-ink) 26%, transparent);
+  box-shadow:var(--on-desk);                                        /* the lid: flat paper, nothing more */
+}
+/* the box open: thin walls of paper with square corners (the border), and the sheet filling the inside (the padding
+   box), shaded where it meets the walls: most under the top and left walls, as if lit from the top left */
+.deck{
   box-shadow:
     inset 0 0 0 1px rgb(40 25 10 / .16),                            /* the fold where the walls meet the sheet */
     inset 0 9px 11px -7px rgb(40 25 10 / .26),                      /* the walls' shade on the sheet */
@@ -93,9 +101,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
     inset -6px 0 10px -7px rgb(40 25 10 / .11),
     inset 0 -6px 10px -7px rgb(40 25 10 / .09),
     inset 0 0 36px color-mix(in srgb, var(--wood-ink) 7%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--wood-ink) 22%, transparent), /* the walls' outer edge */
-    0 10px 22px color-mix(in srgb, var(--wood-ink) 34%, transparent), /* standing on the desk */
-    0 2px 4px color-mix(in srgb, var(--wood-ink) 26%, transparent);
+    var(--on-desk);
 }
 
 /* ---- deck layout, on the paper: the title band (with the home link), the stage of slides, the navigation ---- */

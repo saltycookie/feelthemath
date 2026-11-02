@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- The site icon: a touch point on a rising curve, with ripples, on a chalkboard tile.
+       Drawn a little bolder than the logo on the home page so it still reads at 16 px.
+       favicon.ico and apple-touch-icon.png are made from this file: python3 tools/icons.py -->
+  <rect width="120" height="120" rx="26" fill="#3d6856"/>
+  <g transform="translate(0 2)" fill="none" stroke-linecap="round">
+    <path d="M27.07 55.81A33 33 0 0 1 54.16 25.52M92.93 60.19A33 33 0 0 1 65.84 90.48" stroke="#8fcbff" stroke-opacity=".6" stroke-width="6"/>
+    <path d="M39.05 56.61A21 21 0 0 1 56.28 37.33M80.95 59.39A21 21 0 0 1 63.72 78.67" stroke="#8fcbff" stroke-width="7"/>
+    <path d="M10 95C44 95 76 21 110 21" stroke="#f4f1e8" stroke-width="8"/>
+    <circle cx="60" cy="58" r="12" fill="#ffa347" stroke="#3d6856" stroke-width="4"/>
+  </g>
+</svg>

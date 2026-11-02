@@ -41,13 +41,17 @@ then open <http://localhost:8000>. Any other static server works too.
 ## Folder layout
 
 ```
-index.html                 list of demos (the site's home page)
+index.html                 list of demos (the site's home page), with the logo at the top
+favicon.svg                the site icon, shown in browser tabs (see "The site icon" below)
+favicon.ico                the same icon for older browsers, made from favicon.svg by tools/icons.py
+apple-touch-icon.png       the same icon for iPhone and iPad home screens, made the same way
 framework/                 StepDeck, shared by every demo (see framework/README.md)
 demos/<name>/              one folder per demo: index.html plus its own script and styles,
                            and thumbnail.png / thumbnail@2x.png, its picture on the home page
 demos/template/            a small example to copy when starting a new demo
 tools/thumbnail.py         makes a demo's home-page thumbnail from a screenshot (see below)
 tools/single_file.py       packs a demo into one HTML file (optional)
+tools/icons.py             makes favicon.ico and apple-touch-icon.png from favicon.svg
 ```
 
 ## Thumbnails on the home page
@@ -101,6 +105,25 @@ load. It knows a step has finished because StepDeck marks the page while a step 
 **Putting a new demo on the home page:** add the meta tag to the demo's `index.html`, run the tool on the demo,
 and copy one of the `<li>` entries in the top-level `index.html`, changing its links, picture, title and text.
 
+## The site icon
+
+The logo is a touch point on a rising curve, with ripples around it: the moment the math clicks, felt rather than
+read. It appears twice:
+
+- **At the top of the home page**, drawn inline in `index.html` in the theme's colours, next to the name written
+  in lower case with "feel" in orange.
+- **As the site icon** in browser tabs, bookmarks and home screens: `favicon.svg`, the same drawing on a chalkboard
+  tile, with slightly thicker lines so it still reads at 16 pixels. Every page links to it in its `<head>`, the
+  demos as `../../favicon.svg`; `demos/template` has the links too, so a new demo copied from it gets them.
+
+Modern browsers use `favicon.svg` directly. `favicon.ico` (for older browsers) and `apple-touch-icon.png` (a 180 ×
+180 square for iPhones and iPads; iOS rounds the corners itself) are made from it. After changing `favicon.svg`,
+remake them (needs the same `playwright` and `pillow` as the thumbnail tool):
+
+```sh
+python3 tools/icons.py
+```
+
 ## One-file copies
 
 To email a demo or open it with no server, pack it into a single HTML file:
@@ -110,4 +133,4 @@ python3 tools/single_file.py demos/qiangs-trip      # writes dist/qiangs-trip.ht
 ```
 
 A packed file has no front page next to it, so its home link points to the live site
-(change it with `--home URL`).
+(change it with `--home URL`), and its site icon is taken from the live site too.

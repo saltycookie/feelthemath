@@ -40,6 +40,11 @@ stylesheet.
 Ready-made classes colour text in HTML and in SVG alike: `c-ink`, `c-muted`, `c-blue`, `c-orange`, `c-pink`
 (the darker text tints) and `c-blue-main`, `c-orange-main`, `c-pink-main` (the pen colours themselves).
 
+A few pieces of writing are shared too, so the demos don't each keep a copy: `.problem` (the word problem on the
+first step; a demo may change its size), `.rad` (a square root in the handwriting:
+`<span class="rad"><span>2</span></span>`), `.sr-only` (text for screen readers only), and `--ink-dim` (measuring
+lines and small notes beside the working).
+
 Each page loads Kalam from Google Fonts. Without a connection the text falls back to another casual font.
 
 ## How a demo works
@@ -103,7 +108,7 @@ Finish, and Next is simply disabled on the last step. The arrow keys never leave
 | `slideClass` | A class added to that slide while the step is active, for CSS animations. Replay restarts them. |
 | `set` | Values that have changed by the time the step is left with Next: usually where `play` ends, or where `leave` ends when it animates. The finished look is the beginning plus `set`. |
 | `start` | Values that are different at the beginning, on top of the previous finished look. |
-| `fresh` | `true` to begin from the demo's starting `state` instead of the previous finished look (a cleared board). |
+| `fresh` | `true` to begin from the demo's starting `state` instead of the previous finished look (a blank page). |
 | `play(s)` | Async function that animates the step. Without it, the values glide to the finished look. |
 | `enter(info)`, `leave(info, s)` | Hooks for things that aren't animated values, such as turning dragging on and off. `leave` may also animate, with the same `s` as `play`, to tidy up what the reader changed (a switch, a drag) into the finished look. An async `leave` is waited for when leaving with Next; any other move cuts it short. |
 | `replay` | `false` to disable Replay on this step. |

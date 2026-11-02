@@ -53,7 +53,7 @@ const CAM = { yaw: 25 * Math.PI / 180, dist: 230 };   // step 3's camera: this f
 const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long one dash takes to march along it (s): see walk.css
 
 /* ---------- the page ---------- */
-const slide = $('#board'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
+const slide = $('#walk'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
 const switcher = $('#switcher'), toggle = $('#toggle'), wordFold = $('#wordFold'), wordUnfold = $('#wordUnfold');
 const hint3 = $('#hint3'), hint4 = $('#hint4'), hint5 = $('#hint5'), hints = [hint3, hint4, hint5];
 const math = $('#math'), ring = $('#ring'), ringPath = ring.querySelector('path');
@@ -475,9 +475,9 @@ const deck = createDeck({
   },
   linear: ['walk', 'w2', 'w3', 'w4'],
   steps: [
-    { name: 'The problem', title: 'Problem Description', slide: 'board', replay: false },
+    { name: 'The problem', title: 'Problem Description', slide: 'walk', replay: false },
 
-    { name: 'The problem as a figure', title: 'Problem Description', slide: 'board',
+    { name: 'The problem as a figure', title: 'Problem Description', slide: 'walk',
       set: { river: 1, a: 1, aDim: 1, b: 1, bRiver: 1, bEast: 1, c: 1, walk: 1, ask: 1 },
       async play(s) {
         await s.to('river', 1, 1000);           // the river, from west to east
@@ -492,7 +492,7 @@ const deck = createDeck({
       } },
 
     // (its finished look, the look it hands over: the paper folded again and the closing words gone; leave() gets there)
-    { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper', slide: 'board',
+    { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper', slide: 'walk',
       set: { txt: 0, ask: 0, view: 1, paper: 1, unf: 0, sw: 1, hint3: 0 },
       enter() { setSwitch(false); setControls(false); },   // the step begins folded; the switch comes at the end
       async leave(info, s) {                    // on Next: fold the paper up again, from wherever the reader left it, as the words go
@@ -515,7 +515,7 @@ const deck = createDeck({
 
     // (begins folded: see step 3. Its finished look, the look it hands over: the four walks drawn, the question shown,
     // and the paper unfolded; leave() gets there)
-    { name: 'Four walks', title: 'Which Path Is the Shortest?', slide: 'board',
+    { name: 'Four walks', title: 'Which Path Is the Shortest?', slide: 'walk',
       set: { sub: 1, c2: 1, c3: 1, c4: 1, w2: 1, w3: 1, w4: 1, lab4: 1, hint4: 1, unf: 1 },
       enter() { setSwitch(false); setControls(false); },   // the switch waits until the walks are drawn
       async leave(info, s) {                    // on Next: unfold the paper, from wherever the reader left it
@@ -538,7 +538,7 @@ const deck = createDeck({
 
     // (begins unfolded: see step 4. Its finished look, the look it hands over: only the walk through C3 left, the words
     // under it, and the unfolded paper seen straight on again; leave() gets there)
-    { name: 'The straight walk', title: 'Which Path Is the Shortest?', slide: 'board',
+    { name: 'The straight walk', title: 'Which Path Is the Shortest?', slide: 'walk',
       set: { sw: 0, hint4: 0, focus: 1, hint5: 1, flat: 1, view: 0 },
       enter() { setSwitch(true); setControls(false); },      // the paper stays unfolded from here on
       async leave(info, s) {                    // on Next: the paper turns back to face the reader, flat in the middle
@@ -552,7 +552,7 @@ const deck = createDeck({
       } },
 
     // (begins flat: see step 5)
-    { name: 'The answer', title: 'Solve the Problem', slide: 'board',
+    { name: 'The answer', title: 'Solve the Problem', slide: 'walk',
       set: { hint5: 0, rise: 1, tri: 1, dpt: 1, swap: 1, m1: 1, m2: 1, m3: 1, m4: 1, m5: 1, ring: 1 },
       async play(s) {
         s.to('hint5', 0, 500);                  // the words go ...

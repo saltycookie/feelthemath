@@ -7,7 +7,7 @@
 favicon.svg is the icon itself, and modern browsers use it as it is. The two files made here are for everything
 else: favicon.ico for older browsers and for anything that asks a site for /favicon.ico, and apple-touch-icon.png
 for iPhones and iPads, which show it when the site is added to the home screen. iOS rounds the corners itself, so
-that picture is a full square, with the tile's rounded corners filled in with the board colour.
+that picture is a full square, with the tile's rounded corners filled in with the tile's colour.
 
 Run it again after changing favicon.svg.
 
@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent      # the repository: the folder 
 SVG = ROOT / 'favicon.svg'
 ICO, ICO_SIZES = ROOT / 'favicon.ico', (16, 32, 48)
 TOUCH, TOUCH_SIZE = ROOT / 'apple-touch-icon.png', 180
-BOARD = (61, 104, 86, 255)                          # --board in framework/theme.css
+TILE = (61, 104, 86, 255)                           # the tile's fill in favicon.svg (#3d6856)
 
 
 def render(browser, size):
@@ -46,7 +46,7 @@ def main():
         browser.close()
     icons[-1].save(ICO, format='ICO', sizes=[i.size for i in icons], append_images=icons[:-1])
     print('wrote', ICO.relative_to(ROOT))
-    Image.alpha_composite(Image.new('RGBA', touch.size, BOARD), touch).convert('RGB').save(TOUCH, optimize=True)
+    Image.alpha_composite(Image.new('RGBA', touch.size, TILE), touch).convert('RGB').save(TOUCH, optimize=True)
     print('wrote', TOUCH.relative_to(ROOT))
 
 

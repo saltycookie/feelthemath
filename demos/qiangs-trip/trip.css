@@ -4,8 +4,6 @@
 
 /* ---- steps 1-2: the problem, then the trip drawn as a road ---- */
 #intro{justify-content:center;align-items:center;gap:clamp(18px,5vh,48px)}
-.problem{margin:0;max-width:34em;font:400 clamp(21px,3vw,33px)/1.35 var(--font-hand);text-wrap:pretty}
-.problem b{font-weight:700}
 .road{width:100%;max-width:880px;height:auto;display:block}
 .rline{fill:none;stroke-width:22}
 .road-base{stroke:var(--ink-faint);stroke-linecap:butt}          /* the pale road, there before the car moves */

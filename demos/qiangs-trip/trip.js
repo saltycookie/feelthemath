@@ -268,7 +268,7 @@ deck = createDeck({
       leave() { setDrag(false); } },
 
     { name: 'Part 1: 0.5 hours', title: "Let's Use Area to Describe the Problem", slide: 'graph', fresh: true,
-      start: { ptX: 0, ptY: PART1.y, hR: 5, carX: 0, xtOp: 0 },      // an empty board, the car parked at (0, 0)
+      start: { ptX: 0, ptY: PART1.y, hR: 5, carX: 0, xtOp: 0 },      // an empty chart, the car parked at (0, 0)
       set: { ptX: PART1.x, carX: PART1.x, r1Op: 1, r1Lab: 1, gdOp: 1, gxOp: 1, carOp: 1 },
       async play(s) {
         s.to('r1Op', 1, 0);                                          // a zero-width rectangle draws nothing yet

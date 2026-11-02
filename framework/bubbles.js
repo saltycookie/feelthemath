@@ -1,4 +1,4 @@
-// StepDeck callout bubbles: small chalk-outlined boxes that sit beside the thing they explain, with a tail pointing at it.
+// StepDeck callout bubbles: small ink-outlined boxes that sit beside the thing they explain, with a tail pointing at it.
 //
 // const bubbles = createBubbles(container, { count: 1, bounds: () => ({ x, y, w, h }) })
 //   container  positioned element the bubbles live in (they are absolutely positioned inside it)

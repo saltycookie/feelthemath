@@ -38,6 +38,7 @@
   --grid:        color-mix(in srgb, var(--ink) 9%, transparent);
   --grid-strong: color-mix(in srgb, var(--ink) 20%, transparent);
   --ink-faint:   color-mix(in srgb, var(--ink) 22%, transparent);
+  --ink-dim:     color-mix(in srgb, var(--ink) 64%, transparent);   /* measuring lines, notes beside the working */
   --panel:       color-mix(in srgb, var(--ink) 1.5%, transparent);  /* chart plot area: a faint wash on the page */
   --page-edge:   color-mix(in srgb, var(--paper), var(--wood-ink) 16%);   /* the edges of the pages underneath */
   --shadow:      color-mix(in srgb, var(--wood-ink) 30%, transparent);
@@ -170,6 +171,20 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .bubble[data-tail="below"]::before{top:-8px;left:var(--tp);border-color:var(--ink) transparent transparent var(--ink)}
 .bubble[data-tail="above"]::before{bottom:-8px;left:var(--tp);border-color:transparent var(--ink) var(--ink) transparent}
 .bubble[data-tail="mid"]::before{display:none}                                            /* centred, no tail */
+
+/* ---- words on the page, shared by the demos -------------------------------- */
+/* the word problem, as the first step states it (a demo may change its size) */
+.problem{margin:0;max-width:34em;font:400 clamp(21px,3vw,33px)/1.35 var(--font-hand);text-wrap:pretty}
+.problem b{font-weight:700}
+/* a square root drawn in the handwriting: <span class="rad"><span>2</span></span>. The sign is a mask, so it takes
+   the colour of the text; the bar over the number is the inner span's top border. */
+.rad{display:inline-block;white-space:nowrap}
+.rad::before{content:"";display:inline-block;width:.5em;height:1.1em;margin-right:-.04em;vertical-align:-.27em;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 24'%3E%3Cpath d='M1 13.6 3.9 12.2 7.3 22.2 11.4 1.2' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat 0 0/100% 100%;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 24'%3E%3Cpath d='M1 13.6 3.9 12.2 7.3 22.2 11.4 1.2' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat 0 0/100% 100%}
+.rad > span{display:inline-block;padding:.02em .08em 0 .05em;border-top:.075em solid currentColor;line-height:1.02}
+/* there for screen readers only */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ---- pen colours as classes: work on HTML text (color) and SVG (fill) ------ */
 .c-ink{color:var(--ink);fill:var(--ink)}

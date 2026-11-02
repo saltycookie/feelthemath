@@ -2,20 +2,17 @@
    Colour code: blue = y, orange = x − y, pink = what to look at (the picked point, the 10 cm reading, crossings-out).
    The sticks and the ruler are real objects, so they keep their own colours (below). */
 
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 #mat{gap:0}
 .benchbox{position:relative;flex:1;min-height:0}
 .bench{
   position:absolute;left:0;top:0;-webkit-user-select:none;user-select:none;
-  --wood:#e8ca97; --wood-edge:#a97b43; --wood-grain:#c49b61;                 /* the sticks */
+  --stick:#e8ca97; --stick-edge:#a97b43; --stick-grain:#c49b61;              /* the sticks (not the desk's --wood) */
   --pencil:var(--ink);                                                        /* pencil marks on the wood */
   --stick-shadow:color-mix(in srgb, var(--wood-ink) 40%, transparent);
   --ruler:color-mix(in srgb, #e3edf2 82%, transparent);                     /* a clear plastic ruler, a little blue */
   --ruler-edge:color-mix(in srgb, var(--ink) 38%, transparent);
   --ruler-ink:var(--ink);
   --ruler-hot:var(--pink-ink);                                                /* the 10 on the ruler */
-  --ink-dim:color-mix(in srgb, var(--ink) 66%, transparent);
-  --rad-svg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 24'%3E%3Cpath d='M1 13.6 3.9 12.2 7.3 22.2 11.4 1.2' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 .scene{position:absolute;inset:0;width:100%;height:100%;display:block}
 
@@ -34,15 +31,15 @@
 @keyframes tickpulse{50%{stroke-width:6.5}}
 
 /* the sticks */
-.scene .wood{fill:var(--wood);stroke:var(--wood-edge);stroke-width:1.2}
-.scene .grain{fill:none;stroke:var(--wood-grain);stroke-width:1.1;stroke-linecap:round}
+.scene .wood{fill:var(--stick);stroke:var(--stick-edge);stroke-width:1.2}
+.scene .grain{fill:none;stroke:var(--stick-grain);stroke-width:1.1;stroke-linecap:round}
 .scene .omark{stroke:var(--pencil);stroke-width:2.6;stroke-linecap:round}
 .scene .stick-line{fill:none;stroke:var(--pencil);stroke-opacity:.5;stroke-width:1.3}
 .scene .shadow{fill:var(--stick-shadow)}
 .scene .thin-shadow{fill:none;stroke:var(--stick-shadow);stroke-width:6;stroke-linecap:round}
 .scene .thin-edge{fill:none;stroke:var(--pencil);stroke-opacity:.6;stroke-width:6;stroke-linecap:round}
 .scene .thin{fill:none;stroke-width:4;stroke-linecap:round}
-.scene .thin-n{stroke:var(--wood)}
+.scene .thin-n{stroke:var(--stick)}
 
 /* letters, measuring lines and the ruler */
 .scene .lbl{fill:var(--ink);font-family:var(--font-hand);font-weight:700;font-size:calc(27px * var(--k, 1));text-anchor:middle;
@@ -68,10 +65,6 @@
 .ptxt.prompt{color:var(--orange-ink)}                       /* a hint, in orange like the other demos' hints */
 .ml{position:absolute;left:0;top:0;transform:translate(-50%,-50%);font-size:var(--fs);font-weight:700;line-height:1.15;white-space:nowrap;
   opacity:0;text-shadow:0 0 .3em var(--halo),0 0 .14em var(--halo)}
-.rad{display:inline-block;white-space:nowrap}
-.rad::before{content:"";display:inline-block;width:.5em;height:1.1em;margin-right:-.04em;vertical-align:-.27em;background:currentColor;
-  -webkit-mask:var(--rad-svg) no-repeat 0 0/100% 100%;mask:var(--rad-svg) no-repeat 0 0/100% 100%}
-.rad > span{display:inline-block;padding:.02em .08em 0 .05em;border-top:.075em solid currentColor;line-height:1.02}
 
 /* step 4: the solution, one line at a time */
 .solve{position:absolute;top:calc(var(--cm, 30px) * .6);left:0;right:0;margin-inline:auto;width:max-content;max-width:96%;

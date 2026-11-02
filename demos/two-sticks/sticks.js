@@ -55,7 +55,7 @@ const SOLVE_SEQ = [[2300, 'sol2'], [3400, 'strike'], [4300, 'sol3'], [5600, 'sol
 const SOLVE = { sol2: 0, strike: 0, sol3: 0, sol4: 0, sol5: 0, sol6: 0 };
 const SOLVED = { sol2: 1, strike: 1, sol3: 1, sol4: 1, sol5: 1, sol6: 1 };
 
-// what the board shows, for screen readers
+// what the page shows, for screen readers
 const ALT = [
   'The homework figure on a mat, with the question written above it. AC and BD cross at O at a right angle, AO equals BO and OC equals OD.',
   'Above the ruler: Imagine, how would you build this shape using sticks? Then every line turns into a stick.',

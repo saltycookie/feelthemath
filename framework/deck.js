@@ -28,7 +28,7 @@
 //   enter(info) / leave(info, s)   hooks for anything that is not an animated value (info.glide: arriving / leaving with
 //               Next). leave may also animate, with the runner s as in play (s.end is the step's finished look): an
 //               async leave is waited for when leaving with Next, and cut short by any other move. Use it when the
-//               reader can change the board (a switch, a drag): leave tidies the board into the finished look.
+//               reader can change the drawing (a switch, a drag): leave tidies the drawing into the finished look.
 //   replay      false to disable Replay on this step
 
 export const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -97,7 +97,7 @@ export function createDeck(opts) {
     ends.push(plain({ ...begin, ...(st.set || {}) }));
   });
 
-  // Put the board in step i's beginning; returns how long to wait before the step's own animation.
+  // Put the drawing in step i's beginning; returns how long to wait before the step's own animation.
   function toStart(i, glide, tw) {
     const st = starts[i];
     if (!glide) { for (const k in st) tw(k, st[k], 0); return HOLD; }
@@ -190,14 +190,14 @@ export function createDeck(opts) {
     cur = i; const ep = ++epoch;
     const pending = [];                                // every tween this step starts, so we know when it is done
     const tw = (...a) => { const p = tween(...a); pending.push(p); return p; };
-    // Leave the previous step. Its leave() may animate the board to the look it hands over (its finished look), with a
+    // Leave the previous step. Its leave() may animate the drawing to the look it hands over (its finished look), with a
     // runner like play's. Leaving with Next, the new step waits for that; any other move jumps to the new step's
     // beginning straight away, which cuts the animation short (its runner is stale from the start).
     let leaving = null;
     if (prev >= 0 && steps[prev].leave) leaving = steps[prev].leave({ glide, to: i }, runner(prev, glide ? ep : -1, tw, pending));
     const waits = glide && typeof leaving?.then === 'function';
     if (!waits && typeof leaving?.catch === 'function') leaving.catch(e => { if (e !== CANCELLED) throw e; });
-    // the new step takes over: its slide, its enter() hook, and the board to its beginning (returns how long to hold)
+    // the new step takes over: its slide, its enter() hook, and the drawing to its beginning (returns how long to hold)
     const st = steps[i];
     const begin = () => {
       showSlides(i, glide);

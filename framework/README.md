@@ -1,10 +1,10 @@
 # StepDeck
 
-StepDeck is the small framework that every Feel the Math demo is built on. It gives each demo the same
-look (a sheet of paper in a paper box on a wooden desk), the same handwriting, the same title band and navigation (Back, the step dots, Replay and
-Next), and the same way of moving through a solution one animated step at a time. A demo only describes its
-own drawing and its steps; everything else comes from here, so the demos look and behave alike, and a fix or
-improvement made here reaches all of them.
+StepDeck is the small framework that every Feel the Math demo is built on. It gives each demo the same look (a
+sheet of paper in a paper box on a wooden desk), the same handwriting, the same title band and navigation (Back,
+the step dots, Replay and Next), and the same way of moving through a solution one animated step at a time. A demo
+only describes its own drawing and its steps; everything else comes from here, so the demos look and behave alike,
+and a fix or improvement made here reaches all of them.
 
 It is plain JavaScript modules and CSS, with no dependencies and nothing to build.
 
@@ -34,9 +34,8 @@ All colours and the font live at the top of `theme.css`:
 ```
 
 Everything that has to match the paper is worked out from `--paper` and `--ink`: the bubble background, the
-outline behind text, grid lines, muted text and the shaded fills. Change them
-and those follow. To change a colour for one demo only, override it on `:root` in that demo's
-stylesheet.
+outline behind text, grid lines, muted text and the shaded fills. Change them and those follow. To change a colour
+for one demo only, override it on `:root` in that demo's stylesheet.
 
 Ready-made classes colour text in HTML and in SVG alike: `c-ink`, `c-muted`, `c-blue`, `c-orange`, `c-pink`
 (the darker text tints) and `c-blue-main`, `c-orange-main`, `c-pink-main` (the pen colours themselves).
@@ -76,12 +75,13 @@ createNav(document.querySelector('.nav'), deck);
 deck.start();
 ```
 
-`createNav` fills the empty `<nav class="nav">` with Back, the step dots, Replay and Next. It also adds a
-title band above the `.stage`, which shows each step's `title` (and stays as empty space when a step has none),
-and puts a home link (a house and "All demos"; just the house on narrow screens) at the band's left end, which
-leads back to the list of demos. The demo's `.deck` is the box, and the paper fills it: the title band, the
-drawing and the navigation are all written on the paper. The home link points by default to `../../`, the front page as seen from `demos/<name>/`. Pass
-`createNav(nav, deck, { home: 'url' })` to send it elsewhere, or `{ home: false }` to leave it out.
+`createNav` fills the empty `<nav class="nav">` with Back, the step dots, Replay and Next. It also adds a title
+band above the `.stage`, which shows each step's `title` (and stays as empty space when a step has none), and puts
+a home link (a house and "All demos"; just the house on narrow screens) at the band's left end, which leads back
+to the list of demos. The demo's `.deck` is the box, and the paper fills it: the title band, the drawing and the
+navigation are all written on the paper. The home link points by default to `../../`, the front page as seen from
+`demos/<name>/`. Pass `createNav(nav, deck, { home: 'url' })` to send it elsewhere, or `{ home: false }` to leave
+it out.
 
 On the last step, Next becomes **Finish**. Like Next, it waits (dimmed) until the step has finished
 animating; then it takes the reader to the same place as the home link. With `{ home: false }` there is no

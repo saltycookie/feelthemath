@@ -1,12 +1,12 @@
 # Feel the Math
 
-Feel the Math is a collection of interactive demos that help students *see* why the answer to a math
-problem is what it is. Each demo takes one word problem and solves it on a sheet of paper in a paper box,
-letting pictures do most of the explaining: a car driving along a speed–time chart turns distances into areas, wooden sticks
-rebuild a geometry figure and are measured on a ruler, and a sheet of paper folded along a river unfolds to straighten
-the shortest walk. Learners move through the solution one small step at a time, replay any step or drag and
-flip things to explore, and the arithmetic arrives only once the picture has made it feel obvious. The demos
-run in any browser with nothing to install.
+Feel the Math is a collection of interactive demos that help students *see* why the answer to a math problem is
+what it is. Each demo takes one word problem and solves it on a sheet of paper in a paper box, letting pictures do
+most of the explaining: a car driving along a speed–time chart turns distances into areas, wooden sticks rebuild a
+geometry figure and are measured on a ruler, and a sheet of paper folded along a river unfolds to straighten the
+shortest walk. Learners move through the solution one small step at a time, replay any step or drag and flip
+things to explore, and the arithmetic arrives only once the picture has made it feel obvious. The demos run in any
+browser with nothing to install.
 
 **Live site:** https://feelthemath.app/
 
@@ -18,10 +18,10 @@ run in any browser with nothing to install.
 
 ## One framework for every demo
 
-All the demos are built on the same small framework, StepDeck. That keeps them consistent: the same
-box and paper, the same handwriting, the same Back, Replay and Next, and the same step-by-step pacing, so a learner who
-has used one demo already knows how to use the next. It also makes them easier to maintain: a demo only
-describes its own drawing and steps, and a fix or improvement to the framework reaches every demo at once.
+All the demos are built on the same small framework, StepDeck. That keeps them consistent: the same box and paper,
+the same handwriting, the same Back, Replay and Next, and the same step-by-step pacing, so a learner who has used
+one demo already knows how to use the next. It also makes them easier to maintain: a demo only describes its own
+drawing and steps, and a fix or improvement to the framework reaches every demo at once.
 
 How the framework works, and how to start a new demo: [framework/README.md](framework/README.md).
 
@@ -114,9 +114,10 @@ as the F of the name. It appears twice:
 
 - **At the top of the home page**, drawn inline in `index.html` in the theme's colours, standing in for the F of
   the title: the logo, then "eel the Math" in orange, set close enough that they read as one word.
-- **As the site icon** in browser tabs, bookmarks and home screens: `favicon.svg`, the same drawing on a chalkboard
-  tile, with slightly thicker lines so it still reads at 16 pixels. Every page links to it in its `<head>`, the
-  demos as `../../favicon.svg`; `demos/template` has the links too, so a new demo copied from it gets them.
+- **As the site icon** in browser tabs, bookmarks and home screens: `favicon.svg`, the same drawing on a tile of
+  the demos' white paper, with slightly thicker lines so it still reads at 16 pixels. Every page links to it in
+  its `<head>`, the demos as `../../favicon.svg`; `demos/template` has the links too, so a new demo copied from it
+  gets them.
 
 Modern browsers use `favicon.svg` directly. `favicon.ico` (for older browsers) and `apple-touch-icon.png` (a 180 ×
 180 square for iPhones and iPads; iOS rounds the corners itself) are made from it. After changing `favicon.svg`,

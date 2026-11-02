@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-  <!-- The site icon: a touch point on a rising curve, with ripples, on a chalkboard tile. The curve is drawn like an
-       italic f: a straight, steep stem through the touch point, with a round hook at each end; the ripples sit
-       square to the stem.
+  <!-- The site icon: a touch point on a rising curve, with ripples, on a tile of the demos' white paper, in their ink
+       and pen colours (framework/theme.css). The curve is drawn like an italic f: a straight, steep stem through the
+       touch point, with a round hook at each end; the ripples sit square to the stem.
        Drawn a little bolder than the logo on the home page so it still reads at 16 px.
        favicon.ico and apple-touch-icon.png are made from this file: python3 tools/icons.py -->
-  <rect width="120" height="120" rx="26" fill="#3d6856"/>
+  <rect width="120" height="120" rx="26" fill="#fefdfa"/>
   <g transform="translate(0 2)" fill="none" stroke-linecap="round">
-    <path d="M90.38 45.11A33 33 0 0 1 79.86 84.35M29.62 70.89A33 33 0 0 1 40.14 31.65" stroke="#8fcbff" stroke-opacity=".6" stroke-width="6"/>
-    <path d="M79.33 49.79A21 21 0 0 1 72.64 74.77M40.67 66.21A21 21 0 0 1 47.36 41.23" stroke="#8fcbff" stroke-width="7"/>
-    <path d="M26 95H34.09C43.52 95 51.78 88.66 54.23 79.55L65.77 36.45C68.22 27.34 76.48 21 85.91 21H94" stroke="#f4f1e8" stroke-width="8"/>
-    <circle cx="60" cy="58" r="12" fill="#ffa347" stroke="#3d6856" stroke-width="4"/>
+    <path d="M90.38 45.11A33 33 0 0 1 79.86 84.35M29.62 70.89A33 33 0 0 1 40.14 31.65" stroke="#2f80d0" stroke-opacity=".55" stroke-width="6"/>
+    <path d="M79.33 49.79A21 21 0 0 1 72.64 74.77M40.67 66.21A21 21 0 0 1 47.36 41.23" stroke="#2f80d0" stroke-width="7"/>
+    <path d="M26 95H34.09C43.52 95 51.78 88.66 54.23 79.55L65.77 36.45C68.22 27.34 76.48 21 85.91 21H94" stroke="#263248" stroke-width="8"/>
+    <circle cx="60" cy="58" r="12" fill="#f08a24" stroke="#fefdfa" stroke-width="4"/>
   </g>
 </svg>

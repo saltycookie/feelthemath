@@ -29,7 +29,7 @@ export function setText(n, x, y, op = 1, str) {
 }
 export function setOpacity(n, op) { n.setAttribute('opacity', clamp(op, 0, 1)); }
 
-// Chips: a small filled label marking a known value on an axis. colour: 'blue' | 'orange' | 'pink' | 'ink'.
+// Chips: a small label marking a known value on an axis. colour: 'blue' | 'orange' | 'pink' | 'ink'.
 export function chip(parent, colour) {
   const g = el('g', { class: 'chip ' + colour }, parent);
   return { g, r: el('rect', { height: 22 }, g), t: el('text', {}, g), tw: 0 };

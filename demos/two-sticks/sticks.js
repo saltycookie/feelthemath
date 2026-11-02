@@ -58,7 +58,7 @@ const SOLVED = { sol2: 1, strike: 1, sol3: 1, sol4: 1, sol5: 1, sol6: 1 };
 // what the board shows, for screen readers
 const ALT = [
   'The homework figure on a mat, with the question written above it. AC and BD cross at O at a right angle, AO equals BO and OC equals OD.',
-  'Above the ruler: Think about this, how can you recreate this figure using sticks? Then every line turns into a stick.',
+  'Above the ruler: Imagine, how would you build this shape using sticks? Then every line turns into a stick.',
   'BC and AD, then AB and CD, then BD are laid upright side by side in the top-left corner, leaving only AC. AC is labeled x, a point O is picked on it, AO is labeled y and OC x minus y.',
   'BD is taken from the corner, laid under AC and marked the same way. Then BD is laid across AC at a right angle at O.',
   'AB is taken from the corner and laid on top, labeled root 2 times y, then CD, labeled root 2 times x minus y.',

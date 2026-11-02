@@ -110,8 +110,8 @@ and copy one of the `<li>` entries in the top-level `index.html`, changing its l
 The logo is a touch point on a rising curve, with ripples around it: the moment the math clicks, felt rather than
 read. It appears twice:
 
-- **At the top of the home page**, drawn inline in `index.html` in the theme's colours, next to the name written
-  in lower case with "feel" in orange.
+- **At the top of the home page**, drawn inline in `index.html` in the theme's colours, standing in for the F of
+  the title: the logo, then "eel the Math" in orange, set close enough that they read as one word.
 - **As the site icon** in browser tabs, bookmarks and home screens: `favicon.svg`, the same drawing on a chalkboard
   tile, with slightly thicker lines so it still reads at 16 pixels. Every page links to it in its `<head>`, the
   demos as `../../favicon.svg`; `demos/template` has the links too, so a new demo copied from it gets them.

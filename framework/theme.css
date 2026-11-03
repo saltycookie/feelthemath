@@ -54,7 +54,7 @@
   --box-rise:  .8s;
   --lid-thick: 14px;
   /* the inside of the box, seen while it opens and closes */
-  --box-gap:   clamp(16px, 3.2vmin, 34px);   /* down at the bottom of the box, the paper is this far inside the walls,
+  --box-gap:   clamp(8px, 1.6vmin, 17px);    /* down at the bottom of the box, the paper is this far inside the walls,
                                                seen from above (along the box's longer side, a little more) */
   --box-dark:  .38;                         /* how light it is in the box under the closed lid (1: as light as outside) */
   --box-warm:  .7;                          /* how warm that dim light is, like lamplight through the wooden lid

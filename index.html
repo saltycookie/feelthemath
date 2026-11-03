@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="framework/theme.css">
-<!-- the lid opens going into a demo and closes coming back (framework/lid.js). The page's first frame waits until the
-     lid is all there, so that the closing lid is a whole one. -->
+<!-- the lid opens going into a demo and closes coming back (framework/lid.js). The first frame waits until all of the
+     lid has been read (#lid-end), so that lid.js can cut the closing lid from the whole of it. -->
 <script src="framework/lid.js"></script>
 <link rel="expect" href="#lid-end" blocking="render">
 <style>

@@ -15,8 +15,7 @@ let watching = false, laidNo = 0;
 // Lay the walls over the box. Returns their number, or 0 when the page has no box.
 function lay() {
   lift();
-  const deck = document.querySelector('.deck');
-  const r = deck && deck.getBoundingClientRect();
+  const r = document.querySelector('.deck')?.getBoundingClientRect();
   if (!r || !r.width || !r.height) return 0;
   const walls = document.createElement('div');
   walls.className = 'box-walls';
@@ -24,13 +23,16 @@ function lay() {
   walls.setAttribute('aria-hidden', 'true');
   walls.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
   document.body.appendChild(walls);
-  // how small the paper is when down in the box: small enough for the paper, which covers all but --lift-peek of
-  // the walls, to fit between them
-  const root = document.documentElement;
+  return ++laidNo;
+}
+// Arriving from the front page, this page draws the transition, so it says how small its paper is when down in the
+// box: small enough for the paper, which covers all but --lift-peek of the walls, to fit between them. (lid.js works
+// out the same on the front page, for the closing.)
+function sink() {
+  const deck = document.querySelector('.deck'), r = deck.getBoundingClientRect(), root = document.documentElement;
   const rim = parseFloat(getComputedStyle(deck).borderTopWidth) || 0;
   const peek = parseFloat(getComputedStyle(root).getPropertyValue('--lift-peek')) || 0;
   root.style.setProperty('--box-sunk', `${(r.width - 2 * rim) / (r.width - 2 * peek)} ${(r.height - 2 * rim) / (r.height - 2 * peek)}`);
-  return ++laidNo;
 }
 // Take the walls away (only those laid as number n, when n is given: later ones may have replaced them).
 function lift(n) {
@@ -53,6 +55,8 @@ export function watchBox() {
     lift();
     if (!e.viewTransition) return;
     const n = lay();
-    if (n) e.viewTransition.finished.finally(() => lift(n));
+    if (!n) return;
+    sink();
+    e.viewTransition.finished.finally(() => lift(n));
   });
 }

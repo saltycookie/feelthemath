@@ -42,7 +42,7 @@ const CANCELLED = Symbol('step left');
 const HOLD = 450;           // ms the beginning is shown after a jump, before the step plays
 const GLIDE = 450;          // ms for values to glide into the beginning on Next
 const GLIDE_TRANSIENT = 250;
-const ARRIVE_HOLD = 250;    // ms the step's beginning is shown once the lid has opened, before the step plays
+const ARRIVE_HOLD = 250;    // ms the step's beginning is shown once the box has opened, before the step plays
 
 export function createDeck(opts) {
   const {
@@ -184,12 +184,11 @@ export function createDeck(opts) {
     html.toggleAttribute('data-step-busy', busy);
   }
 
-  /* ---------- arriving under the lid ---------- */
-  // Coming from the front page, the demo opens under the box's lid, which takes a moment to open, and the paper then
-  // rises from the box (lid.js, box.js and theme.css). The step's own animation waits until all that is over, and so
-  // do its slide's CSS animations, so that
-  // nothing plays unseen. (pagereveal fires just before the page's first frame, once this script has run: demo pages
-  // load their script with blocking="render".)
+  /* ---------- arriving in the box ---------- */
+  // Coming from the front page, the demo is uncovered as the box's lid opens, and its paper then rises from the box
+  // (lid.js, box.js and theme.css). The step's own animation waits until all that is over, and so do its slide's CSS
+  // animations, so that nothing plays unseen. (pagereveal fires just before the page's first frame, once this script
+  // has run: demo pages load their script with blocking="render".)
   let arriving = null;
   addEventListener('pagereveal', e => {
     if (!e.viewTransition) return;
@@ -235,7 +234,7 @@ export function createDeck(opts) {
           if (ep !== epoch) return;
           await s.wait(begin());
         } else await s.wait(lead);
-        if (arriving) { await arriving; await s.wait(ARRIVE_HOLD); }   // the lid is still opening
+        if (arriving) { await arriving; await s.wait(ARRIVE_HOLD); }   // the box is still opening
         if (st.play) await st.play(s); else s.apply(s.end);
         await s.settle();
         if (ep === epoch) setBusy(false);

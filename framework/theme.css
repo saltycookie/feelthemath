@@ -63,7 +63,8 @@
     0 0 0 1px color-mix(in srgb, var(--wood-ink) 22%, transparent), /*   its outer edge, */
     0 10px 22px color-mix(in srgb, var(--wood-ink) 34%, transparent), /*   its shadow */
     0 2px 4px color-mix(in srgb, var(--wood-ink) 26%, transparent);
-  --lid-under:   color-mix(in srgb, var(--paper), var(--wood-ink) 5%);    /* the lid's underside, and its cut edge: */
+  --lid-under:   color-mix(in srgb, color-mix(in srgb, var(--paper), var(--wood-ink) 5%), black 25%);   /* the lid's underside, in the shade, */
+                                                                            /* and its cut edge: */
   --lid-cut-top: color-mix(in srgb, var(--paper), var(--wood-ink) 14%);   /*   lighter by the writing, */
   --lid-cut-under: color-mix(in srgb, var(--paper), var(--wood-ink) 34%); /*   darker by the underside */
 
@@ -83,9 +84,10 @@ body{
   color:var(--ink);
   font-family:var(--font-hand);
   background:var(--wood) url("wood.webp") 0 0 / 1200px 900px;   /* maple: made by tools/wood.py, it tiles without seams */
-  --desk:clamp(8px, 1.8vw, 24px);                                /* how much desk shows around the box */
-  padding:max(var(--desk), env(safe-area-inset-top, 0px)) max(var(--desk), env(safe-area-inset-right, 0px))
-          max(var(--desk), env(safe-area-inset-bottom, 0px)) max(var(--desk), env(safe-area-inset-left, 0px));
+  --desk:clamp(8px, 1.8vw, 24px);                                /* how much desk shows around the box, */
+  --around-box:max(var(--desk), env(safe-area-inset-top, 0px)) max(var(--desk), env(safe-area-inset-right, 0px))
+               max(var(--desk), env(safe-area-inset-bottom, 0px)) max(var(--desk), env(safe-area-inset-left, 0px));
+  padding:var(--around-box);                                     /* clear of a phone's notch and rounded corners */
   overflow:hidden;
 }
 
@@ -109,9 +111,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .box-lid{box-shadow:var(--on-desk)}                                 /* the lid: flat paper, nothing more */
 /* A demo's box doesn't cast its own shadow: the page draws it under the box, where the box stands, so that it stays put
    on the desk while the paper in the box sinks and rises (going to and from the front page). */
-body:has(> .deck)::after{content:"";position:fixed;z-index:-1;pointer-events:none;margin:0 auto;
-  inset:max(var(--desk), env(safe-area-inset-top, 0px)) max(var(--desk), env(safe-area-inset-right, 0px))
-        max(var(--desk), env(safe-area-inset-bottom, 0px)) max(var(--desk), env(safe-area-inset-left, 0px));
+body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around-box);margin:0 auto;pointer-events:none;
   max-width:calc(var(--paper-max) + 2 * var(--rim));box-shadow:var(--on-desk)}
 /* the box open: its sheet of paper (::before, under everything written on it) is raised a little above the walls
    (the border), so it covers all but a thin edge of them (--lift-peek) and casts a small shadow on them, lit from the
@@ -123,7 +123,7 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;pointer-events:non
 /* the same box with its paper down inside it, between the walls: only while the box opens and closes (framework/box.js
    lays these walls over the .deck). Thin walls of paper with square corners (the border), shading the sheet where
    they meet it: most under the top and left walls, as if lit from the top left. */
-.box-walls{position:fixed;z-index:2147483646;pointer-events:none;border:var(--rim) solid var(--paper);
+.box-walls{position:fixed;pointer-events:none;border:var(--rim) solid var(--paper);
   box-shadow:
     inset 0 0 0 1px rgb(40 25 10 / .16),                            /* the fold where the walls meet the sheet */
     inset 0 9px 11px -7px rgb(40 25 10 / .26),                      /* the walls' shade on the sheet */
@@ -137,108 +137,100 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;pointer-events:non
    Both pages opt in here. The front page (html[data-lid], set by lid.js) is the box with its lid on, and a demo is the
    same box open on the same spot, so the lid lies exactly over the open box.
 
-   Opening: the lid splits along the middle (lid-split), then its two flaps roll open over the box's top and bottom
-   edges, the writing on them fading as they turn, and then the paper inside, down between the walls (box-walls),
-   rises above them, to where the demo has it (box-sheet: the demo's .deck). Closing: the paper sinks between the
-   walls, the flaps roll closed, the writing coming back on them as they turn, and meet at the split; then the split
-   goes.
+   Opening: the lid splits along the middle, then its two flaps roll open over the box's top and bottom edges, the
+   writing on them fading as they turn, and then the paper inside, down between the walls, rises above them, to where
+   the demo has it. Closing: the paper sinks between the walls, the flaps roll closed, the writing coming back on them,
+   and meet at the split; then the split goes.
 
-   Just before the pictures are taken, lid.js lays the split and the two flaps over the front page's lid, and box.js
-   the walls over the demo's paper. Each flap is four pictures: a blank half of the lid (lid-top, lid-bottom), the
-   writing on that half (-words: a copy of the half, writing and all, which fades to leave the blank half), its cut
-   edge, which shows the lid's thickness (-edge), and its underside (-back). They turn together in 3D about the flap's
-   hinge on the box's top or bottom edge, seen from above the middle of the box, and each is seen only from its own
-   side: the flap rises towards the reader, showing its cut edge, until it stands upright on the box's edge, out of
-   sight (and fades, for the sliver of underside that may still show). The lid darkens a little as it turns away from
-   the light. The paper down in the box is the demo's picture made a little smaller (--box-sunk, set by the scripts),
-   so that it fits between the walls. Under everything the desk ("root") holds still, and the front page's own picture
-   ("lid") is never shown: the pieces stand in for it. Reduced motion: no transition, just the new page. */
+   The pictures, from the bottom up:
+     root        the desk, which holds still
+     box-sheet   the demo's paper: its .deck. Down in the box it is made a little smaller (--box-sunk, worked out by
+                 the scripts), so that it fits between the walls
+     box-walls   the box's walls, laid over the paper by box.js while it is down in the box
+     flaps       laid over the front page's lid by lid.js: for each half of the lid (class top, bottom), its underside
+                 (under), its cut edge, which shows the lid's thickness (edge), the blank half (blank) and the writing
+                 on it (writing). They turn together in 3D about the flap's hinge on the box's edge, seen from above
+                 the middle of the box, and each is seen only from its own side: the flap rises towards the reader,
+                 showing its cut edge, until it stands upright on the box's edge, out of sight (and fades, for the
+                 sliver of underside that may still show). The lid darkens a little as it turns away from the light.
+     lid-split   the split across the middle of the lid, laid there by lid.js
+   The front page's own picture ("lid") is never shown: the pieces stand in for it. Reduced motion: no transition. */
 @media (prefers-reduced-motion: no-preference){
   @view-transition{navigation:auto}
+}
+:root{
+  /* when each part starts, from the times in section 1 */
+  --t-open:  var(--lid-split);                               /* opening: the flaps start rolling open, */
+  --t-rise:  calc(var(--t-open) + .85 * var(--lid-time));    /*   and the paper rises as they go out of sight */
+  --t-close: calc(.85 * var(--box-rise));                    /* closing: the flaps start rolling in as the paper settles, */
+  --t-meet:  calc(var(--t-close) + var(--lid-time));         /*   and meet */
+  --t-gap:   .3s;                                            /* the split and the gap opening there take over from each other */
+  --lid-ease:cubic-bezier(.4,0,.4,1);
 }
 :root[data-lid]{view-transition-name:lid}
 .deck{view-transition-name:box-sheet}
 .box-walls{view-transition-name:box-walls}
-.lid-piece{position:fixed;z-index:2147483647;overflow:hidden;pointer-events:none}
+.lid-piece{position:fixed;overflow:hidden;pointer-events:none}
 ::view-transition-old(lid),::view-transition-new(lid){animation:none;opacity:0}
 ::view-transition-old(root),::view-transition-new(root){animation:none}
-/* from the bottom up: the desk, the paper, the walls, the flaps (each flap's pictures in the order lid.js lays them:
-   underside, edge, blank half, writing), the split */
 ::view-transition-group(box-sheet){z-index:1}
 ::view-transition-group(box-walls){z-index:2}
-::view-transition-group(lid-top),::view-transition-group(lid-top-words),::view-transition-group(lid-top-edge),::view-transition-group(lid-top-back),
-::view-transition-group(lid-bottom),::view-transition-group(lid-bottom-words),::view-transition-group(lid-bottom-edge),::view-transition-group(lid-bottom-back){z-index:3}
+::view-transition-group(*.flap){z-index:3}              /* each flap's pictures in the order lid.js lays them: under, edge, blank, writing */
 ::view-transition-group(lid-split){z-index:4}
 /* the split: a fine groove across the lid, shaded above and catching the light below */
 ::view-transition-old(lid-split),::view-transition-new(lid-split){
   background:linear-gradient(transparent 2px, rgb(40 25 10 / .1) 2px 3px, rgb(40 25 10 / .5) 3px 5px, rgb(255 255 255 / .85) 5px 6px, transparent 6px)}
-/* the flaps, in perspective from above the middle of the box */
-::view-transition-image-pair(lid-top),::view-transition-image-pair(lid-top-words),::view-transition-image-pair(lid-top-edge),::view-transition-image-pair(lid-top-back){perspective:250vh;perspective-origin:50% 100%}
-::view-transition-image-pair(lid-bottom),::view-transition-image-pair(lid-bottom-words),::view-transition-image-pair(lid-bottom-edge),::view-transition-image-pair(lid-bottom-back){perspective:250vh;perspective-origin:50% 0}
-/* the hinge: the top flap's top edge, the bottom flap's bottom edge. Each picture turns about its own cut edge
-   (transform-origin), carried round the hinge, which is a whole flap's height (100%) away. */
-::view-transition-old(lid-top),::view-transition-new(lid-top),
-::view-transition-old(lid-top-words),::view-transition-new(lid-top-words),
-::view-transition-old(lid-top-edge),::view-transition-new(lid-top-edge),
-::view-transition-old(lid-top-back),::view-transition-new(lid-top-back){
-  --hinge:-100%;--swing:84deg;transform-origin:50% 100%;backface-visibility:hidden}
-::view-transition-old(lid-bottom),::view-transition-new(lid-bottom),
-::view-transition-old(lid-bottom-words),::view-transition-new(lid-bottom-words),
-::view-transition-old(lid-bottom-edge),::view-transition-new(lid-bottom-edge),
-::view-transition-old(lid-bottom-back),::view-transition-new(lid-bottom-back){
-  --hinge:100%;--swing:-84deg;transform-origin:50% 0;backface-visibility:hidden}
-/* what each picture is: the lid's top (blank, and its writing); its cut edge, standing on the flap's cut and reaching
-   into the box by the lid's thickness; its underside, a thickness below, facing down, in the shade */
-::view-transition-old(lid-top),::view-transition-new(lid-top),
-::view-transition-old(lid-top-words),::view-transition-new(lid-top-words),
-::view-transition-old(lid-bottom),::view-transition-new(lid-bottom),
-::view-transition-old(lid-bottom-words),::view-transition-new(lid-bottom-words){
-  --face:translateZ(0);--lit-from:1;--lit-to:.8}
-::view-transition-old(lid-top-edge),::view-transition-new(lid-top-edge){--face:rotateX(90deg) rotateY(180deg);--lit-from:1;--lit-to:1;
-  background:linear-gradient(var(--lid-cut-under), var(--lid-cut-top)) bottom/100% var(--lid-thick) no-repeat}
-::view-transition-old(lid-bottom-edge),::view-transition-new(lid-bottom-edge){--face:rotateX(-90deg) rotateY(180deg);--lit-from:1;--lit-to:1;
-  background:linear-gradient(var(--lid-cut-top), var(--lid-cut-under)) top/100% var(--lid-thick) no-repeat}
-::view-transition-old(lid-top-back),::view-transition-new(lid-top-back),
-::view-transition-old(lid-bottom-back),::view-transition-new(lid-bottom-back){
-  --face:translateZ(calc(-1 * var(--lid-thick))) rotateY(180deg);--lit-from:.75;--lit-to:.75;background:var(--lid-under)}
 
-/* opening (the front page's pieces are the old page's pictures, the demo's the new page's): the split, then the flaps
-   with the writing fading on them, then the paper */
-::view-transition-old(lid-split){animation:lid-fade-in var(--lid-split) ease both,
-  lid-fade-out .3s ease var(--lid-split) forwards}                                          /* the gap takes over from the groove */
-::view-transition-old(lid-top),::view-transition-old(lid-top-words),::view-transition-old(lid-top-edge),::view-transition-old(lid-top-back),
-::view-transition-old(lid-bottom),::view-transition-old(lid-bottom-words),::view-transition-old(lid-bottom-edge),::view-transition-old(lid-bottom-back){
-  animation:lid-open var(--lid-time) cubic-bezier(.4,0,.4,1) var(--lid-split) both}
-::view-transition-old(lid-top-words),::view-transition-old(lid-bottom-words){
-  animation:lid-open var(--lid-time) cubic-bezier(.4,0,.4,1) var(--lid-split) both, lid-fade-out var(--lid-fade) ease-in var(--lid-split) forwards}
-::view-transition-new(box-walls){animation:lid-fade-out var(--box-rise) ease-out calc(var(--lid-split) + .85 * var(--lid-time)) both}
-::view-transition-new(box-sheet){animation:box-rise var(--box-rise) ease-out calc(var(--lid-split) + .85 * var(--lid-time)) both}
-/* closing (the demo's pieces are the old page's pictures, the front page's the new page's): the paper, then the flaps
-   with the writing coming back on them, then the split goes */
+/* the flaps. Each picture turns about its own cut edge (transform-origin), carried round the hinge (the top flap's
+   top edge, the bottom flap's bottom edge), which is a whole flap's height (--hinge) away. --on-flap is where the
+   picture lies on its flap, and --lit-open how bright it is once the flap stands upright. */
+::view-transition-image-pair(*.top){perspective:250vh;perspective-origin:50% 100%}
+::view-transition-image-pair(*.bottom){perspective:250vh;perspective-origin:50% 0}
+::view-transition-old(*.flap),::view-transition-new(*.flap){--on-flap:translateZ(0);--lit-open:1;backface-visibility:hidden}
+::view-transition-old(*.top),::view-transition-new(*.top){--hinge:-100%;--swing:84deg;transform-origin:50% 100%}
+::view-transition-old(*.bottom),::view-transition-new(*.bottom){--hinge:100%;--swing:-84deg;transform-origin:50% 0}
+::view-transition-old(*.blank),::view-transition-new(*.blank),
+::view-transition-old(*.writing),::view-transition-new(*.writing){--lit-open:.8}
+/* the cut edge stands on the flap's cut, reaching into the box by the lid's thickness */
+::view-transition-old(*.top.edge),::view-transition-new(*.top.edge){--on-flap:rotateX(90deg) rotateY(180deg);
+  background:linear-gradient(var(--lid-cut-under), var(--lid-cut-top)) bottom/100% var(--lid-thick) no-repeat}
+::view-transition-old(*.bottom.edge),::view-transition-new(*.bottom.edge){--on-flap:rotateX(-90deg) rotateY(180deg);
+  background:linear-gradient(var(--lid-cut-top), var(--lid-cut-under)) top/100% var(--lid-thick) no-repeat}
+/* the underside, a thickness below the top, facing down */
+::view-transition-old(*.under),::view-transition-new(*.under){
+  --on-flap:translateZ(calc(-1 * var(--lid-thick))) rotateY(180deg);background:var(--lid-under)}
+
+/* opening: the front page's pieces are the old page's pictures, the demo's the new page's */
+::view-transition-old(lid-split){animation:lid-fade-in var(--lid-split) ease both, lid-fade-out var(--t-gap) ease var(--t-open) forwards}
+::view-transition-old(*.flap){animation:lid-open var(--lid-time) var(--lid-ease) var(--t-open) both}
+::view-transition-old(*.writing){animation:lid-open var(--lid-time) var(--lid-ease) var(--t-open) both,
+  lid-fade-out var(--lid-fade) ease-in var(--t-open) forwards}
+::view-transition-new(box-walls){animation:lid-fade-out var(--box-rise) ease-out var(--t-rise) both}
+::view-transition-new(box-sheet){animation:box-rise var(--box-rise) ease-out var(--t-rise) both}
+/* closing: the demo's pieces are the old page's pictures, the front page's the new page's */
 ::view-transition-old(box-walls){animation:lid-fade-in var(--box-rise) ease-in both}
 ::view-transition-old(box-sheet){animation:box-sink var(--box-rise) ease-in both}
-::view-transition-new(lid-top),::view-transition-new(lid-top-words),::view-transition-new(lid-top-edge),::view-transition-new(lid-top-back),
-::view-transition-new(lid-bottom),::view-transition-new(lid-bottom-words),::view-transition-new(lid-bottom-edge),::view-transition-new(lid-bottom-back){
-  animation:lid-close var(--lid-time) cubic-bezier(.4,0,.4,1) calc(.85 * var(--box-rise)) both}
-::view-transition-new(lid-top-words),::view-transition-new(lid-bottom-words){
-  animation:lid-close var(--lid-time) cubic-bezier(.4,0,.4,1) calc(.85 * var(--box-rise)) both,
-  lid-fade-in var(--lid-fade) ease-out calc(.85 * var(--box-rise) + var(--lid-time) - var(--lid-fade)) backwards}
-::view-transition-new(lid-split){animation:lid-fade-in .3s ease calc(.85 * var(--box-rise) + var(--lid-time) - .3s) both,
-  lid-fade-out var(--lid-split) ease calc(.85 * var(--box-rise) + var(--lid-time)) forwards}
+::view-transition-new(*.flap){animation:lid-close var(--lid-time) var(--lid-ease) var(--t-close) both}
+::view-transition-new(*.writing){animation:lid-close var(--lid-time) var(--lid-ease) var(--t-close) both,
+  lid-fade-in var(--lid-fade) ease-out calc(var(--t-meet) - var(--lid-fade)) backwards}
+::view-transition-new(lid-split){animation:lid-fade-in var(--t-gap) ease calc(var(--t-meet) - var(--t-gap)) both,
+  lid-fade-out var(--lid-split) ease var(--t-meet) forwards}
 
 @keyframes lid-fade-in{from{opacity:0}}
 @keyframes lid-fade-out{to{opacity:0}}
-@keyframes box-rise{from{scale:var(--box-sunk, 1)}}
-@keyframes box-sink{to{scale:var(--box-sunk, 1)}}
+@keyframes box-rise{from{scale:var(--box-sunk)}}
+@keyframes box-sink{to{scale:var(--box-sunk)}}
 @keyframes lid-open{
-  from{transform:translateY(var(--hinge)) rotateX(0deg) translateY(calc(-1 * var(--hinge))) var(--face);filter:brightness(var(--lit-from))}
+  from{transform:translateY(var(--hinge)) rotateX(0deg) translateY(calc(-1 * var(--hinge))) var(--on-flap)}
   80%{opacity:1}
-  to{transform:translateY(var(--hinge)) rotateX(var(--swing)) translateY(calc(-1 * var(--hinge))) var(--face);filter:brightness(var(--lit-to));opacity:0}
+  to{transform:translateY(var(--hinge)) rotateX(var(--swing)) translateY(calc(-1 * var(--hinge))) var(--on-flap);
+    filter:brightness(var(--lit-open));opacity:0}
 }
 @keyframes lid-close{
-  from{transform:translateY(var(--hinge)) rotateX(var(--swing)) translateY(calc(-1 * var(--hinge))) var(--face);filter:brightness(var(--lit-to));opacity:0}
+  from{transform:translateY(var(--hinge)) rotateX(var(--swing)) translateY(calc(-1 * var(--hinge))) var(--on-flap);
+    filter:brightness(var(--lit-open));opacity:0}
   20%{opacity:1}
-  to{transform:translateY(var(--hinge)) rotateX(0deg) translateY(calc(-1 * var(--hinge))) var(--face);filter:brightness(var(--lit-from))}
+  to{transform:translateY(var(--hinge)) rotateX(0deg) translateY(calc(-1 * var(--hinge))) var(--on-flap)}
 }
 
 /* ---- deck layout, on the paper: the title band (with the home link), the stage of slides, the navigation ---- */

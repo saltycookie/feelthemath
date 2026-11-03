@@ -25,8 +25,7 @@ const root = document.documentElement;
 //         of the box): small enough to be --box-inset in from the box's outer edge across its narrower side (the
 //         walls' tops, --box-wall, and then their inner sides), and a little more along the longer one, as in
 //         perspective
-//   fit   how small the paper is as it passes the tops of the walls: the paper covers all but --lift-peek of the walls
-//         when raised, so it fits between them when it is this small
+//   pass  when, in its rise, the paper passes the tops of the walls (see passing())
 // lid.js works out the same on the front page, for the closing.
 function measure() {
   const deck = document.querySelector('.deck'), r = deck?.getBoundingClientRect();
@@ -37,8 +36,21 @@ function measure() {
   return {
     r,
     sunk: Math.max(.5, (s - 2 * inset) / s),
-    fit: [(r.width - 2 * wall) / (r.width - 2 * peek), (r.height - 2 * wall) / (r.height - 2 * peek)],
+    pass: passing(r, Math.max(.5, (s - 2 * inset) / s), wall, peek, cs.getPropertyValue('--box-ease')),
   };
+}
+// When the rising paper passes the tops of the walls, as a fraction of its rise: the paper covers all but --lift-peek
+// of the walls (--box-wall thick) when raised, so it is level with their tops when it is just small enough to fit
+// between them, across and down. The rise is one movement eased by --box-ease, a cubic-bezier() that must
+// not overshoot; this finds the time at which it has covered that much of the way.
+function passing(r, sunk, wall, peek, ease) {
+  const fit = Math.max((r.width - 2 * wall) / (r.width - 2 * peek), (r.height - 2 * wall) / (r.height - 2 * peek));
+  const way = Math.min(1, Math.max(0, (fit - sunk) / (1 - sunk)));
+  const m = /cubic-bezier\(([^)]*)\)/.exec(ease), [x1, y1, x2, y2] = m ? m[1].split(',').map(Number) : [.4, 0, .2, 1];
+  const at = (a, b, u) => 3 * a * u * (1 - u) ** 2 + 3 * b * u * u * (1 - u) + u ** 3;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 40; i++) { const u = (lo + hi) / 2; if (at(y1, y2, u) < way) lo = u; else hi = u; }
+  return at(x1, x2, (lo + hi) / 2);
 }
 
 // Lay the box's pieces over the paper. Returns their number, or 0 when the page has no box.
@@ -66,10 +78,10 @@ function lay(m) {
   document.body.append(inside, piece('box-shade'), piece('box-walls'));
   return ++laidNo;
 }
-// The page that draws the transition says how small the paper is down in the box, and as it passes the walls' tops.
+// The page that draws the transition says how small the paper is down in the box, and when it passes the walls' tops.
 function sink(m) {
   root.style.setProperty('--box-sunk', String(m.sunk));
-  root.style.setProperty('--box-fit', `${m.fit[0]} ${m.fit[1]}`);
+  root.style.setProperty('--box-pass', m.pass.toFixed(4));
 }
 // Take the pieces away (only those laid as number n, when n is given: later ones may have replaced them).
 function lift(n) {

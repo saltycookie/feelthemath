@@ -242,8 +242,8 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
      root        the desk, which holds still
      box-inside  the inside of the box (the inner sides of its walls), laid by box.js under the paper
      box-sheet   the demo's paper: its .deck. Down in the box it is made smaller (--box-sunk, worked out by the
-                 scripts), as the bottom of the box looks from above; as it passes the tops of the walls it is
-                 --box-fit, just small enough to fit between them
+                 scripts), as the bottom of the box looks from above. It rises in one smooth movement (--box-ease),
+                 passing the tops of the walls at --box-pass of the way through it (also worked out by the scripts)
      box-shade   the walls' shade on the paper (box.js), which rises with it and fades as it comes up
      box-walls   the tops of the box's walls, laid over the paper by box.js while it is in the box
      flaps       laid over the front page's lid by lid.js: for each half of the lid (class top, bottom), its underside
@@ -265,6 +265,11 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
   --t-meet:  calc(var(--t-close) + var(--lid-time));         /*   and meet */
   --t-gap:   .3s;                                            /* the split and the gap opening there take over from each other */
   --lid-ease:cubic-bezier(.4,0,.4,1);
+  /* the paper's rise: one movement, quick off the bottom of the box and settling gently above its walls; closing, the
+     same played backwards. lid.js and box.js read it, so it stays a cubic-bezier() that doesn't overshoot */
+  --box-ease:cubic-bezier(.4,0,.2,1);
+  --box-pass:.7;                                             /* when it passes the walls' tops (set by the scripts) */
+  --t-pass:  calc(var(--box-pass) * var(--box-rise));        /*   ... as a time into the rise */
 }
 :root[data-lid]{view-transition-name:lid}
 .deck{view-transition-name:box-sheet}
@@ -309,24 +314,25 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
 ::view-transition-old(*.writing){animation:lid-open var(--lid-time) var(--lid-ease) var(--t-open) both,
   lid-fade-out var(--lid-fade) ease-in var(--t-open) forwards}
 /* the light comes into the box as the flaps roll open, onto everything in it (but not the tops of the walls, which are
-   in the light as soon as they show); the paper rises, its shade fading until it passes the walls' tops (box-rise has
-   it there at 72%), and the walls' tops laid over it go just as it gets there, leaving the paper above the
-   inside's own wall tops (closing: they come back just as the paper drops below them, at 28%) */
+   in the light as soon as they show); the paper rises in one smooth movement, its shade fading until it passes the
+   walls' tops (--t-pass into the rise), and the walls' tops laid over it are gone just as it gets there (in the last
+   40ms before, while it is still below them), leaving the paper above the inside's own wall tops */
 ::view-transition-new(box-inside){animation:box-light var(--lid-time) var(--lid-ease) var(--t-open) both}
-::view-transition-new(box-sheet){animation:box-rise var(--box-rise) linear var(--t-rise) both,
+::view-transition-new(box-sheet){animation:box-rise var(--box-rise) var(--box-ease) var(--t-rise) both,
   box-light var(--lid-time) var(--lid-ease) var(--t-open) both}
-::view-transition-new(box-shade){animation:box-rise var(--box-rise) linear var(--t-rise) both,
-  shade-off var(--box-rise) linear var(--t-rise) both, box-light var(--lid-time) var(--lid-ease) var(--t-open) both}
-::view-transition-new(box-walls){animation:walls-off var(--box-rise) linear var(--t-rise) both}
-/* closing: the demo's pieces are the old page's pictures, the front page's the new page's. The same backwards: the
-   paper sinks below the walls' tops (box-sink has it there at 28%) into their shade, then the box goes dark as the
-   flaps roll closed */
+::view-transition-new(box-shade){animation:box-rise var(--box-rise) var(--box-ease) var(--t-rise) both,
+  shade-off var(--t-pass) linear var(--t-rise) both, box-light var(--lid-time) var(--lid-ease) var(--t-open) both}
+::view-transition-new(box-walls){animation:walls-off 40ms linear calc(var(--t-rise) + var(--t-pass) - 40ms) both}
+/* closing: the demo's pieces are the old page's pictures, the front page's the new page's. The same played backwards
+   (reverse): the paper sinks, the walls' tops come back as soon as it is below them and its shade comes up, then the
+   box goes dark as the flaps roll closed */
 ::view-transition-old(box-inside){animation:box-unlight var(--lid-time) var(--lid-ease) var(--t-close) both}
-::view-transition-old(box-sheet){animation:box-sink var(--box-rise) linear both,
+::view-transition-old(box-sheet){animation:box-rise var(--box-rise) var(--box-ease) reverse both,
   box-unlight var(--lid-time) var(--lid-ease) var(--t-close) both}
-::view-transition-old(box-shade){animation:box-sink var(--box-rise) linear both,
-  shade-on var(--box-rise) linear both, box-unlight var(--lid-time) var(--lid-ease) var(--t-close) both}
-::view-transition-old(box-walls){animation:walls-on var(--box-rise) linear both}
+::view-transition-old(box-shade){animation:box-rise var(--box-rise) var(--box-ease) reverse both,
+  shade-off var(--t-pass) linear calc(var(--box-rise) - var(--t-pass)) reverse both,
+  box-unlight var(--lid-time) var(--lid-ease) var(--t-close) both}
+::view-transition-old(box-walls){animation:walls-off 40ms linear calc(var(--box-rise) - var(--t-pass)) reverse both}
 ::view-transition-new(*.flap){animation:lid-close var(--lid-time) var(--lid-ease) var(--t-close) both}
 ::view-transition-new(*.writing){animation:lid-close var(--lid-time) var(--lid-ease) var(--t-close) both,
   lid-fade-in var(--lid-fade) ease-out calc(var(--t-meet) - var(--lid-fade)) backwards}
@@ -335,21 +341,10 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
 
 @keyframes lid-fade-in{from{opacity:0}}
 @keyframes lid-fade-out{to{opacity:0}}
-/* the paper rising from the bottom of the box: up to the walls' tops, slowing down, then a little above them */
-@keyframes box-rise{
-  from{scale:var(--box-sunk);animation-timing-function:cubic-bezier(.35,0,.35,1)}
-  72%{scale:var(--box-fit);animation-timing-function:cubic-bezier(.2,0,.4,1)}
-  to{scale:1}
-}
-@keyframes box-sink{
-  from{scale:1;animation-timing-function:cubic-bezier(.6,0,.8,1)}
-  28%{scale:var(--box-fit);animation-timing-function:cubic-bezier(.65,0,.65,1)}
-  to{scale:var(--box-sunk)}
-}
-@keyframes shade-off{72%,to{opacity:0}}
-@keyframes shade-on{0%,28%{opacity:0}}
-@keyframes walls-off{0%,71%{opacity:1}75%,to{opacity:0}}
-@keyframes walls-on{0%,25%{opacity:0}29%,to{opacity:1}}
+/* the paper rising from the bottom of the box (and, played backwards, sinking to it) */
+@keyframes box-rise{from{scale:var(--box-sunk)}}
+@keyframes shade-off{to{opacity:0}}
+@keyframes walls-off{to{opacity:0}}
 /* the dim light in the box: darker (brightness), then warmer (sepia, which tints the dark more than the light) */
 @keyframes box-light{from{filter:brightness(var(--box-dark)) sepia(var(--box-warm))}}
 @keyframes box-unlight{to{filter:brightness(var(--box-dark)) sepia(var(--box-warm))}}

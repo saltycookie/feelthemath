@@ -6,7 +6,8 @@
    written on that paper in ink, and everything is on it: the home link and
    the step's title at the top, the drawing, and Back / the step dots /
    Replay / Next at the bottom. The front page is the same box with its lid
-   on, written on the lid.
+   on, written on the lid; the lid opens going into a demo and closes
+   coming back ("the lid", below, and lid.js).
 
    To restyle every demo, change the values in section 1. Everything in
    section 2 is worked out from them, so the colours that have to match the
@@ -34,6 +35,9 @@
 
   /* the widest the paper gets; wider screens show more of the desk */
   --paper-max: 1000px;
+
+  /* how long the lid takes to open (going into a demo) and to close (coming back to the front page) */
+  --lid-time:  .8s;
 
   /* one handwritten face everywhere (Kalam is loaded from Google Fonts by each page) */
   --font-hand: "Kalam", "Chalkboard SE", "Comic Sans MS", "Segoe Print", sans-serif;
@@ -103,6 +107,36 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
     inset 0 0 36px color-mix(in srgb, var(--wood-ink) 7%, transparent),
     var(--on-desk);
 }
+
+/* ---- the lid: opened going into a demo, closed coming back (framework/lid.js) -----------------------------------
+   A cross-document view transition: the browser animates pictures of the page it leaves and of the page it opens.
+   Both pages opt in here. The front page (html[data-lid], set by lid.js) is the box with its lid on, and a demo is the
+   same box open on the same spot, so the lid lies exactly over the open box. lid.js lays four pieces of the lid over it
+   (lid-tl, lid-tr, lid-bl, lid-br) just before the pictures are taken. Going into a demo they are pictures of the page
+   being left, and each slides away into its corner of the box; coming back they belong to the page being opened, and
+   slide out of the corners to meet in the middle. Each piece is clipped to its own quarter of the box, so it slips out
+   of sight at the box's edge and never covers the desk. Under them the demo ("root") holds still, and the front page's
+   own picture ("lid") is never shown: the pieces stand in for it. Reduced motion: no transition, just the new page. */
+@media (prefers-reduced-motion: no-preference){
+  @view-transition{navigation:auto}
+}
+:root[data-lid]{view-transition-name:lid}
+.lid-piece{position:fixed;z-index:2147483647;overflow:hidden;pointer-events:none}
+::view-transition-old(lid),::view-transition-new(lid){animation:none;opacity:0}
+::view-transition-old(root),::view-transition-new(root){animation:none}
+::view-transition-group(lid-tl),::view-transition-group(lid-tr),
+::view-transition-group(lid-bl),::view-transition-group(lid-br){z-index:1;overflow:clip}   /* over the open box */
+/* both ways the pieces get going at once (the reader has just clicked) and come to rest gently */
+::view-transition-old(lid-tl),::view-transition-old(lid-tr),::view-transition-old(lid-bl),::view-transition-old(lid-br){
+  animation:lid-open var(--lid-time) cubic-bezier(.4,0,.2,1) both}
+::view-transition-new(lid-tl),::view-transition-new(lid-tr),::view-transition-new(lid-bl),::view-transition-new(lid-br){
+  animation:lid-close var(--lid-time) cubic-bezier(.4,0,.2,1) both}
+::view-transition-old(lid-tl),::view-transition-new(lid-tl){--corner:-100% -100%}           /* a whole piece's width and height */
+::view-transition-old(lid-tr),::view-transition-new(lid-tr){--corner:100% -100%}
+::view-transition-old(lid-bl),::view-transition-new(lid-bl){--corner:-100% 100%}
+::view-transition-old(lid-br),::view-transition-new(lid-br){--corner:100% 100%}
+@keyframes lid-open{to{translate:var(--corner)}}
+@keyframes lid-close{from{translate:var(--corner)}}
 
 /* ---- deck layout, on the paper: the title band (with the home link), the stage of slides, the navigation ---- */
 .deck{display:flex;flex-direction:column;padding:0 clamp(12px, 3vw, 32px) 12px}

@@ -15,6 +15,7 @@ theme.css      colours, font, the desk, the box and the paper, navigation, bubbl
 wood.webp      the wooden desk, a picture that tiles without seams (made by tools/wood.py)
 deck.js        animated values, steps, and moving between steps
 nav.js         Back, step dots, Replay, Next (Finish on the last step), the arrow keys, and the home link
+lid.js         the front page's lid, opened going into a demo and closed coming back
 bubbles.js     callout bubbles that point at things
 svg.js         small helpers for drawing in SVG
 ```
@@ -30,6 +31,7 @@ All colours and the font live at the top of `theme.css`:
 --wood / --wood-ink         /* the desk (under wood.webp), and the brown of shadows on it */
 --rim: 6px;                 /* how thick the box's paper walls look from above */
 --paper-max: 1000px;        /* the widest the paper gets: wider screens show more of the desk */
+--lid-time: .8s;            /* how long the lid takes to open and to close */
 --font-hand: "Kalam", ...;  /* the handwritten font */
 ```
 
@@ -84,8 +86,32 @@ navigation are all written on the paper. The home link points by default to `../
 it out.
 
 On the last step, Next becomes **Finish**. Like Next, it waits (dimmed) until the step has finished
-animating; then it takes the reader to the same place as the home link. With `{ home: false }` there is no
+animating; then it takes the reader to the same place as the home link, and the box's lid closes over the demo. With `{ home: false }` there is no
 Finish, and Next is simply disabled on the last step. The arrow keys never leave the demo: only Finish does.
+
+### Opening and closing the box
+
+The front page is the box with its lid on, and a demo is the same box open, on the same spot of the desk. Going
+into a demo, the lid splits into four pieces from the middle and each piece slides away into its corner, uncovering
+the demo. Coming back, by the home link, Finish or the browser's Back button, the four pieces slide out of the
+corners and meet in the middle.
+
+This is a cross-document view transition: the browser takes a picture of the page it leaves and of the page it
+opens, and animates them with CSS (`theme.css`, "the lid"). A picture can't be cut up, so `lid.js` cuts the lid
+instead: just before the pictures are taken, it lays four copies of the lid over it, each showing one quarter, and
+takes them away when the transition is over. The front page loads it in its `<head>`:
+`<script src="framework/lid.js"></script>`.
+
+What a demo needs for it:
+
+- Its script is loaded with `blocking="render"`, as in the template:
+  `<script type="module" src="demo.js" blocking="render"></script>`. The page then waits for the script before its
+  first frame, so the drawing, the title band and the navigation are already there when the lid opens.
+- Nothing else. The deck waits until the lid is open before it plays the first step, and holds a step's CSS
+  animations (`slideClass`) until then too, so nothing plays unseen.
+
+It works in browsers with cross-document view transitions (Chrome and Edge 126+, Safari 18.2+). Elsewhere, and for a
+reader who asks for reduced motion, the page simply changes. Typing an address, a bookmark or a reload never animates.
 
 ### The rules every demo gets for free
 

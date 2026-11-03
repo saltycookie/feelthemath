@@ -11,6 +11,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="framework/theme.css">
+<!-- the lid opens going into a demo and closes coming back (framework/lid.js). The page's first frame waits until the
+     lid is all there, so that the closing lid is a whole one. -->
+<script src="framework/lid.js"></script>
+<link rel="expect" href="#lid-end" blocking="render">
 <style>
   /* the front page: the same box as every demo, with its lid on, and the title and one card per demo written on the
      lid, in a column narrower than the box. When the column is taller than the box, it scrolls. */
@@ -85,6 +89,7 @@
     </a></li>
   </ul>
 </div>
+<span id="lid-end" hidden></span>
 </main>
 </body>
 </html>

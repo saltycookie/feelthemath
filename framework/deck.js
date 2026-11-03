@@ -40,6 +40,7 @@ const CANCELLED = Symbol('step left');
 const HOLD = 450;           // ms the beginning is shown after a jump, before the step plays
 const GLIDE = 450;          // ms for values to glide into the beginning on Next
 const GLIDE_TRANSIENT = 250;
+const ARRIVE_HOLD = 250;    // ms the step's beginning is shown once the lid has opened, before the step plays
 
 export function createDeck(opts) {
   const {
@@ -180,6 +181,20 @@ export function createDeck(opts) {
     html.toggleAttribute('data-step-busy', busy);
   }
 
+  /* ---------- arriving under the lid ---------- */
+  // Coming from the front page, the demo opens under the box's lid, which takes a moment to slide away (lid.js and
+  // theme.css). The step's own animation waits until the lid is open, and so do its slide's CSS animations, so that
+  // nothing plays unseen. (pagereveal fires just before the page's first frame, once this script has run: demo pages
+  // load their script with blocking="render".)
+  let arriving = null;
+  addEventListener('pagereveal', e => {
+    if (!e.viewTransition) return;
+    const el = cur >= 0 && steps[cur].slideClass ? slideEl(steps[cur].slide) : null;
+    const css = el && el.getAnimations ? el.getAnimations({ subtree: true }).filter(a => a.playState === 'running') : [];
+    css.forEach(a => a.pause());
+    arriving = e.viewTransition.finished.catch(() => {}).then(() => { arriving = null; css.forEach(a => a.play()); });
+  });
+
   /* ---------- navigation ---------- */
   let cur = -1;
   function go(i, how = 'jump') {                  // how: 'next' | 'jump' | 'replay'
@@ -216,6 +231,7 @@ export function createDeck(opts) {
           if (ep !== epoch) return;
           await s.wait(begin());
         } else await s.wait(lead);
+        if (arriving) { await arriving; await s.wait(ARRIVE_HOLD); }   // the lid is still opening
         if (st.play) await st.play(s); else s.apply(s.end);
         await s.settle();
         if (ep === epoch) setBusy(false);

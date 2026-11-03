@@ -18,7 +18,7 @@ SITE = 'https://feelthemath.app/'   # the home link of a packed file goes here
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # the repository, which the site serves
 
 LINK_RE = re.compile(r'<link\s+[^>]*rel="stylesheet"[^>]*href="(?!https?:)([^"]+)"[^>]*>\s*')
-SCRIPT_RE = re.compile(r'<script\s+type="module"\s+src="([^"]+)"\s*>\s*</script>\s*')
+SCRIPT_RE = re.compile(r'<script\s+type="module"\s+src="([^"]+)"[^>]*>\s*</script>[ \t]*(?:<!--.*?-->)?\s*')   # with its comment
 IMPORT_RE = re.compile(r'^\s*import\s*\{([^}]*)\}\s*from\s*[\'"]([^\'"]+)[\'"]\s*;?\s*$', re.M)
 EXPORT_RE = re.compile(r'^export\s+(?:async\s+)?(function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)', re.M)
 CSS_URL_RE = re.compile(r'url\(\s*([\'"]?)(?!data:|https?:|#|%23)([^\'")]+)\1\s*\)')

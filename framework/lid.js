@@ -106,17 +106,17 @@
     return n;
   }
   // Coming back from a demo, this page draws the transition, so it says how small the demo's paper is down at the
-  // bottom of the box (--box-sunk: the same across and down, leaving --box-gap of the walls' inner sides showing across
-  // the box's narrower side), and as it passes the tops of the walls (--box-fit: the paper covers all but --lift-peek
-  // of the walls, so this small it fits between them). box.js works out the same on the demo's side, for the opening,
+  // bottom of the box (--box-sunk: the same across and down, --box-inset in from the box's outer edge across its
+  // narrower side), and as it passes the tops of the walls (--box-fit: the paper covers all but --lift-peek of the
+  // walls, --box-wall thick, so this small it fits between them). box.js works out the same on the demo's side, for the opening,
   // and lays the inside of the box to match.
   function sink() {
-    const lid = document.querySelector('.box-lid'), r = lid.getBoundingClientRect(), cs = getComputedStyle(root);
-    const rim = parseFloat(getComputedStyle(lid).borderTopWidth) || 0;
-    const peek = parseFloat(cs.getPropertyValue('--lift-peek')) || 0, gap = parseFloat(cs.getPropertyValue('--box-gap')) || 0;
+    const r = document.querySelector('.box-lid').getBoundingClientRect(), cs = getComputedStyle(root);
+    const px = name => parseFloat(cs.getPropertyValue(name)) || 0;
+    const peek = px('--lift-peek'), wall = px('--box-wall'), inset = Math.max(px('--box-inset'), wall + 1);
     const s = Math.min(r.width, r.height);
-    root.style.setProperty('--box-sunk', String(Math.max(.5, (s - 2 * rim - 2 * gap) / s)));
-    root.style.setProperty('--box-fit', `${(r.width - 2 * rim) / (r.width - 2 * peek)} ${(r.height - 2 * rim) / (r.height - 2 * peek)}`);
+    root.style.setProperty('--box-sunk', String(Math.max(.5, (s - 2 * inset) / s)));
+    root.style.setProperty('--box-fit', `${(r.width - 2 * wall) / (r.width - 2 * peek)} ${(r.height - 2 * wall) / (r.height - 2 * peek)}`);
   }
   // Take the pieces away (only those of cut n, when n is given: a later cut may have replaced them).
   function lift(n) {

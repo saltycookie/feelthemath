@@ -38,7 +38,8 @@ All colours and the font live at the top of `theme.css`:
 --lift-peek: 3px;           /* a demo's paper is raised above the walls: this much of them shows around it */
 --lid-split / --lid-time /  /* opening the box: the lid splits (.4s), its flaps roll open (2s) while the writing */
 --lid-fade / --box-rise     /*   on them fades (1.2s), the paper rises (.8s); closing, the same backwards */
---box-gap                   /* down at the bottom of the box, the paper is this far inside its walls, seen from above */
+--box-wall                  /* how thick the box's walls look from above while the paper is down in the box */
+--box-inset                 /* down at the bottom of the box, the paper is this far in from its outer edge */
 --box-dark: .38;            /* how light it is inside the box under the closed lid (1: as light as outside) */
 --box-warm: .7;             /*   and how warm that dim light is (0: a plain grey dark) */
 --box-shadow-ink            /* the warm brown of the shade inside the box */
@@ -111,7 +112,7 @@ thing after another:
    over the box's top edge and the bottom flap down over its bottom edge, rising towards the reader in 3D and showing
    the lid's thickness on their cut edges, until they stand upright on the box's edges, out of sight. The light comes
    into the box as they open, and the demo's paper is uncovered, down at the bottom of the box, well inside its walls
-   (`--box-gap`), whose inner sides show around it in perspective;
+   (`--box-inset` from its outer edge, past walls `--box-wall` thick), whose inner sides show around it in perspective;
 3. the paper rises above the walls. Down in the box it is in the walls' shade, and it comes fully into the light only
    as it passes their tops.
 

@@ -182,7 +182,7 @@ export function createDeck(opts) {
   }
 
   /* ---------- arriving under the lid ---------- */
-  // Coming from the front page, the demo opens under the box's lid, which takes a moment to slide away (lid.js and
+  // Coming from the front page, the demo opens under the box's lid, which takes a moment to open (lid.js and
   // theme.css). The step's own animation waits until the lid is open, and so do its slide's CSS animations, so that
   // nothing plays unseen. (pagereveal fires just before the page's first frame, once this script has run: demo pages
   // load their script with blocking="render".)

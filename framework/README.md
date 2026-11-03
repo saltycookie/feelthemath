@@ -31,7 +31,8 @@ All colours and the font live at the top of `theme.css`:
 --wood / --wood-ink         /* the desk (under wood.webp), and the brown of shadows on it */
 --rim: 6px;                 /* how thick the box's paper walls look from above */
 --paper-max: 1000px;        /* the widest the paper gets: wider screens show more of the desk */
---lid-time: .8s;            /* how long the lid takes to open and to close */
+--lid-time: 2s;             /* how long the lid takes to open and to close */
+--lid-thick: 14px;          /* how thick the lid is: it shows on the flaps' cut edges as they turn */
 --font-hand: "Kalam", ...;  /* the handwritten font */
 ```
 
@@ -92,15 +93,17 @@ Finish, and Next is simply disabled on the last step. The arrow keys never leave
 ### Opening and closing the box
 
 The front page is the box with its lid on, and a demo is the same box open, on the same spot of the desk. Going
-into a demo, the lid splits into four pieces from the middle and each piece slides away into its corner, uncovering
-the demo. Coming back, by the home link, Finish or the browser's Back button, the four pieces slide out of the
-corners and meet in the middle.
+into a demo, the lid splits along the middle into two flaps, like a cardboard box's: the top flap rolls up over the
+box's top edge and the bottom flap down over its bottom edge, rising towards the reader in 3D and showing the lid's
+thickness on their cut edges, until they stand upright on the box's edges, out of sight, and the demo inside is
+uncovered. Coming back, by the home link, Finish or the browser's Back button, the flaps roll back down and close in
+the middle.
 
 This is a cross-document view transition: the browser takes a picture of the page it leaves and of the page it
-opens, and animates them with CSS (`theme.css`, "the lid"). A picture can't be cut up, so `lid.js` cuts the lid
-instead: just before the pictures are taken, it lays four copies of the lid over it, each showing one quarter, and
-takes them away when the transition is over. The front page loads it in its `<head>`:
-`<script src="framework/lid.js"></script>`.
+opens, and animates them with CSS (`theme.css`, "the lid"). A picture can't be cut up or given a thickness, so
+`lid.js` builds the flaps instead: just before the pictures are taken, it lays them over the lid, each made of three
+pictures (a copy of its half of the lid, its cut edge and its underside), and takes them away when the transition is
+over. The front page loads it in its `<head>`: `<script src="framework/lid.js"></script>`.
 
 What a demo needs for it:
 

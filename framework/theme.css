@@ -6,8 +6,9 @@
    written on that paper in ink, and everything is on it: the home link and
    the step's title at the top, the drawing, and Back / the step dots /
    Replay / Next at the bottom. The front page is the same box with its lid
-   on, written on the lid; the lid opens going into a demo and closes
-   coming back ("opening and closing the box", below).
+   on, a wooden lid like a treasure chest's, written on the lid; the lid
+   opens going into a demo and closes coming back ("opening and closing the
+   box", below).
 
    To restyle every demo, change the values in section 1. Everything in
    section 2 is worked out from them, so the colours that have to match the
@@ -37,6 +38,10 @@
   /* the widest the paper gets; wider screens show more of the desk */
   --paper-max: 1000px;
 
+  /* the box's lid (the front page): stained pine, like a treasure chest's, darker towards its edges */
+  --lid-wood:  #8b4e22;                  /* the average colour of lid-wood.webp, shown until it loads */
+  --lid-burn:  #2a1206;                  /* the darkened edges, and the groove round the lid */
+
   /* opening the box (going into a demo): the lid splits along the middle (--lid-split), its two flaps roll open
      (--lid-time) while the writing on them fades (--lid-fade), and the paper inside rises above the walls
      (--box-rise). Closing it (coming back to the front page) is the same backwards. --lid-thick: how thick the lid
@@ -63,10 +68,10 @@
     0 0 0 1px color-mix(in srgb, var(--wood-ink) 22%, transparent), /*   its outer edge, */
     0 10px 22px color-mix(in srgb, var(--wood-ink) 34%, transparent), /*   its shadow */
     0 2px 4px color-mix(in srgb, var(--wood-ink) 26%, transparent);
-  --lid-under:   color-mix(in srgb, color-mix(in srgb, var(--paper), var(--wood-ink) 5%), black 25%);   /* the lid's underside, in the shade, */
-                                                                            /* and its cut edge: */
-  --lid-cut-top: color-mix(in srgb, var(--paper), var(--wood-ink) 14%);   /*   lighter by the writing, */
-  --lid-cut-under: color-mix(in srgb, var(--paper), var(--wood-ink) 34%); /*   darker by the underside */
+  --lid-under:   color-mix(in srgb, var(--lid-wood), black 45%);           /* the lid's underside, in the shade, */
+                                                                            /* and its cut edge (end grain): */
+  --lid-cut-top: color-mix(in srgb, var(--lid-wood), var(--lid-burn) 30%);  /*   lighter by the top, */
+  --lid-cut-under: color-mix(in srgb, var(--lid-wood), var(--lid-burn) 65%);/*   darker by the underside */
 
   /* accent fills: the pen colour at low opacity, for shaded areas */
   --blue-fill:   color-mix(in srgb, var(--blue) 24%, transparent);
@@ -108,7 +113,37 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='p' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .36 0 0 0 0 .28 .3 0 0 0 -.17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
   background-origin:border-box;
 }
-.box-lid{box-shadow:var(--on-desk)}                                 /* the lid: flat paper, nothing more */
+/* the lid: a panel of stained pine, like a treasure chest's lid (the wood is made by tools/wood.py --lid). Its rim
+   and edges are darkened, it has a soft sheen across the middle, and a groove runs round it --lid-frame in from the
+   rim, like the frame round a panel. Lit from the top left, as the box is: each side of the groove is dark on its
+   upper or left wall and catches the light on the other. All of this is the lid itself, not writing on it, so it
+   stays on the flaps while the writing on them fades (lid.js). */
+.box-lid{
+  --lid-frame:clamp(9px, 1.6vw, 16px);
+  --groove-h:linear-gradient(color-mix(in srgb, var(--lid-burn) 70%, transparent) 0 2px, rgb(255 226 180 / .2) 2px 3px);
+  --groove-v:linear-gradient(90deg, color-mix(in srgb, var(--lid-burn) 70%, transparent) 0 2px, rgb(255 226 180 / .2) 2px 3px);
+  --nail:radial-gradient(circle, #7a5232 0 1px, #2e170b 2.4px, #160803 3.3px, rgb(22 8 3 / .4) 3.9px, transparent 4.9px);   /* a domed head */
+  --g:calc(var(--rim) + var(--lid-frame));                            /* where the groove is, from the lid's outer edge */
+  --n:calc(var(--g) - 8.5px);                                         /* where the nails are: in the groove's corners */
+  border-color:color-mix(in srgb, var(--lid-burn) 78%, transparent);
+  background-color:var(--lid-wood);
+  background-image:
+    var(--nail), var(--nail), var(--nail), var(--nail),
+    var(--groove-h), var(--groove-h), var(--groove-v), var(--groove-v),
+    radial-gradient(ellipse 70% 55% at 50% 38%, rgb(255 222 170 / .16), transparent 70%),
+    url("lid-wood.webp");
+  background-size:20px 20px, 20px 20px, 20px 20px, 20px 20px,
+    calc(100% - 2 * var(--g)) 3px, calc(100% - 2 * var(--g)) 3px, 3px calc(100% - 2 * var(--g)), 3px calc(100% - 2 * var(--g)),
+    100% 100%, 1200px 900px;
+  background-position:left var(--n) top var(--n), right var(--n) top var(--n), left var(--n) bottom var(--n), right var(--n) bottom var(--n),
+    left var(--g) top var(--g), left var(--g) bottom var(--g), left var(--g) top var(--g), right var(--g) top var(--g),
+    0 0, 0 0;
+  background-repeat:no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+  box-shadow:var(--on-desk),
+    inset 0 0 10px 2px color-mix(in srgb, var(--lid-burn) 72%, transparent),     /* the edges, darkened, */
+    inset 0 0 34px 6px color-mix(in srgb, var(--lid-burn) 48%, transparent),     /*   most of all in the corners */
+    inset 0 0 110px 16px color-mix(in srgb, var(--lid-burn) 30%, transparent);
+}
 /* A demo's box doesn't cast its own shadow: the page draws it under the box, where the box stands, so that it stays put
    on the desk while the paper in the box sinks and rises (going to and from the front page). */
 body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around-box);margin:0 auto;pointer-events:none;

@@ -13,6 +13,7 @@ It is plain JavaScript modules and CSS, with no dependencies and nothing to buil
 ```
 theme.css      colours, font, the desk, the box and the paper, navigation, bubbles, chart basics
 wood.webp      the wooden desk, a picture that tiles without seams (made by tools/wood.py)
+lid-wood.webp  the front page's lid, stained pine like a treasure chest's (made by tools/wood.py --lid)
 deck.js        animated values, steps, and moving between steps
 nav.js         Back, step dots, Replay, Next (Finish on the last step), the arrow keys, and the home link
 lid.js         the front page's lid, opened going into a demo and closed coming back
@@ -30,6 +31,7 @@ All colours and the font live at the top of `theme.css`:
 --ink:    #263248;          /* blue-black ink for text and lines */
 --blue / --orange / --pink  /* coloured pens for marks, each with a darker -ink twin for text */
 --wood / --wood-ink         /* the desk (under wood.webp), and the brown of shadows on it */
+--lid-wood / --lid-burn     /* the lid (under lid-wood.webp), and its darkened edges and groove */
 --rim: 6px;                 /* how thick the box's paper walls look from above */
 --paper-max: 1000px;        /* the widest the paper gets: wider screens show more of the desk */
 --lift-peek: 3px;           /* a demo's paper is raised above the walls: this much of them shows around it */
@@ -112,7 +114,8 @@ This is a cross-document view transition: the browser takes a picture of the pag
 opens, and animates them with CSS (`theme.css`, "opening and closing the box"). A picture can't be cut up or given a
 thickness, so the pieces are built just before the pictures are taken, and taken away when the transition is over.
 `lid.js` builds the front page's: the split, and the two flaps, each made of four pictures (a blank half of the lid,
-the writing on it, its cut edge and its underside). The front page loads it in its `<head>`:
+the writing on it, its cut edge and its underside). The blank half is the lid itself: its wood, and anything marked
+`class="inlay"`, such as the front page's stars, so those stay while the writing fades. The front page loads it in its `<head>`:
 `<script src="framework/lid.js"></script>`. `box.js` builds the demo's: the walls, laid over the paper while it is
 down in the box. `createDeck()` sets that up, so every demo has it.
 

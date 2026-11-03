@@ -16,11 +16,16 @@
 //   lid-split                      a strip across the middle of the lid; theme.css draws the split on it
 //   lid-top-under   flap top under    an empty box the size of the top flap; theme.css paints the underside on it
 //   lid-top-edge    flap top edge     the same, for the cut edge (the lid's thickness)
-//   lid-top         flap top blank    a blank copy of the lid, showing the top flap's half of it
+//   lid-top         flap top blank    a copy of the lid with nothing written on it, showing the top flap's half of
+//                                     it: the lid itself (its wood, in theme.css) and its inlays
 //   lid-top-writing flap top writing  a copy of the lid, writing and all, showing the same half: it fades to leave
 //                                     the blank half
 // and the same four for the bottom flap. theme.css turns each flap's pictures together in 3D about its hinge on the
 // box's edge.
+//
+// Inlays (class "inlay") are part of the lid itself, not writing on it, such as the front page's stars: they are on
+// the blank half as well, so they stay while the writing fades. Their animations run in step on every copy and on
+// the lid, so nothing jumps when the copies take over from the lid and hand back to it.
 //
 // Load it as a classic script in the <head> of the page whose .box-lid is the lid (the front page), so that it is
 // ready before the page's first frame:  <script src="framework/lid.js"></script>
@@ -46,13 +51,29 @@
       `view-transition-name:${name};view-transition-class:${classes || 'none'}`;
     return p;
   }
-  // a copy of the lid (deep: with its writing), placed in a piece so that it lies exactly over the lid
-  function copyOf(lid, r, y, deep) {
-    const copy = lid.cloneNode(deep);
+  // a copy of the lid, placed in a piece so that it lies exactly over the lid. writing: false leaves only the lid
+  // itself and its inlays to be seen; everything else is still there, out of sight, so the inlays keep their places.
+  function copyOf(lid, r, y, writing) {
+    const copy = lid.cloneNode(true);
     copy.removeAttribute('id');
     copy.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
     copy.style.cssText += `;position:absolute;left:0;top:${-y}px;width:${r.width}px;height:${r.height}px;margin:0;max-width:none`;
+    if (!writing) {
+      for (const el of copy.children) el.style.visibility = 'hidden';
+      copy.querySelectorAll('.inlay').forEach(el => { el.style.visibility = 'visible'; });
+    }
     return copy;
+  }
+  // a copy laid on the page: it shows the same part of a lid that scrolls, and its inlays' animations run in step
+  // with the lid's (those that haven't started yet start together anyway)
+  function inStep(lid, copy) {
+    copy.scrollTop = lid.scrollTop;
+    copy.scrollLeft = lid.scrollLeft;
+    const theirs = copy.querySelectorAll('.inlay');
+    lid.querySelectorAll('.inlay').forEach((el, i) => {
+      const ours = el.getAnimations({ subtree: true }), copied = theirs[i] ? theirs[i].getAnimations({ subtree: true }) : [];
+      ours.forEach((a, j) => { if (copied[j] && a.startTime !== null) copied[j].startTime = a.startTime; });
+    });
   }
 
   // Lay the pieces over the lid. Returns the cut's number, or 0 when there is no lid to cut.
@@ -69,15 +90,16 @@
       const y = f === 'bottom' ? mid : 0;
       const at = [r.left, r.top + y, r.width, f === 'bottom' ? r.height - mid : mid];
       const blank = piece(`lid-${f}`, `flap ${f} blank`, at);
-      blank.appendChild(copyOf(lid, r, y, false));
+      const bare = copyOf(lid, r, y, false);
+      blank.appendChild(bare);
       const writing = piece(`lid-${f}-writing`, `flap ${f} writing`, at);
       const copy = copyOf(lid, r, y, true);
       const els = copy.querySelectorAll('*');
       for (const [i, cs] of hot) for (const p of KEEP) els[i].style.setProperty(p, cs.getPropertyValue(p));
       writing.appendChild(copy);
       document.body.append(piece(`lid-${f}-under`, `flap ${f} under`, at), piece(`lid-${f}-edge`, `flap ${f} edge`, at), blank, writing);
-      copy.scrollTop = lid.scrollTop;               // a lid that scrolls shows the same part
-      copy.scrollLeft = lid.scrollLeft;
+      inStep(lid, bare);
+      inStep(lid, copy);
     }
     document.body.appendChild(piece('lid-split', '', [r.left, r.top + mid - SPLIT / 2, r.width, SPLIT]));
     return n;

@@ -41,7 +41,7 @@ then open <http://localhost:8000>. Any other static server works too.
 ## Folder layout
 
 ```
-index.html                 the site's home page: the same box with its lid on, and a card for each demo on the lid
+index.html                 the site's home page: the same box with its wooden lid on, and a card for each demo on the lid
                            (the lid opens going into a demo and closes coming back: framework/lid.js and box.js)
 favicon.svg                the site icon, shown in browser tabs (see "The site icon" below)
 favicon.ico                the same icon for older browsers, made from favicon.svg by tools/icons.py
@@ -51,7 +51,7 @@ demos/<name>/              one folder per demo: index.html plus its own script a
                            and thumbnail.png / thumbnail@2x.png, its picture on the home page
 demos/template/            a small example to copy when starting a new demo
 tools/thumbnail.py         makes a demo's home-page thumbnail from a screenshot (see below)
-tools/wood.py              makes framework/wood.webp, the wooden desk the box stands on
+tools/wood.py              makes framework/wood.webp, the wooden desk the box stands on, and lid-wood.webp (--lid)
 tools/single_file.py       packs a demo into one HTML file (optional)
 tools/icons.py             makes favicon.ico and apple-touch-icon.png from favicon.svg
 ```

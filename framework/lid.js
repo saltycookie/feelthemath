@@ -5,9 +5,10 @@
 // Going into a demo, the lid splits along the middle into two flaps, like a cardboard box's, and the flaps roll open,
 // the writing on them fading as they turn: the top one up over the box's top edge, the bottom one down over its
 // bottom edge, each showing the lid's thickness on its cut edge, until they stand upright on the box's edges, out of
-// sight. Then the paper inside rises above the box's walls. Coming back (the home link, Finish, the browser's Back
-// button), the paper sinks back between the walls, the flaps roll closed, the writing coming back on them, and meet
-// at the split; then the split goes.
+// sight, letting the light into the box. Then the paper inside rises from the bottom of the box above its walls, into
+// the full light. Coming back (the home link, Finish, the browser's Back button), the paper sinks back to the bottom of
+// the box, the flaps roll closed, the writing coming back on them and the box going dark, and meet at the split; then
+// the split goes.
 //
 // It is a cross-document view transition: the browser takes pictures of the page it leaves and of the page it
 // opens, and animates those pictures (theme.css, "opening and closing the box"). A picture can't be cut up or given a
@@ -104,14 +105,18 @@
     document.body.appendChild(piece('lid-split', '', [r.left, r.top + mid - SPLIT / 2, r.width, SPLIT]));
     return n;
   }
-  // Coming back from a demo, this page draws the transition, so it says how small the demo's paper is when down in the
-  // box: small enough for the paper, which covers all but --lift-peek of the walls, to fit between them. (box.js works
-  // out the same on the demo's side, for the opening.)
+  // Coming back from a demo, this page draws the transition, so it says how small the demo's paper is down at the
+  // bottom of the box (--box-sunk: the same across and down, leaving --box-gap of the walls' inner sides showing across
+  // the box's narrower side), and as it passes the tops of the walls (--box-fit: the paper covers all but --lift-peek
+  // of the walls, so this small it fits between them). box.js works out the same on the demo's side, for the opening,
+  // and lays the inside of the box to match.
   function sink() {
-    const lid = document.querySelector('.box-lid'), r = lid.getBoundingClientRect();
+    const lid = document.querySelector('.box-lid'), r = lid.getBoundingClientRect(), cs = getComputedStyle(root);
     const rim = parseFloat(getComputedStyle(lid).borderTopWidth) || 0;
-    const peek = parseFloat(getComputedStyle(root).getPropertyValue('--lift-peek')) || 0;
-    root.style.setProperty('--box-sunk', `${(r.width - 2 * rim) / (r.width - 2 * peek)} ${(r.height - 2 * rim) / (r.height - 2 * peek)}`);
+    const peek = parseFloat(cs.getPropertyValue('--lift-peek')) || 0, gap = parseFloat(cs.getPropertyValue('--box-gap')) || 0;
+    const s = Math.min(r.width, r.height);
+    root.style.setProperty('--box-sunk', String(Math.max(.5, (s - 2 * rim - 2 * gap) / s)));
+    root.style.setProperty('--box-fit', `${(r.width - 2 * rim) / (r.width - 2 * peek)} ${(r.height - 2 * rim) / (r.height - 2 * peek)}`);
   }
   // Take the pieces away (only those of cut n, when n is given: a later cut may have replaced them).
   function lift(n) {

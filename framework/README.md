@@ -28,6 +28,7 @@ All colours and the font live at the top of `theme.css`:
 
 ```css
 --paper:  #fefdfa;          /* the paper in the box */
+--paper-aged: #b9772c;      /* the yellowed brown towards the edges of the demo's old sheet */
 --ink:    #263248;          /* blue-black ink for text and lines */
 --blue / --orange / --pink  /* coloured pens for marks, each with a darker -ink twin for text */
 --wood / --wood-ink         /* the desk (under wood.webp), and the brown of shadows on it */
@@ -36,7 +37,9 @@ All colours and the font live at the top of `theme.css`:
 --paper-max: 1000px;        /* the widest the paper gets: wider screens show more of the desk */
 --lift-peek: 3px;           /* a demo's paper is raised above the walls: this much of them shows around it */
 --lid-split / --lid-time /  /* opening the box: the lid splits (.4s), its flaps roll open (2s) while the writing */
---lid-fade / --box-rise     /*   on them fades (1.2s), the paper rises (.7s); closing, the same backwards */
+--lid-fade / --box-rise     /*   on them fades (1.2s), the paper rises (.8s); closing, the same backwards */
+--box-gap                   /* down at the bottom of the box, the paper is this far inside its walls, seen from above */
+--box-dark: .38;            /* how light it is inside the box under the closed lid (1: as light as outside) */
 --lid-thick: 14px;          /* how thick the lid is: it shows on the flaps' cut edges as they turn */
 --font-hand: "Kalam", ...;  /* the handwritten font */
 ```
@@ -98,17 +101,21 @@ Finish, and Next is simply disabled on the last step. The arrow keys never leave
 ### Opening and closing the box
 
 The front page is the box with its lid on, and a demo is the same box open, on the same spot of the desk, with its
-sheet of paper raised a little above the box's walls. Going into a demo, one thing after another:
+sheet of paper (old, and yellowed towards its edges) raised a little above the box's walls. Going into a demo, one
+thing after another:
 
 1. the lid splits along the middle;
 2. its two flaps roll open, like a cardboard box's, and the writing on them fades as they turn: the top flap rolls up
    over the box's top edge and the bottom flap down over its bottom edge, rising towards the reader in 3D and showing
-   the lid's thickness on their cut edges, until they stand upright on the box's edges, out of sight. The demo's
-   paper is uncovered, down inside the box;
-3. the paper rises above the walls.
+   the lid's thickness on their cut edges, until they stand upright on the box's edges, out of sight. The light comes
+   into the box as they open, and the demo's paper is uncovered, down at the bottom of the box, well inside its walls
+   (`--box-gap`), whose inner sides show around it in perspective;
+3. the paper rises above the walls. Down in the box it is in the walls' shade, and it comes fully into the light only
+   as it passes their tops.
 
-Coming back, by the home link, Finish or the browser's Back button, it all happens backwards: the paper sinks between
-the walls, the flaps roll closed with the writing coming back on them and meet at the split, and the split goes.
+Coming back, by the home link, Finish or the browser's Back button, it all happens backwards: the paper sinks to the
+bottom of the box, into the walls' shade, the flaps roll closed with the writing coming back on them and the box
+going dark, and meet at the split, and the split goes.
 
 This is a cross-document view transition: the browser takes a picture of the page it leaves and of the page it
 opens, and animates them with CSS (`theme.css`, "opening and closing the box"). A picture can't be cut up or given a
@@ -116,8 +123,9 @@ thickness, so the pieces are built just before the pictures are taken, and taken
 `lid.js` builds the front page's: the split, and the two flaps, each made of four pictures (a blank half of the lid,
 the writing on it, its cut edge and its underside). The blank half is the lid itself: its wood, and anything marked
 `class="inlay"`, such as the front page's stars, so those stay while the writing fades. The front page loads it in its `<head>`:
-`<script src="framework/lid.js"></script>`. `box.js` builds the demo's: the walls, laid over the paper while it is
-down in the box. `createDeck()` sets that up, so every demo has it.
+`<script src="framework/lid.js"></script>`. `box.js` builds the demo's: the inside of the box (the inner sides of
+its walls, under the paper), the walls' shade on the paper, which rises with it, and the tops of the walls, over the
+paper while it is in the box. `createDeck()` sets that up, so every demo has it.
 
 What a demo needs for it:
 

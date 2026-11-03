@@ -57,6 +57,9 @@
   --box-gap:   clamp(16px, 3.2vmin, 34px);   /* down at the bottom of the box, the paper is this far inside the walls,
                                                seen from above (along the box's longer side, a little more) */
   --box-dark:  .38;                         /* how light it is in the box under the closed lid (1: as light as outside) */
+  --box-warm:  .7;                          /* how warm that dim light is, like lamplight through the wooden lid
+                                               (0: a plain grey dark; 1: the full brown of an old photo) */
+  --box-shadow-ink: rgb(78 42 10);          /* the warm brown of the shade inside the box, open or not */
 
   /* one handwritten face everywhere (Kalam is loaded from Google Fonts by each page) */
   --font-hand: "Kalam", "Chalkboard SE", "Comic Sans MS", "Segoe Print", sans-serif;
@@ -187,7 +190,7 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
    - .box-walls, over both: the tops of the walls, thin and square-cornered (the border), with a fine fold where
      each top meets the wall's inner side. */
 .box-piece{position:fixed;pointer-events:none}
-.box-inside{background:var(--paper);--in:rgb(40 25 10)}                    /* --in: the colour of shade in the box */
+.box-inside{background:var(--paper);--in:var(--box-shadow-ink)}
 .box-inside::before{content:"";position:absolute;inset:var(--rim);          /* behind the sides: it shows as a fine crease */
   background:color-mix(in srgb, var(--paper), var(--in) 40%)}                /*   in each corner, where two sides meet */
 .box-side{position:absolute;display:block;
@@ -205,15 +208,15 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
 .box-side.right{--a:5%;top:0;bottom:0;right:var(--rim);width:calc(var(--fx) - var(--rim));
   clip-path:polygon(0 var(--fy), 100% var(--rim), 100% calc(100% - var(--rim)), 0 calc(100% - var(--fy)));
   background:linear-gradient(to left, var(--side), var(--side-low))}
-.box-shade{
-  background:rgb(40 25 10 / .09);                                   /* the bottom of the box: dimmer than outside */
+.box-shade{--in:var(--box-shadow-ink);
+  background:color-mix(in srgb, var(--in) 11%, transparent);                       /* the bottom of the box: dimmer than outside */
   box-shadow:
-    inset 0 0 0 1px rgb(40 25 10 / .2),                             /* the fold where the walls meet the bottom */
-    inset 0 16px 20px -9px rgb(40 25 10 / .34),                     /* the walls' shade on the paper */
-    inset 13px 0 20px -10px rgb(40 25 10 / .24),
-    inset -8px 0 15px -9px rgb(40 25 10 / .12),
-    inset 0 -8px 15px -9px rgb(40 25 10 / .1),
-    inset 0 0 60px rgb(40 25 10 / .1)}
+    inset 0 0 0 1px color-mix(in srgb, var(--in) 22%, transparent),                /* the fold where the walls meet the bottom */
+    inset 0 16px 20px -9px color-mix(in srgb, var(--in) 36%, transparent),         /* the walls' shade on the paper */
+    inset 13px 0 20px -10px color-mix(in srgb, var(--in) 26%, transparent),
+    inset -8px 0 15px -9px color-mix(in srgb, var(--in) 13%, transparent),
+    inset 0 -8px 15px -9px color-mix(in srgb, var(--in) 11%, transparent),
+    inset 0 0 60px color-mix(in srgb, var(--in) 12%, transparent)}
 .box-walls{border:var(--rim) solid var(--paper);
   box-shadow:inset 0 0 0 1px rgb(40 25 10 / .16)}                   /* the fold at the top of the walls' inner sides */
 
@@ -223,7 +226,8 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
    same box open on the same spot, so the lid lies exactly over the open box.
 
    Opening: the lid splits along the middle, then its two flaps roll open over the box's top and bottom edges, the
-   writing on them fading as they turn and the light coming into the box (--box-dark to full), and then the paper
+   writing on them fading as they turn and the light coming into the box (from --box-dark, warmed by --box-warm, to
+   full daylight), and then the paper
    inside rises from the bottom of the box, in the walls' shade, above the walls, where the demo has it and where it is
    in the full light. Closing: the paper sinks to the bottom of the box, into the walls' shade, the flaps roll closed,
    the writing coming back on them and the box going dark, and meet at the split; then the split goes.
@@ -339,8 +343,9 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
 @keyframes shade-on{0%,28%{opacity:0}}
 @keyframes walls-off{0%,68%{opacity:1}88%,to{opacity:0}}
 @keyframes walls-on{0%,12%{opacity:0}32%,to{opacity:1}}
-@keyframes box-light{from{filter:brightness(var(--box-dark))}}
-@keyframes box-unlight{to{filter:brightness(var(--box-dark))}}
+/* the dim light in the box: darker (brightness), then warmer (sepia, which tints the dark more than the light) */
+@keyframes box-light{from{filter:brightness(var(--box-dark)) sepia(var(--box-warm))}}
+@keyframes box-unlight{to{filter:brightness(var(--box-dark)) sepia(var(--box-warm))}}
 @keyframes lid-open{
   from{transform:translateY(var(--hinge)) rotateX(0deg) translateY(calc(-1 * var(--hinge))) var(--on-flap)}
   80%{opacity:1}

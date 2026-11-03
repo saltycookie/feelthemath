@@ -31,6 +31,8 @@
 //               reader can change the drawing (a switch, a drag): leave tidies the drawing into the finished look.
 //   replay      false to disable Replay on this step
 
+import { watchBox } from './box.js';
+
 export const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const ease = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
@@ -51,6 +53,7 @@ export function createDeck(opts) {
     bubbles = null,            // a createBubbles() instance, if the demo uses callout bubbles
     root = document,
   } = opts;
+  watchBox();                  // the paper rises from the box as the lid opens, and sinks before it closes (box.js)
 
   /* ---------- animated state ---------- */
   const S = { ...state };
@@ -182,8 +185,9 @@ export function createDeck(opts) {
   }
 
   /* ---------- arriving under the lid ---------- */
-  // Coming from the front page, the demo opens under the box's lid, which takes a moment to open (lid.js and
-  // theme.css). The step's own animation waits until the lid is open, and so do its slide's CSS animations, so that
+  // Coming from the front page, the demo opens under the box's lid, which takes a moment to open, and the paper then
+  // rises from the box (lid.js, box.js and theme.css). The step's own animation waits until all that is over, and so
+  // do its slide's CSS animations, so that
   // nothing plays unseen. (pagereveal fires just before the page's first frame, once this script has run: demo pages
   // load their script with blocking="render".)
   let arriving = null;

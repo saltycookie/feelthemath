@@ -16,6 +16,7 @@ wood.webp      the wooden desk, a picture that tiles without seams (made by tool
 deck.js        animated values, steps, and moving between steps
 nav.js         Back, step dots, Replay, Next (Finish on the last step), the arrow keys, and the home link
 lid.js         the front page's lid, opened going into a demo and closed coming back
+box.js         the demo's side of it: the paper sinking into the box and rising from it
 bubbles.js     callout bubbles that point at things
 svg.js         small helpers for drawing in SVG
 ```
@@ -31,7 +32,9 @@ All colours and the font live at the top of `theme.css`:
 --wood / --wood-ink         /* the desk (under wood.webp), and the brown of shadows on it */
 --rim: 6px;                 /* how thick the box's paper walls look from above */
 --paper-max: 1000px;        /* the widest the paper gets: wider screens show more of the desk */
---lid-time: 2s;             /* how long the lid takes to open and to close */
+--lift-peek: 3px;           /* a demo's paper is raised above the walls: this much of them shows around it */
+--lid-fade / --lid-split /  /* opening the box: the writing fades (.5s), the lid splits (.4s), */
+--lid-time / --box-rise     /*   the flaps roll open (2s), the paper rises (.7s); closing, the same backwards */
 --lid-thick: 14px;          /* how thick the lid is: it shows on the flaps' cut edges as they turn */
 --font-hand: "Kalam", ...;  /* the handwritten font */
 ```
@@ -81,8 +84,8 @@ deck.start();
 `createNav` fills the empty `<nav class="nav">` with Back, the step dots, Replay and Next. It also adds a title
 band above the `.stage`, which shows each step's `title` (and stays as empty space when a step has none), and puts
 a home link (a house and "All demos"; just the house on narrow screens) at the band's left end, which leads back
-to the list of demos. The demo's `.deck` is the box, and the paper fills it: the title band, the drawing and the
-navigation are all written on the paper. The home link points by default to `../../`, the front page as seen from
+to the list of demos. The demo's `.deck` is the box, and its paper is raised a little above the box's walls: the title band, the drawing
+and the navigation are all written on the paper. The home link points by default to `../../`, the front page as seen from
 `demos/<name>/`. Pass `createNav(nav, deck, { home: 'url' })` to send it elsewhere, or `{ home: false }` to leave
 it out.
 
@@ -92,25 +95,33 @@ Finish, and Next is simply disabled on the last step. The arrow keys never leave
 
 ### Opening and closing the box
 
-The front page is the box with its lid on, and a demo is the same box open, on the same spot of the desk. Going
-into a demo, the lid splits along the middle into two flaps, like a cardboard box's: the top flap rolls up over the
-box's top edge and the bottom flap down over its bottom edge, rising towards the reader in 3D and showing the lid's
-thickness on their cut edges, until they stand upright on the box's edges, out of sight, and the demo inside is
-uncovered. Coming back, by the home link, Finish or the browser's Back button, the flaps roll back down and close in
-the middle.
+The front page is the box with its lid on, and a demo is the same box open, on the same spot of the desk, with its
+sheet of paper raised a little above the box's walls. Going into a demo, one thing after another:
+
+1. the writing fades from the lid;
+2. the lid splits along the middle;
+3. its two flaps roll open, like a cardboard box's: the top flap up over the box's top edge and the bottom flap down
+   over its bottom edge, rising towards the reader in 3D and showing the lid's thickness on their cut edges, until
+   they stand upright on the box's edges, out of sight. The demo's paper is uncovered, down inside the box;
+4. the paper rises above the walls.
+
+Coming back, by the home link, Finish or the browser's Back button, it all happens backwards: the paper sinks between
+the walls, the flaps roll closed and meet at the split, the split goes, and the writing comes back.
 
 This is a cross-document view transition: the browser takes a picture of the page it leaves and of the page it
-opens, and animates them with CSS (`theme.css`, "the lid"). A picture can't be cut up or given a thickness, so
-`lid.js` builds the flaps instead: just before the pictures are taken, it lays them over the lid, each made of three
-pictures (a copy of its half of the lid, its cut edge and its underside), and takes them away when the transition is
-over. The front page loads it in its `<head>`: `<script src="framework/lid.js"></script>`.
+opens, and animates them with CSS (`theme.css`, "opening and closing the box"). A picture can't be cut up or given a
+thickness, so the pieces are built just before the pictures are taken, and taken away when the transition is over.
+`lid.js` builds the front page's: the writing, the split, and the two flaps, each made of three pictures (a blank
+half of the lid, its cut edge and its underside). The front page loads it in its `<head>`:
+`<script src="framework/lid.js"></script>`. `box.js` builds the demo's: the walls, laid over the paper while it is
+down in the box. `createDeck()` sets that up, so every demo has it.
 
 What a demo needs for it:
 
 - Its script is loaded with `blocking="render"`, as in the template:
   `<script type="module" src="demo.js" blocking="render"></script>`. The page then waits for the script before its
   first frame, so the drawing, the title band and the navigation are already there when the lid opens.
-- Nothing else. The deck waits until the lid is open before it plays the first step, and holds a step's CSS
+- Nothing else. The deck waits until the paper has risen before it plays the first step, and holds a step's CSS
   animations (`slideClass`) until then too, so nothing plays unseen.
 
 It works in browsers with cross-document view transitions (Chrome and Edge 126+, Safari 18.2+). Elsewhere, and for a

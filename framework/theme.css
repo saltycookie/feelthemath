@@ -2,12 +2,12 @@
    StepDeck theme: the paper box shared by every demo.
 
    A box made of white paper stands on a light wooden desk, with a sheet of
-   the same paper inside it that fills it from wall to wall. The demo is
+   the same paper in it, raised a little above its walls. The demo is
    written on that paper in ink, and everything is on it: the home link and
    the step's title at the top, the drawing, and Back / the step dots /
    Replay / Next at the bottom. The front page is the same box with its lid
    on, written on the lid; the lid opens going into a demo and closes
-   coming back ("the lid", below, and lid.js).
+   coming back ("opening and closing the box", below).
 
    To restyle every demo, change the values in section 1. Everything in
    section 2 is worked out from them, so the colours that have to match the
@@ -32,13 +32,19 @@
 
   /* the box: thin walls of the same paper */
   --rim:       6px;                      /* how thick the walls look from above */
+  --lift-peek: 3px;                      /* a demo's paper is raised above the walls: this much of them shows around it */
 
   /* the widest the paper gets; wider screens show more of the desk */
   --paper-max: 1000px;
 
-  /* the lid: how long it takes to open (going into a demo) and to close (coming back to the front page), and how
-     thick it is, which shows on its cut edge as the flaps turn */
+  /* opening the box (going into a demo): the writing fades from the lid (--lid-fade), the lid splits along the middle
+     (--lid-split), its two flaps roll open (--lid-time), and the paper inside rises above the walls (--box-rise).
+     Closing it (coming back to the front page) is the same backwards. --lid-thick: how thick the lid is, which shows
+     on the flaps' cut edges as they turn. */
+  --lid-fade:  .5s;
+  --lid-split: .4s;
   --lid-time:  2s;
+  --box-rise:  .7s;
   --lid-thick: 14px;
 
   /* one handwritten face everywhere (Kalam is loaded from Google Fonts by each page) */
@@ -53,6 +59,10 @@
   --ink-dim:     color-mix(in srgb, var(--ink) 64%, transparent);   /* measuring lines, notes beside the working */
   --panel:       color-mix(in srgb, var(--ink) 1.5%, transparent);  /* chart plot area: a faint wash on the paper */
   --shadow:      color-mix(in srgb, var(--wood-ink) 30%, transparent);
+  --on-desk:                                                       /* the box standing on the desk: */
+    0 0 0 1px color-mix(in srgb, var(--wood-ink) 22%, transparent), /*   its outer edge, */
+    0 10px 22px color-mix(in srgb, var(--wood-ink) 34%, transparent), /*   its shadow */
+    0 2px 4px color-mix(in srgb, var(--wood-ink) 26%, transparent);
   --lid-under:   color-mix(in srgb, var(--paper), var(--wood-ink) 5%);    /* the lid's underside, and its cut edge: */
   --lid-cut-top: color-mix(in srgb, var(--paper), var(--wood-ink) 14%);   /*   lighter by the writing, */
   --lid-cut-under: color-mix(in srgb, var(--paper), var(--wood-ink) 34%); /*   darker by the underside */
@@ -85,7 +95,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 
 /* ---- the paper box ----------------------------------------------------------
    Seen from above, on the desk: as tall as the window and as wide as --paper-max allows, the same size everywhere.
-   A demo's .deck is the box open, with the paper in it; the front page's .box-lid is the same box with its lid on. */
+   A demo's .deck is the box open, with its sheet of paper raised a little above the walls; the front page's .box-lid
+   is the same box with its lid on. */
 .box-lid,.deck{
   position:relative;
   height:100%;max-width:calc(var(--paper-max) + 2 * var(--rim));margin:0 auto;
@@ -94,47 +105,72 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   /* paper fibres: very faint specks */
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='p' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .36 0 0 0 0 .28 .3 0 0 0 -.17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
   background-origin:border-box;
-  --on-desk:
-    0 0 0 1px color-mix(in srgb, var(--wood-ink) 22%, transparent), /* the box's outer edge */
-    0 10px 22px color-mix(in srgb, var(--wood-ink) 34%, transparent), /* standing on the desk */
-    0 2px 4px color-mix(in srgb, var(--wood-ink) 26%, transparent);
-  box-shadow:var(--on-desk);                                        /* the lid: flat paper, nothing more */
 }
-/* the box open: thin walls of paper with square corners (the border), and the sheet filling the inside (the padding
-   box), shaded where it meets the walls: most under the top and left walls, as if lit from the top left */
-.deck{
+.box-lid{box-shadow:var(--on-desk)}                                 /* the lid: flat paper, nothing more */
+/* A demo's box doesn't cast its own shadow: the page draws it under the box, where the box stands, so that it stays put
+   on the desk while the paper in the box sinks and rises (going to and from the front page). */
+body:has(> .deck)::after{content:"";position:fixed;z-index:-1;pointer-events:none;margin:0 auto;
+  inset:max(var(--desk), env(safe-area-inset-top, 0px)) max(var(--desk), env(safe-area-inset-right, 0px))
+        max(var(--desk), env(safe-area-inset-bottom, 0px)) max(var(--desk), env(safe-area-inset-left, 0px));
+  max-width:calc(var(--paper-max) + 2 * var(--rim));box-shadow:var(--on-desk)}
+/* the box open: its sheet of paper (::before, under everything written on it) is raised a little above the walls
+   (the border), so it covers all but a thin edge of them (--lift-peek) and casts a small shadow on them, lit from the
+   top left */
+.deck{isolation:isolate}
+.deck::before{content:"";position:absolute;z-index:-1;inset:calc(var(--lift-peek) - var(--rim));pointer-events:none;
+  background-color:var(--paper);background-image:inherit;
+  box-shadow:0 0 0 1px rgb(40 25 10 / .09), 1px 3px 6px rgb(40 25 10 / .26), 0 1px 2px rgb(40 25 10 / .14)}
+/* the same box with its paper down inside it, between the walls: only while the box opens and closes (framework/box.js
+   lays these walls over the .deck). Thin walls of paper with square corners (the border), shading the sheet where
+   they meet it: most under the top and left walls, as if lit from the top left. */
+.box-walls{position:fixed;z-index:2147483646;pointer-events:none;border:var(--rim) solid var(--paper);
   box-shadow:
     inset 0 0 0 1px rgb(40 25 10 / .16),                            /* the fold where the walls meet the sheet */
     inset 0 9px 11px -7px rgb(40 25 10 / .26),                      /* the walls' shade on the sheet */
     inset 8px 0 11px -7px rgb(40 25 10 / .18),
     inset -6px 0 10px -7px rgb(40 25 10 / .11),
     inset 0 -6px 10px -7px rgb(40 25 10 / .09),
-    inset 0 0 36px color-mix(in srgb, var(--wood-ink) 7%, transparent),
-    var(--on-desk);
-}
+    inset 0 0 36px color-mix(in srgb, var(--wood-ink) 7%, transparent)}
 
-/* ---- the lid: opened going into a demo, closed coming back (framework/lid.js) -----------------------------------
+/* ---- opening and closing the box: going into a demo, and coming back (framework/lid.js and framework/box.js) ------
    A cross-document view transition: the browser animates pictures of the page it leaves and of the page it opens.
    Both pages opt in here. The front page (html[data-lid], set by lid.js) is the box with its lid on, and a demo is the
-   same box open on the same spot, so the lid lies exactly over the open box. Just before the pictures are taken,
-   lid.js splits the lid along the middle into two flaps, each made of three pictures: the writing on top (lid-top,
-   lid-bottom), the cut edge, which shows the lid's thickness (-edge), and the underside (-back). Each picture turns in
-   3D about its flap's hinge on the box's top or bottom edge, seen from above the middle of the box, and is seen only
-   from its own side: the flap rises towards the reader, showing its cut edge, until it stands upright on the box's
-   edge, out of sight (and fades, for the sliver of underside that may still show). The writing darkens a little as
-   it turns away from the light. Going into a demo the flaps are pictures of the page being left, and open; coming back
-   they belong to the page being opened, and close. Under them the demo ("root") holds still, and the front page's own
-   picture ("lid") is never shown: the flaps stand in for it. Reduced motion: no transition, just the new page. */
+   same box open on the same spot, so the lid lies exactly over the open box.
+
+   Opening, one after another: the writing fades from the lid (lid-words), the lid splits along the middle (lid-split),
+   its two flaps roll open over the box's top and bottom edges, and the paper inside, down between the walls
+   (box-walls), rises above them, to where the demo has it (box-sheet: the demo's .deck). Closing: the paper sinks
+   between the walls, the flaps roll closed and meet at the split, the split goes, and the writing comes back.
+
+   Just before the pictures are taken, lid.js lays the writing, the split and the two flaps over the front page's lid,
+   and box.js the walls over the demo's paper. Each flap is three pictures: a blank half of the lid (lid-top,
+   lid-bottom), its cut edge, which shows the lid's thickness (-edge), and its underside (-back). Each turns in 3D
+   about the flap's hinge on the box's top or bottom edge, seen from above the middle of the box, and is seen only from
+   its own side: the flap rises towards the reader, showing its cut edge, until it stands upright on the box's edge,
+   out of sight (and fades, for the sliver of underside that may still show). The lid darkens a little as it turns away
+   from the light. The paper down in the box is the demo's picture made a little smaller (--box-sunk, set by the
+   scripts), so that it fits between the walls. Under everything the desk ("root") holds still, and the front page's own
+   picture ("lid") is never shown: the pieces stand in for it. Reduced motion: no transition, just the new page. */
 @media (prefers-reduced-motion: no-preference){
   @view-transition{navigation:auto}
 }
 :root[data-lid]{view-transition-name:lid}
+.deck{view-transition-name:box-sheet}
+.box-walls{view-transition-name:box-walls}
 .lid-piece{position:fixed;z-index:2147483647;overflow:hidden;pointer-events:none}
 ::view-transition-old(lid),::view-transition-new(lid){animation:none;opacity:0}
 ::view-transition-old(root),::view-transition-new(root){animation:none}
-/* the six pictures: over the open box, in perspective from above the middle of the box */
+/* from the bottom up: the desk, the paper, the walls, the flaps, the split, the writing */
+::view-transition-group(box-sheet){z-index:1}
+::view-transition-group(box-walls){z-index:2}
 ::view-transition-group(lid-top),::view-transition-group(lid-top-edge),::view-transition-group(lid-top-back),
-::view-transition-group(lid-bottom),::view-transition-group(lid-bottom-edge),::view-transition-group(lid-bottom-back){z-index:1}
+::view-transition-group(lid-bottom),::view-transition-group(lid-bottom-edge),::view-transition-group(lid-bottom-back){z-index:3}
+::view-transition-group(lid-split){z-index:4}
+::view-transition-group(lid-words){z-index:5}
+/* the split: a fine groove across the lid, shaded above and catching the light below */
+::view-transition-old(lid-split),::view-transition-new(lid-split){
+  background:linear-gradient(transparent 2px, rgb(40 25 10 / .1) 2px 3px, rgb(40 25 10 / .5) 3px 5px, rgb(255 255 255 / .85) 5px 6px, transparent 6px)}
+/* the flaps, in perspective from above the middle of the box */
 ::view-transition-image-pair(lid-top),::view-transition-image-pair(lid-top-edge),::view-transition-image-pair(lid-top-back){perspective:250vh;perspective-origin:50% 100%}
 ::view-transition-image-pair(lid-bottom),::view-transition-image-pair(lid-bottom-edge),::view-transition-image-pair(lid-bottom-back){perspective:250vh;perspective-origin:50% 0}
 /* the hinge: the top flap's top edge, the bottom flap's bottom edge. Each picture turns about its own cut edge
@@ -147,8 +183,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 ::view-transition-old(lid-bottom-edge),::view-transition-new(lid-bottom-edge),
 ::view-transition-old(lid-bottom-back),::view-transition-new(lid-bottom-back){
   --hinge:100%;--swing:-84deg;transform-origin:50% 0;backface-visibility:hidden}
-/* what each picture is: the writing; the cut edge, standing on the flap's cut and reaching into the box by the lid's
-   thickness; the underside, a thickness below, facing down, in the shade */
+/* what each picture is: the lid's top; its cut edge, standing on the flap's cut and reaching into the box by the
+   lid's thickness; its underside, a thickness below, facing down, in the shade */
 ::view-transition-old(lid-top),::view-transition-new(lid-top),
 ::view-transition-old(lid-bottom),::view-transition-new(lid-bottom){
   --face:translateZ(0);--lit-from:1;--lit-to:.8}
@@ -159,13 +195,30 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 ::view-transition-old(lid-top-back),::view-transition-new(lid-top-back),
 ::view-transition-old(lid-bottom-back),::view-transition-new(lid-bottom-back){
   --face:translateZ(calc(-1 * var(--lid-thick))) rotateY(180deg);--lit-from:.75;--lit-to:.75;background:var(--lid-under)}
-/* opening: the old page's flaps turn out of the box; closing: the new page's flaps turn back in */
+
+/* opening (the front page's pieces are the old page's pictures, the demo's the new page's) */
+::view-transition-old(lid-words){animation:lid-fade-out var(--lid-fade) ease-in both}
+::view-transition-old(lid-split){animation:lid-fade-in var(--lid-split) ease var(--lid-fade) both,
+  lid-fade-out .3s ease calc(var(--lid-fade) + var(--lid-split)) forwards}                                  /* the gap takes over from the groove */
 ::view-transition-old(lid-top),::view-transition-old(lid-top-edge),::view-transition-old(lid-top-back),
 ::view-transition-old(lid-bottom),::view-transition-old(lid-bottom-edge),::view-transition-old(lid-bottom-back){
-  animation:lid-open var(--lid-time) cubic-bezier(.4,0,.4,1) both}
+  animation:lid-open var(--lid-time) cubic-bezier(.4,0,.4,1) calc(var(--lid-fade) + var(--lid-split)) both}
+::view-transition-new(box-walls){animation:lid-fade-out var(--box-rise) ease-out calc(var(--lid-fade) + var(--lid-split) + .85 * var(--lid-time)) both}
+::view-transition-new(box-sheet){animation:box-rise var(--box-rise) ease-out calc(var(--lid-fade) + var(--lid-split) + .85 * var(--lid-time)) both}
+/* closing (the demo's pieces are the old page's pictures, the front page's the new page's) */
+::view-transition-old(box-walls){animation:lid-fade-in var(--box-rise) ease-in both}
+::view-transition-old(box-sheet){animation:box-sink var(--box-rise) ease-in both}
 ::view-transition-new(lid-top),::view-transition-new(lid-top-edge),::view-transition-new(lid-top-back),
 ::view-transition-new(lid-bottom),::view-transition-new(lid-bottom-edge),::view-transition-new(lid-bottom-back){
-  animation:lid-close var(--lid-time) cubic-bezier(.4,0,.4,1) both}
+  animation:lid-close var(--lid-time) cubic-bezier(.4,0,.4,1) calc(.85 * var(--box-rise)) both}
+::view-transition-new(lid-split){animation:lid-fade-in .3s ease calc(.85 * var(--box-rise) + var(--lid-time) - .3s) both,
+  lid-fade-out var(--lid-split) ease calc(.85 * var(--box-rise) + var(--lid-time)) forwards}
+::view-transition-new(lid-words){animation:lid-fade-in var(--lid-fade) ease-out calc(.85 * var(--box-rise) + var(--lid-time) + var(--lid-split)) both}
+
+@keyframes lid-fade-in{from{opacity:0}}
+@keyframes lid-fade-out{to{opacity:0}}
+@keyframes box-rise{from{scale:var(--box-sunk, 1)}}
+@keyframes box-sink{to{scale:var(--box-sunk, 1)}}
 @keyframes lid-open{
   from{transform:translateY(var(--hinge)) rotateX(0deg) translateY(calc(-1 * var(--hinge))) var(--face);filter:brightness(var(--lit-from))}
   80%{opacity:1}

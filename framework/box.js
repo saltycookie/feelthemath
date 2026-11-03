@@ -1,8 +1,8 @@
 // StepDeck: the demo's side of opening and closing the box (framework/lid.js is the front page's side).
 //
 // A demo is the box open, with its sheet of paper raised a little above the walls (theme.css: .deck). When the lid
-// opens over it, coming from the front page, the paper is first down at the bottom of the box, well inside its walls
-// (--box-gap), in the dark of the closed box and in the walls' shade. The light comes in as the lid opens, and the
+// opens over it, coming from the front page, the paper is first down at the bottom of the box, inside its walls
+// (--box-inset from its outer edge), in the dark of the closed box and in the walls' shade. The light comes in as the lid opens, and the
 // paper rises, coming fully into the light only as it passes the tops of the walls. Going back, it sinks to the bottom
 // of the box, into the walls' shade, and the box goes dark as the lid closes over it.
 //
@@ -22,21 +22,22 @@ const root = document.documentElement;
 
 // How the box looks from above with its paper down in it.
 //   sunk  how small the bottom of the box looks, the same across and down (the reader looks in from above the middle
-//         of the box): small enough to leave --box-gap of the walls' inner sides showing across its narrower side,
-//         and a little more along the longer one, as in perspective
+//         of the box): small enough to be --box-inset in from the box's outer edge across its narrower side (the
+//         walls' tops, --box-wall, and then their inner sides), and a little more along the longer one, as in
+//         perspective
 //   fit   how small the paper is as it passes the tops of the walls: the paper covers all but --lift-peek of the walls
 //         when raised, so it fits between them when it is this small
 // lid.js works out the same on the front page, for the closing.
 function measure() {
   const deck = document.querySelector('.deck'), r = deck?.getBoundingClientRect();
   if (!r || !r.width || !r.height) return null;
-  const rim = parseFloat(getComputedStyle(deck).borderTopWidth) || 0, cs = getComputedStyle(root);
-  const peek = parseFloat(cs.getPropertyValue('--lift-peek')) || 0, gap = parseFloat(cs.getPropertyValue('--box-gap')) || 0;
+  const cs = getComputedStyle(root), px = name => parseFloat(cs.getPropertyValue(name)) || 0;
+  const peek = px('--lift-peek'), wall = px('--box-wall'), inset = Math.max(px('--box-inset'), wall + 1);
   const s = Math.min(r.width, r.height);
   return {
     r,
-    sunk: Math.max(.5, (s - 2 * rim - 2 * gap) / s),
-    fit: [(r.width - 2 * rim) / (r.width - 2 * peek), (r.height - 2 * rim) / (r.height - 2 * peek)],
+    sunk: Math.max(.5, (s - 2 * inset) / s),
+    fit: [(r.width - 2 * wall) / (r.width - 2 * peek), (r.height - 2 * wall) / (r.height - 2 * peek)],
   };
 }
 

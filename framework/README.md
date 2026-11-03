@@ -40,6 +40,8 @@ All colours and the font live at the top of `theme.css`:
 --lid-fade / --box-rise     /*   on them fades (1.2s), the paper rises (.8s); closing, the same backwards */
 --box-gap                   /* down at the bottom of the box, the paper is this far inside its walls, seen from above */
 --box-dark: .38;            /* how light it is inside the box under the closed lid (1: as light as outside) */
+--box-warm: .7;             /*   and how warm that dim light is (0: a plain grey dark) */
+--box-shadow-ink            /* the warm brown of the shade inside the box */
 --lid-thick: 14px;          /* how thick the lid is: it shows on the flaps' cut edges as they turn */
 --font-hand: "Kalam", ...;  /* the handwritten font */
 ```

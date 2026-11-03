@@ -2,23 +2,24 @@
 // This is the front page's side; framework/box.js is the demo's.
 //
 // The front page is the box with its lid on, and a demo is the same box open, on the same spot of the same desk.
-// Going into a demo, the writing fades from the lid, the lid splits along the middle into two flaps, like a cardboard
-// box's, and the flaps roll open: the top one up over the box's top edge, the bottom one down over its bottom edge,
-// each showing the lid's thickness on its cut edge, until they stand upright on the box's edges, out of sight. Then
-// the paper inside rises above the box's walls. Coming back (the home link, Finish, the browser's Back button), the
-// paper sinks back between the walls, the flaps roll closed and meet at the split, the split goes, and the writing
-// comes back.
+// Going into a demo, the lid splits along the middle into two flaps, like a cardboard box's, and the flaps roll open,
+// the writing on them fading as they turn: the top one up over the box's top edge, the bottom one down over its
+// bottom edge, each showing the lid's thickness on its cut edge, until they stand upright on the box's edges, out of
+// sight. Then the paper inside rises above the box's walls. Coming back (the home link, Finish, the browser's Back
+// button), the paper sinks back between the walls, the flaps roll closed, the writing coming back on them, and meet
+// at the split; then the split goes.
 //
 // It is a cross-document view transition: the browser takes pictures of the page it leaves and of the page it
 // opens, and animates those pictures (theme.css, "opening and closing the box"). A picture can't be cut up or given a
 // thickness, so this script builds the pieces instead, just before the pictures are taken, and takes them away when
 // the transition is over. Each is a picture of its own, lying over the lid:
-//   lid-words      a copy of the whole lid, writing and all, which fades to leave the blank lid under it
-//   lid-split      a strip across the middle of the lid; theme.css draws the split on it
-//   lid-top        a blank copy of the lid, showing the top flap's half of it
-//   lid-top-edge   an empty box the size of the flap; theme.css paints the cut edge (the lid's thickness) on it
-//   lid-top-back   an empty box the size of the flap; theme.css paints the underside on it
-// and the same three for lid-bottom. theme.css turns the flaps' pictures in 3D about their hinges on the box's edges.
+//   lid-split        a strip across the middle of the lid; theme.css draws the split on it
+//   lid-top          a blank copy of the lid, showing the top flap's half of it
+//   lid-top-words    a copy of the lid, writing and all, showing the same half: it fades to leave the blank half
+//   lid-top-edge     an empty box the size of the flap; theme.css paints the cut edge (the lid's thickness) on it
+//   lid-top-back     an empty box the size of the flap; theme.css paints the underside on it
+// and the same four for lid-bottom. theme.css turns each flap's pictures together in 3D about its hinge on the box's
+// edge.
 //
 // Load it as a classic script in the <head> of the page whose .box-lid is the lid (the front page), so that it is
 // ready before the page's first frame:  <script src="framework/lid.js"></script>
@@ -60,25 +61,23 @@
     if (!r || !r.width || !r.height) return 0;
     const n = ++cutNo;
     const mid = Math.round(r.height / 2);
-    // the flaps: underside and edge first, so that the lid's top is drawn over them
+    const hot = [...lid.querySelectorAll('*')].flatMap((el, i) => el.matches(HOT) ? [[i, getComputedStyle(el)]] : []);
+    // the flaps: underside, edge and blank half first, so that the writing is drawn over them
     for (const f of FLAPS) {
       const y = f === 'bottom' ? mid : 0, h = f === 'bottom' ? r.height - mid : mid;
       const at = [r.left, r.top + y, r.width, h];
-      const top = piece(`lid-${f}`, ...at);
-      top.appendChild(copyOf(lid, r, y, false));
-      document.body.append(piece(`lid-${f}-back`, ...at), piece(`lid-${f}-edge`, ...at), top);
+      const blank = piece(`lid-${f}`, ...at);
+      blank.appendChild(copyOf(lid, r, y, false));
+      const words = piece(`lid-${f}-words`, ...at);
+      const copy = copyOf(lid, r, y, true);
+      const els = copy.querySelectorAll('*');
+      for (const [i, cs] of hot) for (const p of KEEP) els[i].style.setProperty(p, cs.getPropertyValue(p));
+      words.appendChild(copy);
+      document.body.append(piece(`lid-${f}-back`, ...at), piece(`lid-${f}-edge`, ...at), blank, words);
+      copy.scrollTop = lid.scrollTop;               // a lid that scrolls shows the same part
+      copy.scrollLeft = lid.scrollLeft;
     }
     document.body.appendChild(piece('lid-split', r.left, r.top + mid - SPLIT / 2, r.width, SPLIT));
-    // the writing, on a whole copy of the lid
-    const hot = [...lid.querySelectorAll('*')].flatMap((el, i) => el.matches(HOT) ? [[i, getComputedStyle(el)]] : []);
-    const words = piece('lid-words', r.left, r.top, r.width, r.height);
-    const copy = copyOf(lid, r, 0, true);
-    const els = copy.querySelectorAll('*');
-    for (const [i, cs] of hot) for (const p of KEEP) els[i].style.setProperty(p, cs.getPropertyValue(p));
-    words.appendChild(copy);
-    document.body.appendChild(words);
-    copy.scrollTop = lid.scrollTop;                 // a lid that scrolls shows the same part
-    copy.scrollLeft = lid.scrollLeft;
     // Coming back, this page draws the transition, so it says how small the demo's paper is when down in the box:
     // small enough for the paper, which covers all but --lift-peek of the walls, to fit between them (box.js does
     // the same on the demo's side).

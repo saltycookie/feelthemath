@@ -37,7 +37,8 @@ All colours and the font live at the top of `theme.css`:
 --paper-max: 1000px;        /* the widest the paper gets: wider screens show more of the desk */
 --lift-peek: 3px;           /* a demo's paper is raised above the walls: this much of them shows around it */
 --lid-split / --lid-time /  /* opening the box: the lid splits (.4s), its flaps roll open (2s) while the writing */
---lid-fade / --box-rise     /*   on them fades (1.2s), the paper rises (.8s); closing, the same backwards */
+--lid-fade / --box-rise     /*   on them fades (1.2s), the paper rises (.8s, in one smooth movement eased by
+                               --box-ease); closing, the same backwards */
 --box-wall                  /* how thick the box's walls look from above while the paper is down in the box */
 --box-inset                 /* down at the bottom of the box, the paper is this far in from its outer edge */
 --box-dark: .38;            /* how light it is inside the box under the closed lid (1: as light as outside) */

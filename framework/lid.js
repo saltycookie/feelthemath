@@ -107,16 +107,28 @@
   }
   // Coming back from a demo, this page draws the transition, so it says how small the demo's paper is down at the
   // bottom of the box (--box-sunk: the same across and down, --box-inset in from the box's outer edge across its
-  // narrower side), and as it passes the tops of the walls (--box-fit: the paper covers all but --lift-peek of the
-  // walls, --box-wall thick, so this small it fits between them). box.js works out the same on the demo's side, for the opening,
-  // and lays the inside of the box to match.
+  // narrower side), and when, in its movement, it passes the tops of the walls (--box-pass, see passing()). box.js
+  // works out the same on the demo's side, for the opening, and lays the inside of the box to match.
   function sink() {
     const r = document.querySelector('.box-lid').getBoundingClientRect(), cs = getComputedStyle(root);
     const px = name => parseFloat(cs.getPropertyValue(name)) || 0;
     const peek = px('--lift-peek'), wall = px('--box-wall'), inset = Math.max(px('--box-inset'), wall + 1);
-    const s = Math.min(r.width, r.height);
-    root.style.setProperty('--box-sunk', String(Math.max(.5, (s - 2 * inset) / s)));
-    root.style.setProperty('--box-fit', `${(r.width - 2 * wall) / (r.width - 2 * peek)} ${(r.height - 2 * wall) / (r.height - 2 * peek)}`);
+    const s = Math.min(r.width, r.height), sunk = Math.max(.5, (s - 2 * inset) / s);
+    root.style.setProperty('--box-sunk', String(sunk));
+    root.style.setProperty('--box-pass', passing(r, sunk, wall, peek, cs.getPropertyValue('--box-ease')).toFixed(4));
+  }
+  // When the rising paper passes the tops of the walls, as a fraction of its rise: the paper covers all but --lift-peek
+  // of the walls (--box-wall thick) when raised, so it is level with their tops when it is just small enough to fit
+  // between them, across and down. The rise is one movement eased by --box-ease, a cubic-bezier() that must
+  // not overshoot; this finds the time at which it has covered that much of the way.
+  function passing(r, sunk, wall, peek, ease) {
+    const fit = Math.max((r.width - 2 * wall) / (r.width - 2 * peek), (r.height - 2 * wall) / (r.height - 2 * peek));
+    const way = Math.min(1, Math.max(0, (fit - sunk) / (1 - sunk)));
+    const m = /cubic-bezier\(([^)]*)\)/.exec(ease), [x1, y1, x2, y2] = m ? m[1].split(',').map(Number) : [.4, 0, .2, 1];
+    const at = (a, b, u) => 3 * a * u * (1 - u) ** 2 + 3 * b * u * u * (1 - u) + u ** 3;
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 40; i++) { const u = (lo + hi) / 2; if (at(y1, y2, u) < way) lo = u; else hi = u; }
+    return at(x1, x2, (lo + hi) / 2);
   }
   // Take the pieces away (only those of cut n, when n is given: a later cut may have replaced them).
   function lift(n) {

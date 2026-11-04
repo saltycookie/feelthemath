@@ -16,40 +16,9 @@
 <script type="module" src="sticks.js" blocking="render"></script>   <!-- drawn before the page first shows: under the opening lid too -->
 </head>
 <body>
+<!-- only what every demo shares: the box, the stage (sticks.js fills it) and the navigation (nav.js fills it) -->
 <div class="deck">
-  <h1 class="sr-only">Two Perpendicular Sticks</h1>
-  <div class="stage">
-    <div class="benchbox" id="benchbox">
-      <div class="bench" id="bench">
-        <svg id="scene" class="scene" role="img" aria-label="The figure"></svg>
-        <div class="overlay" id="overlay" aria-hidden="true">
-          <p class="ptxt bold prompt" id="promptTxt">Imagine: how would you build this shape using sticks?</p>
-          <p class="ptxt" id="probTxt">In the figure, <i>AB</i> + <i>CD</i> = 10&nbsp;cm. What is the length of <i>AC</i>?</p>
-
-          <span class="ml c-blue" id="lyA"><i>y</i></span>
-          <span class="ml c-blue" id="lyB"><i>y</i></span>
-          <span class="ml c-orange" id="lzA"><i>x</i> − <i>y</i></span>
-          <span class="ml c-orange" id="lzB"><i>x</i> − <i>y</i></span>
-          <span class="ml" id="lxA"><i>x</i></span>
-          <span class="ml" id="lxB"><i>x</i></span>
-          <span class="ml c-blue" id="pT1"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>y</i></span>
-          <span class="ml" id="pPlus">+</span>
-          <span class="ml c-orange" id="pT2"><span class="rad"><span>2</span></span>&#8239;·&#8239;(<i>x</i> − <i>y</i>)</span>
-          <span class="ml" id="pEq">=</span>
-          <span class="ml" id="pTen">10</span>
-
-          <div class="solve" id="solve">
-            <div class="srow" data-r="1"><span class="sl"><span class="ph" data-p="t1"><span class="c-blue"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>y</i></span></span> <span class="ph" data-p="plus">+</span> <span class="ph" data-p="t2"><span class="c-orange"><span class="rad"><span>2</span></span>&#8239;·&#8239;(<i>x</i> − <i>y</i>)</span></span></span><span class="se"><span class="ph" data-p="eq">=</span></span><span class="sr"><span class="ph" data-p="ten">10</span></span><span class="sn">what the ruler shows</span></div>
-            <div class="srow" data-r="2"><span class="sl"><span class="c-blue st"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>y</i></span> + <span class="c-orange"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>x</i> <span class="st">−&#8239;<span class="rad"><span>2</span></span>&#8239;·&#8239;<i>y</i></span></span></span><span class="se">=</span><span class="sr">10</span><span class="sn">open the bracket</span></div>
-            <div class="srow" data-r="3"><span class="sl"><span class="rad"><span>2</span></span>&#8239;·&#8239;<i>x</i></span><span class="se">=</span><span class="sr">10</span><span class="sn">the <i>y</i> parts cancel</span></div>
-            <div class="srow" data-r="4"><span class="sl"><i>x</i></span><span class="se">=</span><span class="sr">10 ÷ <span class="rad"><span>2</span></span></span><span class="sn">divide both sides by √2</span></div>
-            <div class="srow" data-r="5"><span class="sl"></span><span class="se">=</span><span class="sr">5<span class="rad"><span>2</span></span></span><span class="sn">since 10 = 5 × √2 × √2</span></div>
-            <div class="srow ans" data-r="6"><span class="sl">AC</span><span class="se">=</span><span class="sr">5<span class="rad"><span>2</span></span> cm</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="stage"></div>
   <nav class="nav"></nav>
 </div>
 </body>

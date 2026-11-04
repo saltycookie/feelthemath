@@ -38,6 +38,14 @@ import { el, text, setText, setOpacity } from '../../framework/svg.js';
 
 const $ = s => document.querySelector(s);
 const lerp = (a, b, t) => a + (b - a) * t;
+// an HTML element with its attributes and contents (as HTML), added to parent
+function tag(name, attrs, html, parent) {
+  const n = document.createElement(name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (html) n.innerHTML = html;
+  if (parent) parent.appendChild(n);
+  return n;
+}
 
 /* ---------- the places, in metres ---------- */
 const A = { x: 0, y: 20 };        // Danny's home: on the back half of the paper
@@ -53,11 +61,43 @@ const CAM = { yaw: 25 * Math.PI / 180, dist: 230 };   // step 3's camera: this f
 const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long one dash takes to march along it (s): see walk.css
 
 /* ---------- the page ---------- */
-const stage = $('.stage'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
-const switcher = $('#switcher'), toggle = $('#toggle'), wordFold = $('#wordFold'), wordUnfold = $('#wordUnfold');
-const hint3 = $('#hint3'), hint4 = $('#hint4'), hint5 = $('#hint5'), hints = [hint3, hint4, hint5];
-const math = $('#math'), ring = $('#ring'), ringPath = ring.querySelector('path');
+// index.html has only the box, the stage and the navigation; everything on the stage is made here, in this order
+// (later on top). In the stage's column: the problem, the figure's place under it, and the question.
+const stage = $('.stage');
+const prob = tag('p', { class: 'problem' }, `Danny's home is <b>20 meters</b> north of a <b class="c-blue">straight river</b>
+  that flows from west to east. A playground is <b>120 meters</b> east of his home and <b>30 meters</b> north of the river.
+  After playing at the playground, Danny wants to walk to the river bank to wash up before going home. What is the
+  shortest total distance he needs to walk?`, stage);
+// keeps the figure's place under the words (on step 1 too, so the words sit in the same spot on both steps); the
+// figure itself is drawn over the whole stage, so that on step 3 it can move up to the middle
+const box = tag('div', { class: 'figbox' }, '', stage);
+const ask = tag('p', { class: 'ask' }, 'How short can <i>BC</i> + <i>CA</i> be?', stage);
+// laid over the stage: the figure ...
+const svg = el('svg', { id: 'fig', role: 'img', 'aria-label': 'The figure' }, stage);
+// ... the words under the paper: step 3, once it has unfolded, and the ends of steps 4 and 5 ...
+const hints = [
+  "Fold and unfold Danny's world yourself!",
+  'Which path is the shortest? Unfold to find it out!',
+  '<i>BC</i><sub>3</sub> + <i>C</i><sub>3</sub><i>A</i> is the shortest because it forms a straight line!',
+].map(html => tag('p', { class: 'hint' }, html, stage));
+const [hint3, hint4, hint5] = hints;
+// ... step 6's working under the picture, in three lines with their first equals signs lined up (a grid: what is
+// worked out, =, the rest), the answer on a line of its own. It appears a piece at a time: data-s numbers the pieces ...
+const math = tag('div', { class: 'math' }, `
+  <span class="ml" data-s="1"><i>AB</i></span><span class="me" data-s="1">=</span><span class="mr"><span data-s="1"><span class="rad"><span>120<sup>2</sup> + 50<sup>2</sup></span></span></span>
+    <span data-s="2">= 10 × <span class="rad"><span>12<sup>2</sup> + 5<sup>2</sup></span></span></span></span>
+  <span class="ml"></span><span class="me" data-s="3">=</span><span class="mr"><span data-s="3">10 × <span class="rad"><span>169</span></span></span>
+    <span data-s="4">= 10 × 13</span></span>
+  <span class="ml"></span><span class="me" data-s="5">=</span><span class="mr"><span class="ans" data-s="5">130 m<svg class="ring" aria-hidden="true"><path/></svg></span></span>`, stage);
+const ring = math.querySelector('.ring'), ringPath = ring.querySelector('path');
 const pieces = [1, 2, 3, 4, 5].map(i => [...math.querySelectorAll('[data-s="' + i + '"]')]);   // step 6's working, piece by piece
+// ... and in steps 3-4, a switch on the right that folds and unfolds the paper (up: folded, down: unfolded); the words
+// above and below it can be tapped too
+const switcher = tag('div', { class: 'switcher' }, '', stage);
+const wordFold = tag('button', { class: 'switch-word', type: 'button', tabindex: -1, 'aria-hidden': 'true' }, 'fold', switcher);
+const toggle = tag('button', { class: 'switch', type: 'button', role: 'switch', 'aria-checked': 'false', 'aria-label': 'Unfold the paper',
+  tabindex: -1, 'aria-disabled': 'true' }, '<span class="knob"></span>', switcher);
+const wordUnfold = tag('button', { class: 'switch-word', type: 'button', tabindex: -1, 'aria-hidden': 'true' }, 'unfold', switcher);
 let SW = 0, SH = 0;                        // the stage, in px
 let fs = 18, compact = false;              // label size; short screen: "home" and "playground" beside the letters, not above
 let V2 = null, V3 = null, V5 = null, V6 = null;   // the view in steps 1-2 (the figure under the words), in steps 3-5

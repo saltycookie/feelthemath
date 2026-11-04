@@ -14,6 +14,14 @@ import { el, text, setRect, setText, setOpacity, chip, setChip, remeasureChip, a
 const $ = s => document.querySelector(s);
 const fmt = n => String(Math.round(n * 100) / 100);
 const u = s => '<u>' + s + '</u>';                       // a unit after a number: 15<u>mi</u>
+// an HTML element with its attributes and contents (as HTML), added to parent
+function tag(name, attrs, html, parent) {
+  const n = document.createElement(name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (html) n.innerHTML = html;
+  if (parent) parent.appendChild(n);
+  return n;
+}
 
 /* ---------- the chart's scales ---------- */
 const XM = 3.5, YM = 65;          // axis ranges (hours, mph); the last grid line on each axis has no number
@@ -23,12 +31,46 @@ let W = 0, H = 0, pw = 0, ph = 0;
 const px = t => M.l + t / XM * pw;
 const py = v => M.t + (1 - v / YM) * ph;
 
-const svg = $('#chart'), box = $('#chartbox'), F = $('#formula');
+/* ---------- the page: the stage's two layers (index.html has only the box, the stage and the navigation) ---------- */
+const stage = $('.stage');
+const intro = tag('div', { class: 'layer intro' }, '', stage);      // steps 1-2: the problem, then the trip drawn as a road
+tag('p', { class: 'problem' }, 'Qiang drives <b class="c-blue">15 miles</b> at an average speed of ' +
+  '<b class="c-blue">30 miles per hour</b>. How many additional miles will he have to drive at ' +
+  '<b class="c-orange">55 miles per hour</b> to average <b class="c-ink">50 miles per hour</b> for the entire trip?', intro);
+const road = el('svg', { class: 'road', viewBox: '0 0 800 244', role: 'img',
+  'aria-label': 'A road in two parts: 15 miles at 30 mph, then an unknown distance at 55 mph, with an overall average of 50 mph' }, intro);
+const box = tag('div', { class: 'layer' }, '', stage);              // steps 3-10: the speed-time chart
+const svg = el('svg', { id: 'chart', role: 'img', 'aria-label': 'Average speed in mph against time in hours' }, box);
+const F = tag('div', { class: 'formula', 'aria-live': 'polite' }, '', box);   // step 3's formula
 const R = {};
 
 /* ---------- steps 1-2: the problem, and the trip drawn as a road ---------- */
-const intro = $('#intro'), road = $('.road'), car = $('#roadCar'), part1 = $('#part1'), part2 = $('#part2');
-const LABELS = { speed1: $('#speed1'), dist1: $('#dist1'), speed2: $('#speed2'), dist2: $('#dist2'), whole: $('#whole') };
+// The road is 800 x 244 and always the same shape: the pale road, its two parts drawn over it (part 2 fading out
+// towards the unknown end), the car, and the labels.
+const gradB = el('linearGradient', { id: 'gRoadB', gradientUnits: 'userSpaceOnUse', x1: 290, y1: 0, x2: 760, y2: 0 }, el('defs', {}, road));
+el('stop', { offset: 0, style: 'stop-color:var(--orange)' }, gradB);
+el('stop', { offset: 1, style: 'stop-color:var(--orange);stop-opacity:.22' }, gradB);
+el('line', { class: 'rline road-base', x1: 40, y1: 110, x2: 760, y2: 110 }, road);
+const part1 = el('line', { class: 'rline drawn', pathLength: 1, x1: 40, y1: 110, x2: 290, y2: 110, style: 'stroke:var(--blue)' }, road);
+const part2 = el('line', { class: 'rline drawn', pathLength: 1, x1: 290, y1: 110, x2: 760, y2: 110, stroke: 'url(#gRoadB)' }, road);
+const car = el('g', {}, road);
+const carBody = el('g', { transform: 'translate(40 99)' }, car);
+el('rect', { class: 'car-body', x: -27, y: -24, width: 54, height: 16, rx: 5 }, carBody);
+el('path', { class: 'car-body', d: 'M-15 -23 L-8 -37 H12 L21 -23 Z' }, carBody);
+el('circle', { class: 'car-wheel', cx: -14, cy: -8, r: 6.5 }, carBody);
+el('circle', { class: 'car-wheel', cx: 14, cy: -8, r: 6.5 }, carBody);
+// a label, in a group of its own that drawRoad() fades in and raises
+function roadLabel(cls, x, y, str) {
+  const g = el('g', {}, road);
+  el('text', { class: 'rt ' + cls, x, y }, g).textContent = str;
+  return g;
+}
+const LABELS = {
+  dist1: roadLabel('big c-blue', 165, 48, '15 mi'), speed1: roadLabel('sm c-blue', 165, 158, '30 mph'),
+  dist2: roadLabel('big c-orange', 525, 48, '? mi'), speed2: roadLabel('sm c-orange', 525, 158, '55 mph'),
+  whole: roadLabel('sm c-ink', 400, 236, '50 mph average'),           // under the bracket over the whole trip
+};
+LABELS.whole.prepend(el('path', { class: 'brace', d: 'M40 184 v12 H760 v-12' }));
 // Step 2 plays the road from one value, `road`: 0 -> 1 at an even pace over ROAD_MS. Each piece of the road has its
 // own [start, duration] on that timeline, in ms; the labels pop up (fade in, rising a little).
 const ROAD_MS = 6450;

@@ -67,11 +67,18 @@ const ALT = [
 ];
 
 /* ================= helpers ================= */
-const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
 function mk(tag, attrs, parent) {
   const e = document.createElementNS(NS, tag);
   if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+// the same for an HTML element, with its contents (as HTML)
+function tag(name, attrs, html, parent) {
+  const e = document.createElement(name);
+  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (html) e.innerHTML = html;
   if (parent) parent.appendChild(e);
   return e;
 }
@@ -91,7 +98,15 @@ function setRect(e, x, y, w, h, r) { e.setAttribute('x', x.toFixed(2)); e.setAtt
 function text(parent, cls, str) { const t = mk('text', { class: cls }, parent); t.textContent = str; return t; }
 
 /* ================= the drawing (SVG) ================= */
-const box = $('benchbox'), bench = $('bench'), svg = $('scene'), overlay = $('overlay');
+// The page: index.html has only the box, the stage and the navigation. On the stage, the space the mat can take
+// (box), and the mat (bench), fitted into it by layout(): the drawing, and over it the words and maths (overlay,
+// below), which the drawing's description stands in for, for screen readers.
+const stage = document.querySelector('.stage');
+stage.before(tag('h1', { class: 'sr-only' }, 'Two Perpendicular Sticks'));
+const box = tag('div', { class: 'benchbox' }, '', stage);
+const bench = tag('div', { class: 'bench' }, '', box);
+const svg = mk('svg', { class: 'scene', role: 'img', 'aria-label': 'The figure' }, bench);
+const overlay = tag('div', { class: 'overlay', 'aria-hidden': 'true' }, '', bench);
 const defs = mk('defs', null, svg);
 const soft = mk('filter', { id: 'soft', x: '-30%', y: '-80%', width: '160%', height: '260%' }, defs);
 mk('feGaussianBlur', { stdDeviation: '3.2' }, soft);
@@ -189,12 +204,28 @@ const lbOa = text(svg, 'lbl', 'O'), lbOb = text(svg, 'lbl', 'O');
 const readLine = mk('line', { class: 'read' }, svg);
 
 /* ================= words and maths (HTML on top of the drawing) ================= */
-const promptTxt = $('promptTxt'), probTxt = $('probTxt');
-const LB = { yA: $('lyA'), yB: $('lyB'), zA: $('lzA'), zB: $('lzB'), xA: $('lxA'), xB: $('lxB'), t1: $('pT1'), plus: $('pPlus'), t2: $('pT2'), eq: $('pEq'), ten: $('pTen') };
+const promptTxt = tag('p', { class: 'ptxt bold prompt' }, 'Imagine: how would you build this shape using sticks?', overlay);
+const probTxt = tag('p', { class: 'ptxt' }, 'In the figure, <i>AB</i> + <i>CD</i> = 10&nbsp;cm. What is the length of <i>AC</i>?', overlay);
+// the labels on the sticks, and the pieces of the equation on the ruler
+const Y = '<i>y</i>', XY = '<i>x</i> − <i>y</i>', R2 = '<span class="rad"><span>2</span></span>&#8239;·&#8239;';   // y, x − y, √2·
+const label = (cls, html) => tag('span', { class: 'ml' + (cls ? ' ' + cls : '') }, html, overlay);
+const LB = {
+  yA: label('c-blue', Y), yB: label('c-blue', Y), zA: label('c-orange', XY), zB: label('c-orange', XY),
+  xA: label('', '<i>x</i>'), xB: label('', '<i>x</i>'),
+  t1: label('c-blue', R2 + Y), plus: label('', '+'), t2: label('c-orange', R2 + '(' + XY + ')'), eq: label('', '='), ten: label('', '10'),
+};
 const SZ = {};
 for (const k in LB) SZ[k] = { w: 1, h: .7 };
 let promptH = .7, probH = .7, promptTop = 11.6;
-const solve = $('solve');
+// step 7: the solution, a grid of rows: left side, =, right side, a note. The pieces of the first row (data-p) are where
+// the equation's pieces on the ruler fly to (keys of LB).
+const solve = tag('div', { class: 'solve' }, `
+  <div class="srow" data-r="1"><span class="sl"><span class="ph" data-p="t1"><span class="c-blue">${R2}${Y}</span></span> <span class="ph" data-p="plus">+</span> <span class="ph" data-p="t2"><span class="c-orange">${R2}(${XY})</span></span></span><span class="se"><span class="ph" data-p="eq">=</span></span><span class="sr"><span class="ph" data-p="ten">10</span></span><span class="sn">what the ruler shows</span></div>
+  <div class="srow" data-r="2"><span class="sl"><span class="c-blue st">${R2}${Y}</span> + <span class="c-orange">${R2}<i>x</i> <span class="st">−&#8239;${R2}${Y}</span></span></span><span class="se">=</span><span class="sr">10</span><span class="sn">open the bracket</span></div>
+  <div class="srow" data-r="3"><span class="sl">${R2}<i>x</i></span><span class="se">=</span><span class="sr">10</span><span class="sn">the <i>y</i> parts cancel</span></div>
+  <div class="srow" data-r="4"><span class="sl"><i>x</i></span><span class="se">=</span><span class="sr">10 ÷ <span class="rad"><span>2</span></span></span><span class="sn">divide both sides by √2</span></div>
+  <div class="srow" data-r="5"><span class="sl"></span><span class="se">=</span><span class="sr">5<span class="rad"><span>2</span></span></span><span class="sn">since 10 = 5 × √2 × √2</span></div>
+  <div class="srow ans" data-r="6"><span class="sl">AC</span><span class="se">=</span><span class="sr">5<span class="rad"><span>2</span></span> cm</span></div>`, overlay);
 const rows = [...solve.querySelectorAll('.srow')];
 const rowN = n => rows[n - 1];
 const TGT = {};

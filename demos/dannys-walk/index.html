@@ -16,45 +16,9 @@
 <script type="module" src="walk.js" blocking="render"></script>   <!-- drawn before the page first shows: under the opening lid too -->
 </head>
 <body>
+<!-- only what every demo shares: the box, the stage (walk.js fills it) and the navigation (nav.js fills it) -->
 <div class="deck">
-  <div class="stage">
-
-    <p class="problem" id="problem">Danny's home is <b>20 meters</b> north of a <b class="c-blue">straight river</b> that flows
-      from west to east. A playground is <b>120 meters</b> east of his home and <b>30 meters</b> north of the river. After
-      playing at the playground, Danny wants to walk to the river bank to wash up before going home. What is the shortest total distance
-      he needs to walk?</p>
-    <!-- keeps the figure's place under the words (on step 1 too, so the words sit in the same spot on both steps);
-         the figure itself is drawn over the whole stage, so that on step 3 it can move up to the middle -->
-    <div class="figbox" id="figbox"></div>
-    <p class="ask" id="ask">How short can <i>BC</i> + <i>CA</i> be?</p>
-
-    <svg id="fig" role="img" aria-label="The figure"></svg>
-
-    <!-- under the paper: step 3, once it has unfolded, and the ends of steps 4 and 5 -->
-    <p class="hint" id="hint3">Fold and unfold Danny's world yourself!</p>
-    <p class="hint" id="hint4">Which path is the shortest? Unfold to find it out!</p>
-    <p class="hint" id="hint5"><i>BC</i><sub>3</sub> + <i>C</i><sub>3</sub><i>A</i> is the shortest because it forms a straight line!</p>
-
-    <!-- step 6: the working under the picture, in three lines with their first equals signs lined up (a grid: what is
-         worked out, =, the rest), the answer on a line of its own. It appears a piece at a time: data-s numbers the pieces. -->
-    <div class="math" id="math">
-      <span class="ml" data-s="1"><i>AB</i></span><span class="me" data-s="1">=</span><span class="mr"><span data-s="1"><span class="rad"><span>120<sup>2</sup> + 50<sup>2</sup></span></span></span>
-        <span data-s="2">= 10 × <span class="rad"><span>12<sup>2</sup> + 5<sup>2</sup></span></span></span></span>
-      <span class="ml"></span><span class="me" data-s="3">=</span><span class="mr"><span data-s="3">10 × <span class="rad"><span>169</span></span></span>
-        <span data-s="4">= 10 × 13</span></span>
-      <span class="ml"></span><span class="me" data-s="5">=</span><span class="mr"><span class="ans" data-s="5">130 m<svg class="ring" id="ring" aria-hidden="true"><path/></svg></span></span>
-    </div>
-
-    <!-- steps 3-4: a switch on the right folds and unfolds the paper (up: folded, down: unfolded); the words beside it
-         can be tapped too -->
-    <div class="switcher" id="switcher">
-      <button class="switch-word" id="wordFold" type="button" tabindex="-1" aria-hidden="true">fold</button>
-      <button class="switch" id="toggle" type="button" role="switch" aria-checked="false" aria-label="Unfold the paper"
-              tabindex="-1" aria-disabled="true"><span class="knob"></span></button>
-      <button class="switch-word" id="wordUnfold" type="button" tabindex="-1" aria-hidden="true">unfold</button>
-    </div>
-
-  </div>
+  <div class="stage"></div>
   <nav class="nav"></nav>
 </div>
 </body>

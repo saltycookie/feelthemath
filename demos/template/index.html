@@ -22,11 +22,9 @@
 <script type="module" src="demo.js" blocking="render"></script>   <!-- drawn before the page first shows: under the opening lid too -->
 </head>
 <body>
+<!-- only what every demo shares: the box, the stage (demo.js fills it) and the navigation (nav.js fills it) -->
 <div class="deck">
-  <div class="stage">
-    <p class="problem">A garden is <b class="c-blue">3 m</b> long and <b class="c-blue">2 m</b> wide. What is its area?</p>
-    <div class="box" id="box"><svg id="pic"></svg></div>
-  </div>
+  <div class="stage"></div>
   <nav class="nav"></nav>
 </div>
 </body>

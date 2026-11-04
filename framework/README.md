@@ -90,6 +90,20 @@ createNav(document.querySelector('.nav'), deck);
 deck.start();
 ```
 
+A demo's `index.html` holds only what every demo shares: its `<head>` (the title, the thumbnail's meta tag, the
+icons, the font and the stylesheets, and the script) and, in its `<body>`, the same three elements in every demo:
+
+```html
+<div class="deck">
+  <div class="stage"></div>
+  <nav class="nav"></nav>
+</div>
+```
+
+Everything else is made by the demo's script: the problem, the drawing, the words and the working, the controls. The
+script makes all of it at the start, in the order it should be painted (later on top), and keeps each element it made
+in a variable rather than finding it again by an id. Ids and classes are only there for the demo's stylesheet.
+
 A demo draws everything on its `.stage`, the column between the title band and the navigation, and what is on the
 paper at all on a given step is an animated value too: to show the question on one step and a chart on the next,
 give each an opacity in `state`, apply it in `render()`, and change it in the steps (Qiang's Trip has a `view` value
@@ -199,7 +213,8 @@ for the home page: open `#step-5`, then wait for `html[data-step="5"]:not([data-
 itself, then the answer.
 
 1. Copy `demos/template` to `demos/<your-demo>`.
-2. Write the problem into `index.html`, and the drawing and steps into `demo.js`.
+2. Give it its title in `index.html`'s `<title>`, and write everything else into `demo.js`: the problem, the
+   drawing and the steps. (`index.html`'s `<body>` stays as it is.)
 3. Add a link to it in the site's front page (the top-level `index.html`) and in the table of demos in the
    [top-level README](../README.md).
 4. Give it a thumbnail for the front page: put `<meta name="thumbnail" content="step=N">` in its `index.html`,

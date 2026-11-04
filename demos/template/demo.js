@@ -1,13 +1,27 @@
 // A minimal StepDeck demo to copy when starting a new one.
 // Three steps: the question, a rectangle that draws itself under it, then the answer.
-// Everything is on the page from the start (index.html); the animated values decide what shows.
+// index.html has only what every demo shares (the box, the stage and the navigation); this script puts everything
+// else on the stage, all of it at the start, and the animated values decide what shows.
 
 import { createDeck, onFontsLoaded } from '../../framework/deck.js';
 import { createNav } from '../../framework/nav.js';
 import { createBubbles } from '../../framework/bubbles.js';
 import { el, text, setRect, setText } from '../../framework/svg.js';
 
-const svg = document.querySelector('#pic'), box = document.querySelector('#box');
+// an HTML element with its attributes and contents (as HTML), added to parent
+function tag(name, attrs, html, parent) {
+  const n = document.createElement(name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (html) n.innerHTML = html;
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+// 0. the page: the question at the top of the stage, the drawing in the space under it
+const stage = document.querySelector('.stage');
+tag('p', { class: 'problem' }, 'A garden is <b class="c-blue">3 m</b> long and <b class="c-blue">2 m</b> wide. What is its area?', stage);
+const box = tag('div', { class: 'box' }, '', stage);
+const svg = el('svg', { id: 'pic' }, box);
 let W = 0, H = 0, unit = 0, ox = 0, oy = 0;          // size of 1 m in px, and where the garden's corner is
 
 // 1. what is drawn

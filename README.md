@@ -47,7 +47,8 @@ favicon.svg                the site icon, shown in browser tabs (see "The site i
 favicon.ico                the same icon for older browsers, made from favicon.svg by tools/icons.py
 apple-touch-icon.png       the same icon for iPhone and iPad home screens, made the same way
 framework/                 StepDeck, shared by every demo (see framework/README.md)
-demos/<name>/              one folder per demo: index.html plus its own script and styles,
+demos/<name>/              one folder per demo: index.html (the same in every demo but for its <head>), the script
+                           that makes and animates everything on the demo's paper, its own styles,
                            and thumbnail.png / thumbnail@2x.png, its picture on the home page
 demos/template/            a small example to copy when starting a new demo
 tools/thumbnail.py         makes a demo's home-page thumbnail from a screenshot (see below)

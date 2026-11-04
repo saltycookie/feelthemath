@@ -1,5 +1,6 @@
 // A minimal StepDeck demo to copy when starting a new one.
-// Three steps: the question, a rectangle that draws itself, then the answer.
+// Three steps: the question, a rectangle that draws itself under it, then the answer.
+// Everything is on the page from the start (index.html); the animated values decide what shows.
 
 import { createDeck, onFontsLoaded } from '../../framework/deck.js';
 import { createNav } from '../../framework/nav.js';
@@ -36,15 +37,15 @@ const deck = createDeck({
   render, bubbles,
   state: { rectOp: 0, grow: 0, answerOp: 0 },
   steps: [
-    { name: 'The question', slide: 'question', replay: false },
-    { name: 'Draw the garden', slide: 'drawing',
+    { name: 'The question', replay: false },
+    { name: 'Draw the garden',
       set: { rectOp: 1, grow: 1 },
       async play(s) {
         s.to('rectOp', 1, 0);
         await s.to('grow', 1, 1500);                                  // the rectangle grows to 3 m
         s.bubble('<b class="c-blue">3</b><u>m</u> × <b class="c-blue">2</b><u>m</u>', () => [ox + 3 * unit, oy, 'right']);
       } },
-    { name: 'The answer', slide: 'drawing',
+    { name: 'The answer',
       set: { answerOp: 1 },
       async play(s) { await s.wait(300); s.to('answerOp', 1, 600); } },
   ],

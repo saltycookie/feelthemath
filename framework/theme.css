@@ -361,12 +361,12 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
   to{transform:translateY(var(--hinge)) rotateX(0deg) translateY(calc(-1 * var(--hinge))) var(--on-flap)}
 }
 
-/* ---- deck layout, on the paper: the title band (with the home link), the stage of slides, the navigation ---- */
+/* ---- deck layout, on the paper: the title band (with the home link), the stage, the navigation ----
+   The stage is where a demo draws, between the title band and the navigation: a column (a flex box), and the
+   containing block of anything the demo lays over it. Everything on it is there for every step; render() shows
+   and hides it from the animated values. */
 .deck{display:flex;flex-direction:column;padding:0 clamp(12px, 3vw, 32px) 12px}
-.stage{position:relative;flex:1;min-height:0}
-.slide{position:absolute;inset:0;display:flex;flex-direction:column;min-width:0;opacity:0;visibility:hidden;
-  transition:opacity .4s ease, visibility 0s linear .4s}
-.slide.active{opacity:1;visibility:visible;transition:opacity .4s ease}
+.stage{position:relative;flex:1;min-height:0;min-width:0;display:flex;flex-direction:column}
 
 /* ---- the title band at the top (built by nav.js): the home link on the left, the step's title in the middle ---- */
 .titlebar{flex:none;height:56px;display:grid;grid-template-columns:var(--side, 120px) minmax(0,1fr) var(--side, 120px);

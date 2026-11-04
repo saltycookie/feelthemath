@@ -12,9 +12,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="../../framework/theme.css">
 <style>
-  /* styles for this demo only */
-  #question{justify-content:center;align-items:center}
-  .box{position:relative;flex:1;min-height:0}
+  /* styles for this demo only: the question at the top of the stage, the drawing in the space under it */
+  .stage{align-items:center;gap:16px}
+  .box{position:relative;flex:1;min-height:0;align-self:stretch}
   #pic{position:absolute;inset:0;width:100%;height:100%}
   .area{fill:var(--blue-fill);stroke:var(--blue);stroke-width:2}
   .big{font:700 28px var(--font-hand);text-anchor:middle}
@@ -24,12 +24,8 @@
 <body>
 <div class="deck">
   <div class="stage">
-    <section class="slide active" id="question">
-      <p class="problem">A garden is <b class="c-blue">3 m</b> long and <b class="c-blue">2 m</b> wide. What is its area?</p>
-    </section>
-    <section class="slide" id="drawing">
-      <div class="box" id="box"><svg id="pic"></svg></div>
-    </section>
+    <p class="problem">A garden is <b class="c-blue">3 m</b> long and <b class="c-blue">2 m</b> wide. What is its area?</p>
+    <div class="box" id="box"><svg id="pic"></svg></div>
   </div>
   <nav class="nav"></nav>
 </div>

@@ -75,20 +75,26 @@ const deck = createDeck({
   render, bubbles,
   state: { rectOp: 0, grow: 0, answerOp: 0 },
   steps: [
-    { name: 'The question', slide: 'question', replay: false },
-    { name: 'Draw the garden', slide: 'drawing',
+    { name: 'The question', replay: false },
+    { name: 'Draw the garden',
       set: { rectOp: 1, grow: 1 },              // the finished look of this step
       async play(s) {                           // how to get there from the step's beginning
         s.to('rectOp', 1, 0);
         await s.to('grow', 1, 1500);
         s.bubble('3 × 2', () => [x, y, 'right']);
       } },
-    { name: 'The answer', slide: 'drawing', set: { answerOp: 1 } },   // no play: the values simply glide to `set`
+    { name: 'The answer', set: { answerOp: 1 } },   // no play: the values simply glide to `set`
   ],
 });
 createNav(document.querySelector('.nav'), deck);
 deck.start();
 ```
+
+A demo draws everything on its `.stage`, the column between the title band and the navigation, and what is on the
+paper at all on a given step is an animated value too: to show the question on one step and a chart on the next,
+give each an opacity in `state`, apply it in `render()`, and change it in the steps (Qiang's Trip has a `view` value
+that turns its page from the problem to its chart). Animate with values rather than CSS keyframes, so that Back,
+Replay, the step dots, a `#step-N` link and the opening of the box all get it right on their own.
 
 `createNav` fills the empty `<nav class="nav">` with Back, the step dots, Replay and Next. It also adds a title
 band above the `.stage`, which shows each step's `title` (and stays as empty space when a step has none), and puts
@@ -136,8 +142,7 @@ What a demo needs for it:
 - Its script is loaded with `blocking="render"`, as in the template:
   `<script type="module" src="demo.js" blocking="render"></script>`. The page then waits for the script before its
   first frame, so the drawing, the title band and the navigation are already there when the lid opens.
-- Nothing else. The deck waits until the paper has risen before it plays the first step, and holds a step's CSS
-  animations (`slideClass`) until then too, so nothing plays unseen.
+- Nothing else. The deck waits until the paper has risen before it plays the first step, so nothing plays unseen.
 
 It works in browsers with cross-document view transitions (Chrome and Edge 126+, Safari 18.2+). Elsewhere, and for a
 reader who asks for reduced motion, the page simply changes. Typing an address, a bookmark or a reload never animates.
@@ -160,8 +165,6 @@ reader who asks for reduced motion, the page simply changes. Typing an address, 
 | --- | --- |
 | `name` | Read out by screen readers on the step's dot. |
 | `title` | Shown in the title band at the top of the paper, in orange, as soon as the step is entered. Leave it out for an empty band. |
-| `slide` | `id` of the `<section class="slide">` to show. |
-| `slideClass` | A class added to that slide while the step is active, for CSS animations. Replay restarts them. |
 | `set` | Values that have changed by the time the step is left with Next: usually where `play` ends, or where `leave` ends when it animates. The finished look is the beginning plus `set`. |
 | `start` | Values that are different at the beginning, on top of the previous finished look. |
 | `fresh` | `true` to begin from the demo's starting `state` instead of the previous finished look (a blank page). |

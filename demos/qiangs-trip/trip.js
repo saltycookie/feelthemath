@@ -3,6 +3,8 @@
 //  at 55 miles per hour to average 50 miles per hour for the entire trip?"
 // Solved on a speed-time chart, where a distance is an area: the area the first part falls short of 50 mph (the deficit)
 // must be made up above 50 mph in the second part (the surplus). 20 x 0.5 = 10, 10 / 5 = 2 h, 2 x 55 = 110 mi.
+// The stage holds two layers, one over the other: the problem with the trip drawn as a road (steps 1-2), and the
+// chart (steps 3-10). The animated value `view` shows one or the other: leaving step 2 with Next turns it.
 
 import { createDeck, onFontsLoaded, clamp } from '../../framework/deck.js';
 import { createNav } from '../../framework/nav.js';
@@ -23,6 +25,55 @@ const py = v => M.t + (1 - v / YM) * ph;
 
 const svg = $('#chart'), box = $('#chartbox'), F = $('#formula');
 const R = {};
+
+/* ---------- steps 1-2: the problem, and the trip drawn as a road ---------- */
+const intro = $('#intro'), road = $('.road'), car = $('#roadCar'), part1 = $('#part1'), part2 = $('#part2');
+const LABELS = { speed1: $('#speed1'), dist1: $('#dist1'), speed2: $('#speed2'), dist2: $('#dist2'), whole: $('#whole') };
+// Step 2 plays the road from one value, `road`: 0 -> 1 at an even pace over ROAD_MS. Each piece of the road has its
+// own [start, duration] on that timeline, in ms; the labels pop up (fade in, rising a little).
+const ROAD_MS = 6450;
+const ROAD = {
+  show:   [0, 500],      // the pale road fades in, the car waiting at its start
+  speed1: [200, 450],    // "30 mph"
+  drive1: [800, 1200],   // the car drives part 1, drawing it ...
+  dist1:  [2100, 450],   // ... "15 mi"
+  speed2: [2600, 450],   // "55 mph"
+  drive2: [3200, 2000],  // the car drives part 2 to the end of the trip, drawing it ...
+  dist2:  [5300, 450],   // ... "? mi"
+  whole:  [6000, 450],   // the bracket under the whole trip: "50 mph average"
+};
+const lineLen = n => n.x2.baseVal.value - n.x1.baseVal.value;
+// a CSS cubic-bezier() timing curve
+function bezier(x1, y1, x2, y2) {
+  const at = (a, b, u) => 3 * a * u * (1 - u) ** 2 + 3 * b * u * u * (1 - u) + u ** 3;
+  return x => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 24; i++) { const u = (lo + hi) / 2; if (at(x1, x2, u) < x) lo = u; else hi = u; }
+    return at(y1, y2, (lo + hi) / 2);
+  };
+}
+const easeOut = bezier(0, 0, .58, 1), driving = bezier(.5, 0, .3, 1);   // the car pulls away slowly and stops gently
+
+function drawRoad(r) {
+  const at = key => clamp((r * ROAD_MS - ROAD[key][0]) / ROAD[key][1], 0, 1);
+  road.style.opacity = easeOut(at('show'));
+  const d1 = driving(at('drive1')), d2 = driving(at('drive2'));
+  part1.setAttribute('stroke-dashoffset', 1 - d1);
+  part2.setAttribute('stroke-dashoffset', 1 - d2);
+  car.setAttribute('transform', 'translate(' + (d1 * lineLen(part1) + d2 * lineLen(part2)) + ' 0)');
+  for (const key in LABELS) {
+    const p = easeOut(at(key));
+    setOpacity(LABELS[key], p);
+    LABELS[key].setAttribute('transform', 'translate(0 ' + 8 * (1 - p) + ')');
+  }
+}
+// a layer of the stage at opacity op; at 0 it is hidden altogether, from screen readers and the pointer too
+function showLayer(n, op) {
+  n.style.opacity = clamp(op, 0, 1);
+  n.style.visibility = op > 0 ? '' : 'hidden';
+}
 
 /* ---------- the step-3 point ---------- */
 const START = { x: 1.5, y: 40 };  // where the point starts
@@ -105,6 +156,11 @@ function layout() {
 }
 
 function render(S) {
+  // the page: the problem gives way to the chart as `view` goes from 0 to 1, the one fading out before the other fades in
+  showLayer(intro, 1 - 2 * S.view);
+  showLayer(box, 2 * S.view - 1);
+  drawRoad(S.road);
+
   if (!pw) return;
   const x0 = px(0), y0 = py(0);
   const P = deck.index === EXPLORE ? U : PART1;
@@ -246,6 +302,7 @@ function setDrag(on) {
 deck = createDeck({
   render, bubbles,
   state: {
+    view: 0, road: 0,                                                // the problem or the chart; how far the road has played
     ptX: START.x, ptY: START.y, hR: 11, hOp: 0, ring: 0, hov: 0,   // the point
     fOp: 0, xtOp: 1,                                                 // formula, x-axis numbers
     r1Op: 0, r1Lab: 0, gdOp: 0, gxOp: 0,                             // part 1 and its chips
@@ -257,18 +314,23 @@ deck = createDeck({
   transient: ['eqOp'],                                               // the arrows belong to the step-6 bubble
   durations: { avgP: 1000, ptX: 900, ptY: 900, hR: 600 },
   delays: { r2LabOp: 350, brkOp: 350, y55: 250 },
+  linear: ['road'],                                                  // each piece of the road has its own easing
   steps: [
-    { name: 'The problem', title: 'Problem Description', slide: 'intro', replay: false },
+    { name: 'The problem', title: 'Problem Description', replay: false },
 
-    { name: 'The trip as a road', title: 'Problem Description', slide: 'intro', slideClass: 'play' },
+    // (its finished look, the look it hands over, is the empty chart: leave() turns the page)
+    { name: 'The trip as a road', title: 'Problem Description',
+      set: { road: 1, view: 1 },
+      play: s => s.to('road', 1, ROAD_MS),
+      async leave(info, s) { await s.to('view', 1, 1100); } },     // on Next: the problem fades out, then the chart in
 
-    { name: 'Distance is an area', title: 'Use Area to Represent Distance', slide: 'graph', fresh: true,
+    { name: 'Distance is an area', title: 'Use Area to Represent Distance',
       set: { hOp: 1, ring: 1, r1Op: 1, r1Lab: 1, gdOp: 1, gxOp: 1, fOp: 1 },
       enter() { U = { ...START }; setFormula(); setDrag(true); },
       leave() { setDrag(false); } },
 
-    { name: 'Part 1: 0.5 hours', title: "Let's Use Area to Describe the Problem", slide: 'graph', fresh: true,
-      start: { ptX: 0, ptY: PART1.y, hR: 5, carX: 0, xtOp: 0 },      // an empty chart, the car parked at (0, 0)
+    { name: 'Part 1: 0.5 hours', title: "Let's Use Area to Describe the Problem", fresh: true,
+      start: { view: 1, ptX: 0, ptY: PART1.y, hR: 5, carX: 0, xtOp: 0 },   // an empty chart, the car parked at (0, 0)
       set: { ptX: PART1.x, carX: PART1.x, r1Op: 1, r1Lab: 1, gdOp: 1, gxOp: 1, carOp: 1 },
       async play(s) {
         s.to('r1Op', 1, 0);                                          // a zero-width rectangle draws nothing yet
@@ -280,7 +342,7 @@ deck = createDeck({
         s.to('gxOp', 1, 400);                                        // then 0.5 on the time axis
       } },
 
-    { name: 'Part 2: unknown time', title: "Let's Use Area to Describe the Problem", slide: 'graph',
+    { name: 'Part 2: unknown time', title: "Let's Use Area to Describe the Problem",
       set: { r2Op: 1, r2Rev: 2 / 3, r2LabOp: 1, y55: 1, brkOp: 1, carX: 2.5 },   // the car stops where the trip ends (2.5 h, unlabelled)
       async play(s) {
         s.to('y55', 1, 400); s.to('r2Op', 1, 0);
@@ -289,10 +351,10 @@ deck = createDeck({
         s.to('r2LabOp', 1, 500); s.to('brkOp', 1, 500, 150);
       } },
 
-    { name: 'The average speed', title: "Let's Use Area to Describe the Problem", slide: 'graph',
+    { name: 'The average speed', title: "Let's Use Area to Describe the Problem",
       set: { avgP: 1, carOp: 0 } },                                  // the 50 mph line draws itself, the car goes
 
-    { name: 'The two areas must be equal', title: 'Solve the Problem', slide: 'graph',
+    { name: 'The two areas must be equal', title: 'Solve the Problem',
       set: { hiOp: 1 },
       async play(s) {
         await s.wait(300);
@@ -302,7 +364,7 @@ deck = createDeck({
         s.to('eqOp', 1, 450);
       } },
 
-    { name: 'The deficit is 10 miles', title: 'Solve the Problem', slide: 'graph',
+    { name: 'The deficit is 10 miles', title: 'Solve the Problem',
       set: { hlOp: 1 },
       async play(s) {
         await s.wait(300);
@@ -311,7 +373,7 @@ deck = createDeck({
         s.to('hlOp', 1, 500);                                        // "10 mi" in both outlines
       } },
 
-    { name: 'Part 2 takes 2 hours', title: 'Solve the Problem', slide: 'graph',
+    { name: 'Part 2 takes 2 hours', title: 'Solve the Problem',
       set: { lab: 1, x25: 1 },
       async play(s) {
         await s.wait(300);
@@ -320,7 +382,7 @@ deck = createDeck({
         s.to('lab', 1, 500); s.to('x25', 1, 500);                    // "? h" becomes "2 h", and 2.5 shows on the axis
       } },
 
-    { name: 'The answer: 110 miles', title: 'Solve the Problem', slide: 'graph',
+    { name: 'The answer: 110 miles', title: 'Solve the Problem',
       set: { ans: 1 },
       async play(s) {
         await s.wait(300);

@@ -15,7 +15,7 @@
 //   paper (however the reader left it): step 4 hands over an unfolded paper, ready for step 5.
 //   Step 5: the switch and the question go, then C1, C2 and C4 with their walks: only the walk through C3 is left, a
 //   straight line on the unfolded paper, and the words say so. Leaving with Next turns the paper back to face the
-//   reader: the unfolded paper, seen straight on in the middle of the slide (step 5 hands over a flat drawing).
+//   reader: the unfolded paper, seen straight on in the middle of the stage (step 5 hands over a flat drawing).
 //   Step 6: the picture rises to the top. Lines east from home and south from the playground meet at D: a right
 //   triangle ABD with BD = 30 + 20 = 50 m and AD = 120 m (the 120 m along the river goes), whose long side is the
 //   straight walk. Under it, in three lines with their first equals signs lined up:
@@ -53,12 +53,12 @@ const CAM = { yaw: 25 * Math.PI / 180, dist: 230 };   // step 3's camera: this f
 const DASH = 20, MARCH = .8;      // the walk's dash pattern (px) and how long one dash takes to march along it (s): see walk.css
 
 /* ---------- the page ---------- */
-const slide = $('#walk'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
+const stage = $('.stage'), prob = $('#problem'), box = $('#figbox'), svg = $('#fig'), ask = $('#ask');
 const switcher = $('#switcher'), toggle = $('#toggle'), wordFold = $('#wordFold'), wordUnfold = $('#wordUnfold');
 const hint3 = $('#hint3'), hint4 = $('#hint4'), hint5 = $('#hint5'), hints = [hint3, hint4, hint5];
 const math = $('#math'), ring = $('#ring'), ringPath = ring.querySelector('path');
 const pieces = [1, 2, 3, 4, 5].map(i => [...math.querySelectorAll('[data-s="' + i + '"]')]);   // step 6's working, piece by piece
-let SW = 0, SH = 0;                        // the slide, in px
+let SW = 0, SH = 0;                        // the stage, in px
 let fs = 18, compact = false;              // label size; short screen: "home" and "playground" beside the letters, not above
 let V2 = null, V3 = null, V5 = null, V6 = null;   // the view in steps 1-2 (the figure under the words), in steps 3-5
                                            // (from the side), after step 5 (the unfolded paper straight on) and in step 6 (at the top)
@@ -96,9 +96,9 @@ function reach() {
 
 /* ---------- layout ---------- */
 function layout() {
-  SW = slide.clientWidth; SH = slide.clientHeight;
+  SW = stage.clientWidth; SH = stage.clientHeight;
   if (!SW || !SH) return;
-  const gap = parseFloat(getComputedStyle(slide).rowGap) || 0;
+  const gap = parseFloat(getComputedStyle(stage).rowGap) || 0;
   // the figure leaves a strip on the right for the switch of steps 3-4: it stays centred when there is room beside it
   // for the switch, and moves left when there is not
   const g = SW < 560 ? 56 : 70;                                        // (the switch and its words are 56 px wide)
@@ -120,7 +120,7 @@ function layout() {
   // size, unless that would not fit with the river across the middle; then the paper and the words are centred as one
   // block, which lifts the river a little above the middle and leaves room under the words. Across, the paper as it
   // lies (folded or unfolded) is centred in the figure's strip, and the swing of its back half stays within it. The
-  // words have the whole width of the slide, centred on it: the switch is beside the paper, not under it.
+  // words have the whole width of the stage, centred on it: the switch is beside the paper, not under it.
   PAPER = { x0: -(m.l + (compact ? fs * .8 : 0)) / k, x1: SPAN.w + m.r / k, h: SPAN.h + m.t * .92 / k };   // ("home" beside A needs a bit more)
   const side = 16;
   hints.forEach(n => { n.style.width = (SW - 2 * side) + 'px'; n.style.left = side + 'px'; });
@@ -139,8 +139,8 @@ function layout() {
   hintY5 = oy5 + ph * k5 + hg;
 
   // step 6: the same, risen to the top with the working under it (smaller only if the two would not fit). With the
-  // switch gone, it is centred on the slide.
-  // (the working's lines do not wrap: on a narrow slide its letters get smaller instead)
+  // switch gone, it is centred on the stage.
+  // (the working's lines do not wrap: on a narrow stage its letters get smaller instead)
   math.style.fontSize = '';
   const mw = math.offsetWidth, mf = parseFloat(getComputedStyle(math).fontSize);
   if (mw > SW - 2 * side) math.style.fontSize = Math.floor(mf * (SW - 2 * side) / mw) + 'px';
@@ -151,13 +151,13 @@ function layout() {
   mathY = oy6 + ph * k6 + hg;
   drawRing();
 
-  // the switch: in the strip right of the figure, level with the river (as far as the slide allows)
+  // the switch: in the strip right of the figure, level with the river (as far as the stage allows)
   const sy = clamp(oy3 - switcher.offsetHeight / 2, 0, Math.max(0, SH - switcher.offsetHeight));
   switcher.style.transform = 'translate(' + ((fx + W + SW) / 2 - switcher.offsetWidth / 2) + 'px,' + sy + 'px)';
 
   svg.setAttribute('viewBox', '0 0 ' + SW + ' ' + SH);
   svg.style.setProperty('--fs', fs + 'px');
-  for (const n of [R.imp.mask, R.maskAll]) {                           // the marks' mask reaches well past the slide
+  for (const n of [R.imp.mask, R.maskAll]) {                           // the marks' mask reaches well past the stage
     n.setAttribute('x', -SW); n.setAttribute('y', -SH); n.setAttribute('width', 3 * SW); n.setAttribute('height', 3 * SH);
   }
   R.cA.style.textAnchor = R.cB.style.textAnchor = R.imp.cA.style.textAnchor = compact ? 'end' : '';
@@ -475,9 +475,9 @@ const deck = createDeck({
   },
   linear: ['walk', 'w2', 'w3', 'w4'],
   steps: [
-    { name: 'The problem', title: 'Problem Description', slide: 'walk', replay: false },
+    { name: 'The problem', title: 'Problem Description', replay: false },
 
-    { name: 'The problem as a figure', title: 'Problem Description', slide: 'walk',
+    { name: 'The problem as a figure', title: 'Problem Description',
       set: { river: 1, a: 1, aDim: 1, b: 1, bRiver: 1, bEast: 1, c: 1, walk: 1, ask: 1 },
       async play(s) {
         await s.to('river', 1, 1000);           // the river, from west to east
@@ -492,7 +492,7 @@ const deck = createDeck({
       } },
 
     // (its finished look, the look it hands over: the paper folded again and the closing words gone; leave() gets there)
-    { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper', slide: 'walk',
+    { name: 'The folded paper', title: 'Imagine Danny Living on a Folded Paper',
       set: { txt: 0, ask: 0, view: 1, paper: 1, unf: 0, sw: 1, hint3: 0 },
       enter() { setSwitch(false); setControls(false); },   // the step begins folded; the switch comes at the end
       async leave(info, s) {                    // on Next: fold the paper up again, from wherever the reader left it, as the words go
@@ -515,7 +515,7 @@ const deck = createDeck({
 
     // (begins folded: see step 3. Its finished look, the look it hands over: the four walks drawn, the question shown,
     // and the paper unfolded; leave() gets there)
-    { name: 'Four walks', title: 'Which Path Is the Shortest?', slide: 'walk',
+    { name: 'Four walks', title: 'Which Path Is the Shortest?',
       set: { sub: 1, c2: 1, c3: 1, c4: 1, w2: 1, w3: 1, w4: 1, lab4: 1, hint4: 1, unf: 1 },
       enter() { setSwitch(false); setControls(false); },   // the switch waits until the walks are drawn
       async leave(info, s) {                    // on Next: unfold the paper, from wherever the reader left it
@@ -538,7 +538,7 @@ const deck = createDeck({
 
     // (begins unfolded: see step 4. Its finished look, the look it hands over: only the walk through C3 left, the words
     // under it, and the unfolded paper seen straight on again; leave() gets there)
-    { name: 'The straight walk', title: 'Which Path Is the Shortest?', slide: 'walk',
+    { name: 'The straight walk', title: 'Which Path Is the Shortest?',
       set: { sw: 0, hint4: 0, focus: 1, hint5: 1, flat: 1, view: 0 },
       enter() { setSwitch(true); setControls(false); },      // the paper stays unfolded from here on
       async leave(info, s) {                    // on Next: the paper turns back to face the reader, flat in the middle
@@ -552,7 +552,7 @@ const deck = createDeck({
       } },
 
     // (begins flat: see step 5)
-    { name: 'The answer', title: 'Solve the Problem', slide: 'walk',
+    { name: 'The answer', title: 'Solve the Problem',
       set: { hint5: 0, rise: 1, tri: 1, dpt: 1, swap: 1, m1: 1, m2: 1, m3: 1, m4: 1, m5: 1, ring: 1 },
       async play(s) {
         s.to('hint5', 0, 500);                  // the words go ...
@@ -604,5 +604,5 @@ wordUnfold.addEventListener('click', () => flip(true));
 /* ---------- start ---------- */
 layout();
 onFontsLoaded(layout);
-if (window.ResizeObserver) new ResizeObserver(layout).observe($('.stage')); else window.addEventListener('resize', layout);
+if (window.ResizeObserver) new ResizeObserver(layout).observe(stage); else window.addEventListener('resize', layout);
 deck.start();

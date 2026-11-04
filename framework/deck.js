@@ -2,7 +2,8 @@
 //
 // A demo describes
 //   - its animated values (`state`: name -> starting number),
-//   - a `render(S)` that draws the page from those values (called on every animation frame),
+//   - a `render(S)` that draws the page from those values (called on every animation frame): everything on the
+//     demo's .stage, including which words or pictures are there at all,
 //   - its `steps`. Each step says what it changes in the finished look (`set`) and how to get there (`play`, and
 //     `leave` when leaving the step with Next animates too).
 //
@@ -18,8 +19,6 @@
 // Step fields (all optional):
 //   name        shown to screen readers on the step dots
 //   title       shown in the title band at the top of the paper as soon as the step is entered (orange; none: empty)
-//   slide       id of the <section class="slide"> to show
-//   slideClass  class added to that slide while the step is active; restarted on Replay (for CSS animations)
 //   fresh       true: the step starts from the demo's initial state instead of the previous step's finished look
 //   start       values that differ in the step's beginning (on top of the previous finished look, or the initial state)
 //   set         values that have changed by the time the step is left with Next (the finished look = beginning + set):
@@ -51,7 +50,6 @@ export function createDeck(opts) {
     durations = {}, delays = {},   // per-value defaults for s.apply(): duration, and delay when the value grows
     linear = [],               // values that animate at an even pace instead of easing in and out
     bubbles = null,            // a createBubbles() instance, if the demo uses callout bubbles
-    root = document,
   } = opts;
   watchBox();                  // the paper rises from the box as the lid opens, and sinks before it closes (box.js)
 
@@ -114,25 +112,6 @@ export function createDeck(opts) {
     return moving ? 600 : fading ? 300 : 0;
   }
 
-  /* ---------- slides ---------- */
-  const slideEl = id => id ? root.querySelector('#' + id) : null;
-  function showSlides(i, glide) {
-    const st = steps[i];
-    root.querySelectorAll('.slide').forEach(el => el.classList.toggle('active', el.id === st.slide));
-    steps.forEach((o, j) => { if (j !== i && o.slideClass && o.slide && (o.slide !== st.slide || o.slideClass !== st.slideClass)) slideEl(o.slide)?.classList.remove(o.slideClass); });
-    const el = slideEl(st.slide);
-    if (el && st.slideClass) {
-      if (!glide && el.classList.contains(st.slideClass)) restartAnimations(el, st.slideClass);
-      else el.classList.add(st.slideClass);
-    }
-  }
-  // Replay: run the slide's CSS animations again from the start, without touching its layout.
-  function restartAnimations(el, cls) {
-    if (el.getAnimations) {
-      el.getAnimations({ subtree: true }).forEach(a => { if (a.animationName) { a.currentTime = 0; a.play(); } });
-    } else { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
-  }
-
   /* ---------- the step runner handed to play() ---------- */
   function runner(i, ep, tw, pending) {
     const alive = () => ep === epoch;
@@ -159,15 +138,9 @@ export function createDeck(opts) {
         bubbles.set(index, html, anchor);
         return guard(tw(bubbles.keys[index], 1, dur, delay));
       },
-      // wait until everything the step started has finished: its values, and its slide's CSS animations
+      // wait until every value the step started animating has arrived (including ones started while waiting)
       async settle() {
         for (let n = 0; n !== pending.length;) { n = pending.length; await guard(Promise.all(pending)); }
-        const el = slideEl(steps[i].slide);
-        if (el && steps[i].slideClass && el.getAnimations) {
-          const css = el.getAnimations({ subtree: true })
-            .filter(a => a.animationName && isFinite(a.effect.getComputedTiming().endTime));
-          await guard(Promise.all(css.map(a => a.finished.catch(() => {}))));
-        }
       },
     };
   }
@@ -186,16 +159,13 @@ export function createDeck(opts) {
 
   /* ---------- arriving in the box ---------- */
   // Coming from the front page, the demo is uncovered as the box's lid opens, and its paper then rises from the box
-  // (lid.js, box.js and theme.css). The step's own animation waits until all that is over, and so do its slide's CSS
-  // animations, so that nothing plays unseen. (pagereveal fires just before the page's first frame, once this script
-  // has run: demo pages load their script with blocking="render".)
+  // (lid.js, box.js and theme.css). The step's own animation waits until all that is over, so that nothing plays
+  // unseen. (pagereveal fires just before the page's first frame, once this script has run: demo pages load their
+  // script with blocking="render".)
   let arriving = null;
   addEventListener('pagereveal', e => {
     if (!e.viewTransition) return;
-    const el = cur >= 0 && steps[cur].slideClass ? slideEl(steps[cur].slide) : null;
-    const css = el && el.getAnimations ? el.getAnimations({ subtree: true }).filter(a => a.playState === 'running') : [];
-    css.forEach(a => a.pause());
-    arriving = e.viewTransition.finished.catch(() => {}).then(() => { arriving = null; css.forEach(a => a.play()); });
+    arriving = e.viewTransition.finished.catch(() => {}).then(() => { arriving = null; });
   });
 
   /* ---------- navigation ---------- */
@@ -215,10 +185,9 @@ export function createDeck(opts) {
     if (prev >= 0 && steps[prev].leave) leaving = steps[prev].leave({ glide, to: i }, runner(prev, glide ? ep : -1, tw, pending));
     const waits = glide && typeof leaving?.then === 'function';
     if (!waits && typeof leaving?.catch === 'function') leaving.catch(e => { if (e !== CANCELLED) throw e; });
-    // the new step takes over: its slide, its enter() hook, and the drawing to its beginning (returns how long to hold)
+    // the new step takes over: its enter() hook, and the drawing to its beginning (returns how long to hold)
     const st = steps[i];
     const begin = () => {
-      showSlides(i, glide);
       if (st.enter) st.enter({ glide, from: prev });
       return toStart(i, glide, tw);
     };

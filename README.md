@@ -53,6 +53,7 @@ demos/<name>/              one folder per demo: index.html (the same in every de
 demos/template/            a small example to copy when starting a new demo
 tools/thumbnail.py         makes a demo's home-page thumbnail from a screenshot (see below)
 tools/wood.py              makes framework/wood.webp, the wooden desk the box stands on, and lid-wood.webp (--lid)
+tools/fonts.py             makes framework/fonts/, the handwriting (Kalam), from the font's original files
 tools/single_file.py       packs a demo into one HTML file (optional)
 tools/icons.py             makes favicon.ico and apple-touch-icon.png from favicon.svg
 ```
@@ -101,7 +102,7 @@ the `srcset` in `index.html`).
 `<meta name="thumbnail" content="step=3 zoom=1.2 focus=.5,.4">`; options typed on the command line win.
 `python3 tools/thumbnail.py --help` lists everything.
 
-The demos load their handwritten font from Google Fonts, so run the tool online; it warns if the font did not
+The handwritten font comes with the site, so the tool needs no connection for it; it warns if the font did not
 load. It knows a step has finished because StepDeck marks the page while a step animates (see
 [framework/README.md](framework/README.md#for-tools)).
 

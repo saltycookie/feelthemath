@@ -26,8 +26,8 @@ How it works
 Requirements
     pip install playwright pillow
     playwright install chromium
-The demos load their handwritten font, Kalam, from Google Fonts, so run it online (or with Kalam installed);
-the tool warns if the font is missing, because the text would then be drawn in a fallback font.
+The handwritten font, Kalam, comes with the site (framework/fonts), so no connection is needed for it; the tool
+still warns if it did not load, because the text would then be drawn in a fallback font.
 """
 import argparse, functools, http.server, io, re, sys, threading
 from pathlib import Path

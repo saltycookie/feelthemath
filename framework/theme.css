@@ -65,7 +65,7 @@
                                                (0: a plain grey dark; 1: the full brown of an old photo) */
   --box-shadow-ink: rgb(78 42 10);          /* the warm brown of the shade inside the box, open or not */
 
-  /* one handwritten face everywhere (Kalam is loaded from Google Fonts by each page) */
+  /* one handwritten face everywhere (Kalam, from fonts/: see "the handwriting" below) */
   --font-hand: "Kalam", "Chalkboard SE", "Comic Sans MS", "Segoe Print", sans-serif;
 
   /* ---- 2. derived: colours that match the paper ---------------------------- */
@@ -97,6 +97,17 @@
    hands them over in px */
 @property --box-wall{syntax:"<length>";inherits:true;initial-value:12px}
 @property --box-inset{syntax:"<length>";inherits:true;initial-value:20px}
+
+/* ---- the handwriting ---------------------------------------------------------
+   Kalam, by Indian Type Foundry (SIL Open Font License: fonts/OFL.txt). The site serves it itself instead of
+   loading it from Google Fonts, so a visit sends nothing to Google. Only its Latin letters, punctuation and maths
+   signs are kept (tools/fonts.py makes the files); a character it doesn't have is written in the next font of
+   --font-hand. Until the font has loaded the text shows in that font too, and the demos lay out again once it has
+   (onFontsLoaded in deck.js). */
+@font-face{font-family:"Kalam";font-style:normal;font-weight:400;font-display:swap;
+  src:url("fonts/kalam-regular.woff2") format("woff2")}
+@font-face{font-family:"Kalam";font-style:normal;font-weight:700;font-display:swap;
+  src:url("fonts/kalam-bold.woff2") format("woff2")}
 
 /* ---- the desk ------------------------------------------------------------- */
 *{box-sizing:border-box}

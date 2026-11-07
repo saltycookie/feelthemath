@@ -14,6 +14,7 @@ It is plain JavaScript modules and CSS, with no dependencies and nothing to buil
 theme.css      colours, font, the desk, the box and the paper, navigation, bubbles, chart basics
 wood.webp      the wooden desk, a picture that tiles without seams (made by tools/wood.py)
 lid-wood.webp  the front page's lid, stained pine like a treasure chest's (made by tools/wood.py --lid)
+fonts/         the handwriting, Kalam, in regular and bold (made by tools/fonts.py), and its licence
 deck.js        animated values, steps, and moving between steps
 nav.js         Back, step dots, Replay, Next (Finish on the last step), the arrow keys, and the home link
 lid.js         the front page's lid, opened going into a demo and closed coming back
@@ -60,7 +61,10 @@ first step; a demo may change its size), `.rad` (a square root in the handwritin
 `<span class="rad"><span>2</span></span>`), `.sr-only` (text for screen readers only), and `--ink-dim` (measuring
 lines and small notes beside the working).
 
-Each page loads Kalam from Google Fonts. Without a connection the text falls back to another casual font.
+The handwriting, Kalam, comes with the site: `theme.css` loads it from `fonts/`, so a page asks nothing of Google
+Fonts and works offline. Only Kalam's Latin letters, punctuation and maths signs are kept (`tools/fonts.py` makes
+the files from the font's originals); a character Kalam doesn't have, such as the arrows on Back and Next, is
+written in the next font of `--font-hand`.
 
 ## How a demo works
 
@@ -91,7 +95,7 @@ deck.start();
 ```
 
 A demo's `index.html` holds only what every demo shares: its `<head>` (the title, the thumbnail's meta tag, the
-icons, the font and the stylesheets, and the script) and, in its `<body>`, the same three elements in every demo:
+icons, the stylesheets and the script) and, in its `<body>`, the same three elements in every demo:
 
 ```html
 <div class="deck">

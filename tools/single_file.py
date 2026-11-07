@@ -6,9 +6,9 @@
     python3 tools/single_file.py demos/qiangs-trip --fragment     (no <html>/<head>/<body> wrapper)
     python3 tools/single_file.py demos/qiangs-trip --home URL     (where the home link goes; default: the live site)
 
-It inlines local stylesheets (and the pictures they use, such as the wooden desk) and bundles the page's JavaScript
-modules into one script.
-Web fonts still load from Google Fonts, and the site icon from the live site. Only the plain import/export forms used in this
+It inlines local stylesheets (and the pictures and fonts they use, such as the wooden desk and the handwriting) and
+bundles the page's JavaScript modules into one script.
+Only the site icon still loads from the live site. Only the plain import/export forms used in this
 repository are understood:  import { a, b as c } from './x.js';  export function / const / let / class.
 GitHub Pages does not need this: it serves the separate files as they are.
 """
@@ -23,6 +23,7 @@ IMPORT_RE = re.compile(r'^\s*import\s*\{([^}]*)\}\s*from\s*[\'"]([^\'"]+)[\'"]\s
 EXPORT_RE = re.compile(r'^export\s+(?:async\s+)?(function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)', re.M)
 CSS_URL_RE = re.compile(r'url\(\s*([\'"]?)(?!data:|https?:|#|%23)([^\'")]+)\1\s*\)')
 ICON_RE = re.compile(r'(<link\s+[^>]*rel="(?:icon|apple-touch-icon)"[^>]*href=")(?!https?:)([^"]+)(")')
+KINDS = {'.webp': 'image/webp', '.woff2': 'font/woff2'}   # for Pythons whose mimetypes doesn't know these
 
 
 def bundle(entry):
@@ -71,9 +72,9 @@ def pack(demo_dir, fragment=False, home=SITE):
     def css(m):
         path = os.path.join(demo_dir, m.group(1))
         text = open(path, encoding='utf-8').read()
-        def embed(u):          # a picture next to the stylesheet becomes a data: URL, so the file needs nothing else
+        def embed(u):          # a picture or font next to the stylesheet becomes a data: URL, so the file needs nothing else
             pic = os.path.join(os.path.dirname(path), u.group(2))
-            kind = mimetypes.guess_type(pic)[0] or ('image/webp' if pic.endswith('.webp') else 'application/octet-stream')
+            kind = mimetypes.guess_type(pic)[0] or KINDS.get(os.path.splitext(pic)[1], 'application/octet-stream')
             data = base64.b64encode(open(pic, 'rb').read()).decode('ascii')
             return 'url("data:%s;base64,%s")' % (kind, data)
         text = CSS_URL_RE.sub(embed, text)

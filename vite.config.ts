@@ -93,7 +93,7 @@ function copyStaticPagesAssets(): Plugin {
       //    - Place <link rel="stylesheet"> tags (theme.css first, then demo css) BEFORE <script type="module">
       //    - Add blocking="render" to <script type="module"> so the React tree and box.ts are ready
       //      before the browser fires pagereveal and captures the cross-document view transition snapshot.
-      const demoSlugs = ['dannys-walk', 'qiangs-trip', 'two-sticks', 'template'];
+      const demoSlugs = ['dannys-walk', 'qiangs-trip', 'two-sticks', 'example'];
       for (const slug of demoSlugs) {
         const demoHtmlPath = resolve(outDir, `demos/${slug}/index.html`);
         if (!existsSync(demoHtmlPath)) continue;
@@ -137,7 +137,7 @@ export default defineConfig({
         'dannys-walk': resolve(__dirname, 'demos/dannys-walk/index.html'),
         'qiangs-trip': resolve(__dirname, 'demos/qiangs-trip/index.html'),
         'two-sticks': resolve(__dirname, 'demos/two-sticks/index.html'),
-        template: resolve(__dirname, 'demos/template/index.html'),
+        example: resolve(__dirname, 'demos/example/index.html'),
       },
     },
   },

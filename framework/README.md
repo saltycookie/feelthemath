@@ -103,7 +103,7 @@ createRoot(document.getElementById('deck')!).render(<MathDemoPlayer demo={myDemo
 
 ## Drawing a scene
 
-Each demo keeps its scene in a file of its own (`TripScene.tsx`, `SticksScene.tsx`, `WalkScene.tsx`, and the template's
+Each demo keeps its scene in a file of its own (`TripScene.tsx`, `SticksScene.tsx`, `WalkScene.tsx`, and the example's
 `GardenScene.tsx`): the state and the renderer that draws it. The steps are in the file `index.html` loads.
 
 A renderer draws its scene as JSX, worked out from `element.state` on every render. It does not build or change the
@@ -130,9 +130,9 @@ its marching dashes that way, so that tiny changes do not restart them.
 
 ## Starting a new demo
 
-[`demos/template`](../demos/template/) is a three-step example to copy: the question, a rectangle that draws itself, then the answer.
+[`demos/example`](../demos/example/) is a three-step example to copy: the question, a rectangle that draws itself, then the answer.
 
-1. Copy `demos/template` to `demos/<your-demo>`.
+1. Copy `demos/example` to `demos/<your-demo>`.
 2. Add the new HTML entry to `vite.config.ts` under `build.rollupOptions.input`.
 3. Give it its title in `index.html`'s `<title>`. Write its scene in `GardenScene.tsx` (rename it to fit): the state
    and the renderer that draws it. Write its steps (the `DemoConfig`) in `demo.tsx`, which `index.html` loads.

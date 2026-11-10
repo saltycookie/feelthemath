@@ -50,7 +50,7 @@ framework/                 StepDeck, shared by every demo (see framework/README.
 demos/<name>/              one folder per demo: index.html (the same in every demo but for its <head>), the script
                            that makes and animates everything on the demo's paper, its own styles,
                            and thumbnail.png / thumbnail@2x.png, its picture on the home page
-demos/template/            a small example to copy when starting a new demo
+demos/example/             a small example to copy when starting a new demo
 tools/thumbnail.py         makes a demo's home-page thumbnail from a screenshot (see below)
 tools/wood.py              makes framework/wood.webp, the wooden desk the box stands on, and lid-wood.webp (--lid)
 tools/single_file.py       packs a demo into one HTML file (optional)
@@ -118,7 +118,7 @@ as the F of the name. It appears twice:
   the title: the logo, then "eel the Math" in orange, set close enough that they read as one word.
 - **As the site icon** in browser tabs, bookmarks and home screens: `favicon.svg`, the same drawing on a tile of
   the demos' white paper, with slightly thicker lines so it still reads at 16 pixels. Every page links to it in
-  its `<head>`, the demos as `../../favicon.svg`; `demos/template` has the links too, so a new demo copied from it
+  its `<head>`, the demos as `../../favicon.svg`; `demos/example` has the links too, so a new demo copied from it
   gets them.
 
 Modern browsers use `favicon.svg` directly. `favicon.ico` (for older browsers) and `apple-touch-icon.png` (a 180 ×

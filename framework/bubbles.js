@@ -3,12 +3,11 @@
 // const bubbles = createBubbles(container, { count: 1, bounds: () => ({ x, y, w, h }) })
 //   container  positioned element the bubbles live in (they are absolutely positioned inside it)
 //   bounds()   the area the bubbles must stay inside, in the container's pixels
-// Give `bubbles` to createDeck(); a step then shows one with  s.bubble(html, anchor).
 // anchor() returns [x, y, side]: the point to explain, and where the bubble sits relative to it:
 //   'right' | 'left' | 'above' | 'below' (tail on the facing edge) or 'mid' (centred on the point, no tail).
-// Call bubbles.place(S) from the demo's render(), and bubbles.measure() after its layout changes.
+// Call bubbles.place(S) from the demo's renderer, and bubbles.measure() after its layout changes.
 
-import { clamp } from './deck.js';
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 export function createBubbles(container, { count = 1, bounds = () => ({ x: 0, y: 0, w: 0, h: 0 }), gap = 11, inset = 4, maxWidth = 360 } = {}) {
   const els = [], sizes = [], anchors = [], rects = [];

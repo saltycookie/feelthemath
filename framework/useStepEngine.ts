@@ -105,9 +105,6 @@ export function useStepEngine(demo: DemoConfig) {
   const [phase, setPhase] = useState<StepLifecyclePhase>(() =>
     steps[initialIdx]?.play ? 'playing' : 'idle'
   );
-  const [transitionLog, setTransitionLog] = useState<string>(
-    `Initialized step ${initialIdx + 1}`
-  );
 
   const updateElements = useCallback(
     (updater: ElementsMap | ((prev: ElementsMap) => ElementsMap)) => {
@@ -401,7 +398,7 @@ export function useStepEngine(demo: DemoConfig) {
    * and immediately kicking off its `play` animation (if defined).
    */
   const enterStep = useCallback(
-    async (targetStepIndex: number, entryReason: string) => {
+    async (targetStepIndex: number) => {
       cancelActiveAnimation();
       const step = steps[targetStepIndex];
       if (!step) return;
@@ -409,11 +406,6 @@ export function useStepEngine(demo: DemoConfig) {
       // Requirement 5: Always set exact canonical beginning state for the step
       const canonicalStart = createCanonicalElementsMap(step.initialElements);
       updateElements(canonicalStart);
-      setTransitionLog(
-        `Step ${targetStepIndex + 1} initialized (${entryReason}) -> ${
-          step.play ? 'Running play()' : 'No play() (Idle)'
-        }`
-      );
 
       if (!step.play) {
         setPhase('idle');
@@ -437,7 +429,6 @@ export function useStepEngine(demo: DemoConfig) {
         await step.play(controller);
         if (!abortController.signal.aborted) {
           setPhase('idle');
-          setTransitionLog(`Step ${targetStepIndex + 1} play() completed`);
         }
       } catch (err: any) {
         if (err?.name !== 'AbortError') {
@@ -454,7 +445,7 @@ export function useStepEngine(demo: DemoConfig) {
 
   const handleExternalHashJump = useCallback(
     (targetStepIndex: number) => {
-      enterStep(targetStepIndex, 'URL #step-X navigation');
+      enterStep(targetStepIndex);
     },
     [enterStep]
   );
@@ -468,7 +459,7 @@ export function useStepEngine(demo: DemoConfig) {
   // NOT on every stepIndex change.
   const initialStepIndexRef = useRef(stepIndex);
   useEffect(() => {
-    enterStep(initialStepIndexRef.current, 'Initial entry');
+    enterStep(initialStepIndexRef.current);
     return () => {
       cancelActiveAnimation();
     };
@@ -483,7 +474,7 @@ export function useStepEngine(demo: DemoConfig) {
       if (targetIndex < 0 || targetIndex >= totalSteps) return;
       if (targetIndex === stepIndex && source === 'dot') return;
       setStepIndexAndHash(targetIndex);
-      enterStep(targetIndex, `Entered via ${source}`);
+      enterStep(targetIndex);
     },
     [totalSteps, stepIndex, setStepIndexAndHash, enterStep]
   );
@@ -495,7 +486,7 @@ export function useStepEngine(demo: DemoConfig) {
   const replayCurrentStep = useCallback(() => {
     const currentStep = steps[stepIndex];
     if (!currentStep?.play || phase !== 'idle') return;
-    enterStep(stepIndex, 'Replay button');
+    enterStep(stepIndex);
   }, [steps, stepIndex, phase, enterStep]);
 
   /**
@@ -531,9 +522,6 @@ export function useStepEngine(demo: DemoConfig) {
         );
 
       if (currentStep.exit) {
-        setTransitionLog(
-          `Step ${stepIndex + 1} -> Step ${nextIndex + 1}: Running custom exit()`
-        );
         const exitContext: StepExitContext = {
           currentElements: elementsRef.current,
           nextInitialElements: nextInitialMap,
@@ -542,9 +530,6 @@ export function useStepEngine(demo: DemoConfig) {
         };
         await currentStep.exit(exitContext);
       } else {
-        setTransitionLog(
-          `Step ${stepIndex + 1} -> Step ${nextIndex + 1}: Running default exit (250ms)`
-        );
         await runDefaultExit();
       }
 
@@ -552,12 +537,12 @@ export function useStepEngine(demo: DemoConfig) {
 
       // Advance URL hash to #step-(nextIndex+1) and enter next step with canonical initial state
       setStepIndexAndHash(nextIndex);
-      await enterStep(nextIndex, 'Next button transition');
+      await enterStep(nextIndex);
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
         console.error(`Error in step ${stepIndex + 1} exit():`, err);
         setStepIndexAndHash(nextIndex);
-        await enterStep(nextIndex, 'Next button fallback');
+        await enterStep(nextIndex);
       }
     }
   }, [
@@ -614,7 +599,6 @@ export function useStepEngine(demo: DemoConfig) {
     canGoBack: stepIndex > 0 && phase !== 'exiting',
     canGoNext: stepIndex < totalSteps - 1 && !isAnimating,
     canReplay: hasPlayAnimation && !isAnimating,
-    transitionLog,
     goNext,
     goBack,
     goToStep,

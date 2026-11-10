@@ -1,6 +1,6 @@
 // StepDeck SVG helpers for drawing charts and diagrams.
 
-import { clamp } from './deck.js';
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 export const SVG_NS = 'http://www.w3.org/2000/svg';
 

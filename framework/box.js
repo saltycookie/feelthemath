@@ -14,7 +14,7 @@
 //                above, between the tops of the walls and the bottom of the box
 //   box-shade    the walls' shade on the paper down in the box. It rises with the paper, fading as it comes up
 //   box-walls    the tops of the walls, over the paper while it is down in the box
-// createDeck() calls watchBox(), so every demo does this; a demo page loads its script with blocking="render", so
+// MathDemoPlayer calls watchBox(), so every demo does this; a demo page loads its script with blocking="render", so
 // that this is ready before the page's first frame.
 
 let watching = false, laidNo = 0;

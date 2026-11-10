@@ -1,6 +1,6 @@
 // Qiang's Trip — migrated to the React MathDemoPlayer framework while preserving all content, style, animation, and wording.
 
-import React, { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {

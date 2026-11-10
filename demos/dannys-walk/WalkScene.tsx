@@ -27,6 +27,8 @@ const MAX_K = 7.5;
 const CAM = { yaw: (25 * Math.PI) / 180, dist: 230 };
 const DASH = 20,
   MARCH = 0.8;
+/** How long the paper takes to unfold all the way, or to fold back, in ms. */
+export const UNFOLD_MS = 2600;
 
 const FOLD = 2;
 const ALT = [
@@ -424,7 +426,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     window.cancelAnimationFrame(flipRaf.current);
     const fromUnf = S.unf;
     const toUnf = on ? 1 : 0;
-    const dur = Math.max(400, 2600 * Math.abs(toUnf - fromUnf));
+    const dur = Math.max(400, UNFOLD_MS * Math.abs(toUnf - fromUnf));
     const t0 = performance.now();
     updateState({ switchOpen: on });
     const tick = (now: number) => {

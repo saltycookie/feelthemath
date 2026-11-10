@@ -15,6 +15,7 @@ types.ts                       TypeScript interfaces (DemoConfig, StepConfig, Vi
 useStepEngine.ts               core step lifecycle state machine (initialElements -> play -> idle -> exit)
 useHashStepRouter.ts           #step-X URL hash parser and synchronization hook
 exitAnimation.ts               canonical state cloning and default 250ms exit animation
+elementControls.ts             shorthand for a step file: typed to / set / state for one element, and background()
 useMeasure.ts                  reads sizes from the page for a renderer to draw from (see "Drawing a scene" below)
 math.ts                        clamp, lerp and easing curves
 paths.ts                       path data for SVG drawings (arrowPath)

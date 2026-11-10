@@ -2,6 +2,7 @@ export * from './types';
 export * from './math';
 export * from './paths';
 export * from './exitAnimation';
+export * from './elementControls';
 export * from './useHashStepRouter';
 export * from './useStepEngine';
 export * from './useMeasure';

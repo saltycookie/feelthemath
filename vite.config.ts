@@ -26,6 +26,7 @@ function copyStaticPagesAssets(): Plugin {
         'framework/wood.webp',
         'framework/lid-wood.webp',
         'framework/lid.js',
+        'framework/theme.css',
         'demos/dannys-walk/thumbnail.png',
         'demos/dannys-walk/thumbnail@2x.png',
         'demos/qiangs-trip/thumbnail.png',

@@ -40,24 +40,25 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
   steps,
   homeHref = '../../',
 }) => {
-  const nextBtnRef = useRef<HTMLButtonElement | null>(null);
+  const nextBtnRef = useRef<HTMLElement | null>(null);
   const isLastStep = currentStepIndex >= totalSteps - 1;
 
   useEffect(() => {
     // Keep keyboard focus from getting lost when a button becomes disabled
     const active = document.activeElement as HTMLButtonElement | null;
-    if (active && active.disabled && nextBtnRef.current && !nextBtnRef.current.disabled) {
+    if (
+      active &&
+      active.disabled &&
+      nextBtnRef.current &&
+      !(nextBtnRef.current as HTMLButtonElement).disabled
+    ) {
       nextBtnRef.current.focus();
     }
   }, [canGoBack, canReplay, canGoNext, isAnimating]);
 
-  const handleNextOrFinish = () => {
-    if (isAnimating) return;
-    if (isLastStep) {
-      window.location.href = homeHref;
-    } else {
-      onNext();
-    }
+  const handleNext = () => {
+    if (isAnimating || isLastStep) return;
+    onNext();
   };
 
   return (
@@ -111,23 +112,29 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({
           <span className="lbl">Replay</span>
         </button>
 
-        <button
-          ref={nextBtnRef}
-          className="btn"
-          type="button"
-          data-act="next"
-          aria-label={isLastStep ? 'Finish and return to all demos' : 'Next step'}
-          disabled={isLastStep ? isAnimating : !canGoNext}
-          onClick={handleNextOrFinish}
-        >
-          {isLastStep ? (
-            'Finish'
-          ) : (
-            <>
-              Next <span className="arrow">→</span>
-            </>
-          )}
-        </button>
+        {isLastStep ? (
+          <a
+            ref={nextBtnRef as React.RefObject<HTMLAnchorElement>}
+            className="btn"
+            href={homeHref}
+            data-act="next"
+            aria-label="Finish and go back to all demos"
+          >
+            Finish
+          </a>
+        ) : (
+          <button
+            ref={nextBtnRef as React.RefObject<HTMLButtonElement>}
+            className="btn"
+            type="button"
+            data-act="next"
+            aria-label="Next step"
+            disabled={!canGoNext}
+            onClick={handleNext}
+          >
+            Next <span className="arrow">→</span>
+          </button>
+        )}
       </div>
     </nav>
   );

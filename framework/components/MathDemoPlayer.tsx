@@ -1,9 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import { DemoConfig } from '../types';
 import { useStepEngine } from '../useStepEngine';
 import { DemoCanvas } from './DemoCanvas';
 import { NavigationPanel } from './NavigationPanel';
 import { watchBox } from '../box.js';
+
+if (typeof window !== 'undefined') {
+  watchBox();
+}
 
 export interface MathDemoPlayerProps {
   demo: DemoConfig;
@@ -36,13 +40,8 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     updateInteractiveElementState,
   } = useStepEngine(demo);
 
-  // Set up the 3D paper box cross-document view transitions
-  useEffect(() => {
-    watchBox();
-  }, []);
-
-  // Synchronize <html data-step="N" data-step-busy> attributes for CSS & thumbnail tooling
-  useEffect(() => {
+  // Synchronize <html data-step="N" data-step-busy> attributes synchronously before paint
+  useLayoutEffect(() => {
     const root = document.documentElement;
     root.dataset.step = String(currentStepIndex + 1);
     root.toggleAttribute('data-step-busy', isAnimating);

@@ -1,7 +1,8 @@
 // A minimal React StepDeck demo to copy when starting a new one.
 // Three steps: the question, a rectangle that draws itself under it, then the answer.
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
   DemoConfig,
@@ -25,7 +26,7 @@ const GardenRenderer: ElementRendererComponent<GardenState> = ({ element }) => {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [bubbleSize, setBubbleSize] = useState({ w: 0, h: 0 });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const box = boxRef.current;
     if (!box) return;
     const measure = () => {
@@ -184,5 +185,8 @@ export const templateDemo: DemoConfig = {
 
 const container = document.getElementById('deck');
 if (container) {
-  createRoot(container).render(<MathDemoPlayer demo={templateDemo} />);
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(<MathDemoPlayer demo={templateDemo} />);
+  });
 }

@@ -1,6 +1,7 @@
 // Qiang's Trip — migrated to the React MathDemoPlayer framework while preserving all content, style, animation, and wording.
 
-import React, { useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
   DemoConfig,
@@ -185,7 +186,7 @@ const TripSceneRenderer: ElementRendererComponent<TripState> = ({
   const renderFnRef = useRef<((s: TripState) => void) | null>(null);
   const tweenRafRef = useRef<number>(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const stage = hostRef.current;
     if (!stage) return;
     stage.innerHTML = '';
@@ -869,7 +870,7 @@ const TripSceneRenderer: ElementRendererComponent<TripState> = ({
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     renderFnRef.current?.(element.state);
   }, [element.state]);
 
@@ -1303,5 +1304,8 @@ export const qiangsTripDemo: DemoConfig = {
 
 const container = document.getElementById('deck');
 if (container) {
-  createRoot(container).render(<MathDemoPlayer demo={qiangsTripDemo} />);
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(<MathDemoPlayer demo={qiangsTripDemo} />);
+  });
 }

@@ -1,6 +1,7 @@
 // Danny's Walk — migrated to the React MathDemoPlayer framework while preserving all content, style, animation, and wording.
 
-import React, { useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
   DemoConfig,
@@ -207,7 +208,7 @@ const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({
   const renderFnRef = useRef<((s: WalkState) => void) | null>(null);
   const flipRafRef = useRef<number>(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const stage = hostRef.current;
     if (!stage) return;
     stage.innerHTML = '';
@@ -921,7 +922,7 @@ const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     renderFnRef.current?.(element.state);
   }, [element.state]);
 
@@ -1341,5 +1342,8 @@ export const dannysWalkDemo: DemoConfig = {
 
 const container = document.getElementById('deck');
 if (container) {
-  createRoot(container).render(<MathDemoPlayer demo={dannysWalkDemo} />);
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(<MathDemoPlayer demo={dannysWalkDemo} />);
+  });
 }

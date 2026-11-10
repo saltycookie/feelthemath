@@ -1,6 +1,7 @@
 // Two Perpendicular Sticks — migrated to the React MathDemoPlayer framework while preserving all content, style, animation, and wording.
 
-import React, { useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
   DemoConfig,
@@ -310,7 +311,7 @@ const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({
   const pulseMarksRef = useRef<(() => void) | null>(null);
   const lastPulseRef = useRef<number>(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const stage = hostRef.current;
     if (!stage) return;
     stage.innerHTML = '';
@@ -1029,7 +1030,7 @@ const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     renderFnRef.current?.(element.state);
     if (element.state.pulseCount !== lastPulseRef.current) {
       lastPulseRef.current = element.state.pulseCount;
@@ -1196,5 +1197,8 @@ export const twoSticksDemo: DemoConfig = {
 
 const container = document.getElementById('deck');
 if (container) {
-  createRoot(container).render(<MathDemoPlayer demo={twoSticksDemo} />);
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(<MathDemoPlayer demo={twoSticksDemo} />);
+  });
 }

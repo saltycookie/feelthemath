@@ -10,6 +10,7 @@ import {
 } from './types';
 import { createCanonicalElementsMap, runDefaultExitAnimation } from './exitAnimation';
 import { parseStepHash, useHashStepRouter } from './useHashStepRouter';
+import { waitForBoxArrival } from './box.js';
 
 export type StepLifecyclePhase = 'idle' | 'playing' | 'exiting';
 
@@ -425,8 +426,14 @@ export function useStepEngine(demo: DemoConfig) {
 
       try {
         const controller = createController(abortController.signal);
-        // Small frame delay so initialElements paint cleanly before play animation starts
-        await controller.wait(40);
+        const arrival = waitForBoxArrival();
+        if (arrival) {
+          await arrival;
+          await controller.wait(250);
+        } else {
+          // Small frame delay so initialElements paint cleanly before play animation starts
+          await controller.wait(40);
+        }
         await step.play(controller);
         if (!abortController.signal.aborted) {
           setPhase('idle');

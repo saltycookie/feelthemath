@@ -30,23 +30,23 @@ const LOOK_KEYS = Object.keys(BASE) as LookKey[];
 /** The homework figure as printed: pencil lines, with its marks and the question. */
 const PRINTED: Look = {
   ...BASE,
-  draw: 1,
-  marks: 1,
-  lift: 0,
-  away: 0,
-  wood: 0,
-  bdOut: 0,
-  bdIn: 0,
-  pick: 0,
-  ylbl: 0,
-  zlbl: 0,
-  bdl: 0,
-  prob: 1,
+  printedLetters: 1,
+  printedMarks: 1,
+  sideWood: 0,
+  sidesToPile: 0,
+  mainWood: 0,
+  bdToPile: 0,
+  bdFromPile: 0,
+  pickO: 0,
+  acYLabel: 0,
+  acXMinusYLabel: 0,
+  bdLabels: 0,
+  problem: 1,
 };
 /** Both thin sticks back on the figure and labelled. */
-const THIN_STICKS_ON: Look = { ...BASE, sq: 1, thinAB: 1, t1l: 1, thinCD: 1, t2l: 1 };
+const THIN_STICKS_ON: Look = { ...BASE, rightAngle: 1, abFromPile: 1, abLabel: 1, cdFromPile: 1, cdLabel: 1 };
 /** The thin sticks end to end on the ruler, with the equation they make. */
-const ON_THE_RULER: Look = { ...THIN_STICKS_ON, lay: 1, eqn: 1 };
+const ON_THE_RULER: Look = { ...THIN_STICKS_ON, onRuler: 1, equation: 1 };
 
 /**
  * The look each part of the choreography ends on. A part is named after the step that plays it; step 4 plays
@@ -54,13 +54,13 @@ const ON_THE_RULER: Look = { ...THIN_STICKS_ON, lay: 1, eqn: 1 };
  */
 const LOOKS = {
   1: PRINTED,
-  2: { ...PRINTED, prompt: 1, marks: 0, draw: 0, wood: 1, lift: 1 },
-  3: { ...BASE, bdIn: 0, cross: 0, xdim: 1, bdl: 0 },
-  4: { ...BASE, cross: 0, xdim: 1 },
-  across: { ...BASE, sq: 1 },
+  2: { ...PRINTED, prompt: 1, printedMarks: 0, printedLetters: 0, mainWood: 1, sideWood: 1 },
+  3: { ...BASE, bdFromPile: 0, crossed: 0, xBrackets: 1, bdLabels: 0 },
+  4: { ...BASE, crossed: 0, xBrackets: 1 },
+  across: { ...BASE, rightAngle: 1 },
   5: THIN_STICKS_ON,
   6: ON_THE_RULER,
-  7: { ...ON_THE_RULER, fade: 1, gather: 1 },
+  7: { ...ON_THE_RULER, figureGone: 1, termsToWorking: 1 },
 } satisfies Record<string, Look>;
 type Part = keyof typeof LOOKS;
 
@@ -72,48 +72,48 @@ const DEFAULT_TIMING: Timing = [0, 600];
 const TIMINGS: Partial<Record<Part, Partial<Record<LookKey, Timing>>>> = {
   2: {
     prompt: [0, 700],
-    marks: [1300, 600],
-    draw: [1400, 800],
-    wood: [1400, 1500],
-    lift: [1400, 1200],
+    printedMarks: [1300, 600],
+    printedLetters: [1400, 800],
+    mainWood: [1400, 1500],
+    sideWood: [1400, 1200],
   },
   3: {
     prompt: [0, 700],
-    prob: [0, 700],
-    away: [500, 3200],
-    bdOut: [3300, 1280],
-    cross: [4600, 900],
-    xdim: [5600, 600],
-    pick: [6300, 1500],
-    ylbl: [7900, 600],
-    zlbl: [8700, 600],
+    problem: [0, 700],
+    sidesToPile: [500, 3200],
+    bdToPile: [3300, 1280],
+    crossed: [4600, 900],
+    xBrackets: [5600, 600],
+    pickO: [6300, 1500],
+    acYLabel: [7900, 600],
+    acXMinusYLabel: [8700, 600],
   },
-  4: { bdIn: [300, 1280], bdl: [1700, 2800] },
-  across: { xdim: [0, 350], cross: [200, 1500], sq: [1550, 400] },
+  4: { bdFromPile: [300, 1280], bdLabels: [1700, 2800] },
+  across: { xBrackets: [0, 350], crossed: [200, 1500], rightAngle: [1550, 400] },
   5: {
-    thinAB: [300, 1300],
-    t1l: [1700, 600],
-    thinCD: [2600, 1500],
-    t2l: [4200, 600],
+    abFromPile: [300, 1300],
+    abLabel: [1700, 600],
+    cdFromPile: [2600, 1500],
+    cdLabel: [4200, 600],
   },
-  6: { lay: [200, 1900], eqn: [2250, 600] },
-  7: { fade: [0, 800], prob: [0, 600], gather: [450, 1100] },
+  6: { onRuler: [200, 1900], equation: [2250, 600] },
+  7: { figureGone: [0, 800], problem: [0, 600], termsToWorking: [450, 1100] },
 };
 
 /** Values the scene itself turns into staged, eased movements, so they are animated at a steady rate. */
-const LINEAR_KEYS = new Set<LookKey>(['away', 'lay', 'pick', 'bdl']);
+const LINEAR_KEYS = new Set<LookKey>(['sidesToPile', 'onRuler', 'pickO', 'bdLabels']);
 
 /** The pause between two parts of one step, in ms. */
 const PAUSE_BETWEEN_PARTS_MS = 600;
 
 /** When each line of the working appears in step 7, in ms from the start of the step. */
 const SOLVE_SEQUENCE: [atMs: number, key: keyof typeof SOLVE][] = [
-  [2300, 'sol2'],
+  [2300, 'row2'],
   [3400, 'strike'],
-  [4300, 'sol3'],
-  [5600, 'sol4'],
-  [6900, 'sol5'],
-  [8300, 'sol6'],
+  [4300, 'row3'],
+  [5600, 'row4'],
+  [6900, 'row5'],
+  [8300, 'row6'],
 ];
 
 function makeSticksElement(look: Look, stepIdx: number): VisualElement<SticksState> {

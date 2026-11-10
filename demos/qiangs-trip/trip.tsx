@@ -42,12 +42,12 @@ const BUBBLE_OUT_MS = 220;
 /** Puts `key`'s words in the bubble and fades it in. Await it, or pass it to background() to carry on meanwhile. */
 function showBubble(c: StepAnimationController, key: BubbleKey): Promise<void> {
   scene.set(c, { bubbleKey: key });
-  return scene.to(c, { bubble0: 1 }, BUBBLE_IN_MS);
+  return scene.to(c, { bubbleOpacity: 1 }, BUBBLE_IN_MS);
 }
 
 /** Fades the bubble out: what a step with a bubble does on Next. */
 function hideBubble(c: StepAnimationController): Promise<void> {
-  return scene.to(c, { bubble0: 0 }, BUBBLE_OUT_MS);
+  return scene.to(c, { bubbleOpacity: 0 }, BUBBLE_OUT_MS);
 }
 
 /* ================= what the chart shows as each step begins ================= */
@@ -55,65 +55,65 @@ function hideBubble(c: StepAnimationController): Promise<void> {
 
 /** The empty chart, the point and the car at the start of the first part. */
 const PART1_START: Partial<TripState> = {
-  view: 1,
-  ptX: 0,
-  ptY: PART1.y,
-  hR: 5,
+  chartView: 1,
+  pointX: 0,
+  pointY: PART1.y,
+  handleRadius: 5,
   carX: 0,
-  xtOp: 0,
-  dragOn: false,
+  timeTicksOpacity: 0,
+  draggable: false,
 };
 
 /** The first part driven: its rectangle, labelled 15 mi, 30 mph tall and 0.5 h wide. */
 const PART1_DRAWN: Partial<TripState> = {
   ...PART1_START,
-  ptX: PART1.x,
+  pointX: PART1.x,
   carX: PART1.x,
-  r1Op: 1,
-  r1Lab: 1,
-  gdOp: 1,
-  gxOp: 1,
-  carOp: 1,
+  part1Opacity: 1,
+  part1LabelOpacity: 1,
+  speedChipOpacity: 1,
+  timeChipOpacity: 1,
+  carOpacity: 1,
   bubbleKey: 'none',
-  bubble0: 0,
+  bubbleOpacity: 0,
 };
 
 /** The second part driven: its rectangle at 55 mph, of unknown width. */
 const PART2_DRAWN: Partial<TripState> = {
   ...PART1_DRAWN,
-  r2Op: 1,
-  r2Rev: 2 / 3,
-  r2LabOp: 1,
-  y55: 1,
-  brkOp: 1,
+  part2Opacity: 1,
+  part2Reach: 2 / 3,
+  part2LabelOpacity: 1,
+  speed2ChipOpacity: 1,
+  time2BraceOpacity: 1,
   carX: 2.5,
 };
 
 /** The 50 mph average line across both parts; the car gone. */
 const AVERAGE_DRAWN: Partial<TripState> = {
   ...PART2_DRAWN,
-  avgP: 1,
-  carOp: 0,
+  averageProgress: 1,
+  carOpacity: 0,
 };
 
 /** The deficit and the surplus outlined in pink. */
 const AREAS_OUTLINED: Partial<TripState> = {
   ...AVERAGE_DRAWN,
-  hiOp: 1,
-  eqOp: 0,
+  areasOutlineOpacity: 1,
+  equalArrowsOpacity: 0,
 };
 
 /** Both areas labelled 10 mi. */
 const AREAS_LABELLED: Partial<TripState> = {
   ...AREAS_OUTLINED,
-  hlOp: 1,
+  areasLabelOpacity: 1,
 };
 
 /** The second part's time found: 2 h, ending at 2.5 h. */
 const TIME2_FOUND: Partial<TripState> = {
   ...AREAS_LABELLED,
-  lab: 1,
-  x25: 1,
+  time2Known: 1,
+  endTimeChipOpacity: 1,
 };
 
 /* ================= the steps ================= */
@@ -135,13 +135,13 @@ export const qiangsTripDemo: DemoConfig = {
       stepNumber: 2,
       title: 'Problem Description',
       summary: 'The trip as a road',
-      initialElements: [makeTripElement({ stepIdx: 1, view: 0, road: 0 })],
+      initialElements: [makeTripElement({ stepIdx: 1, chartView: 0, roadProgress: 0 })],
       async play(c) {
-        // The road draws itself on its own timeline (ROAD in TripScene.tsx), so `road` moves at a steady rate.
-        await scene.to(c, { road: 1 }, ROAD_MS, 'linear');
+        // The road draws itself on its own timeline (ROAD in TripScene.tsx), so `roadProgress` moves at a steady rate.
+        await scene.to(c, { roadProgress: 1 }, ROAD_MS, 'linear');
       },
       async exit({ controller }) {
-        await scene.to(controller, { view: 1 }, 1100);
+        await scene.to(controller, { chartView: 1 }, 1100);
       },
     },
     {
@@ -151,23 +151,23 @@ export const qiangsTripDemo: DemoConfig = {
       initialElements: [
         makeTripElement({
           stepIdx: 2,
-          view: 1,
-          road: 1,
-          ptX: START.x,
-          ptY: START.y,
-          uX: START.x,
-          uY: START.y,
-          dragOn: true,
+          chartView: 1,
+          roadProgress: 1,
+          pointX: START.x,
+          pointY: START.y,
+          pickedX: START.x,
+          pickedY: START.y,
+          draggable: true,
         }),
       ],
       async play(c) {
-        await scene.to(c, { hOp: 1, ring: 1, r1Op: 1, r1Lab: 1, gdOp: 1, gxOp: 1, fOp: 1 }, 500);
+        await scene.to(c, { handleOpacity: 1, handleRing: 1, part1Opacity: 1, part1LabelOpacity: 1, speedChipOpacity: 1, timeChipOpacity: 1, formulaOpacity: 1 }, 500);
       },
       async exit({ controller }) {
-        scene.set(controller, { dragOn: false });
+        scene.set(controller, { draggable: false });
         await scene.to(
           controller,
-          { hOp: 0, ring: 0, r1Op: 0, r1Lab: 0, gdOp: 0, gxOp: 0, fOp: 0, xtOp: 0 },
+          { handleOpacity: 0, handleRing: 0, part1Opacity: 0, part1LabelOpacity: 0, speedChipOpacity: 0, timeChipOpacity: 0, formulaOpacity: 0, timeTicksOpacity: 0 },
           220
         );
       },
@@ -178,17 +178,17 @@ export const qiangsTripDemo: DemoConfig = {
       summary: 'Part 1: 0.5 hours',
       initialElements: [makeTripElement({ ...PART1_START, stepIdx: 3 })],
       async play(c) {
-        scene.set(c, { r1Op: 1 });
-        background(scene.to(c, { carOp: 1 }, 350));
+        scene.set(c, { part1Opacity: 1 });
+        background(scene.to(c, { carOpacity: 1 }, 350));
         await c.wait(200);
-        background(scene.to(c, { gdOp: 1 }, 400));
+        background(scene.to(c, { speedChipOpacity: 1 }, 400));
         await c.wait(900);
-        await scene.to(c, { carX: PART1.x, ptX: PART1.x }, 1500);
+        await scene.to(c, { carX: PART1.x, pointX: PART1.x }, 1500);
         await c.wait(150);
-        background(scene.to(c, { r1Lab: 1 }, 500));
+        background(scene.to(c, { part1LabelOpacity: 1 }, 500));
         await c.wait(150);
         await showBubble(c, 'time1');
-        await scene.to(c, { gxOp: 1 }, 400);
+        await scene.to(c, { timeChipOpacity: 1 }, 400);
       },
       async exit({ controller }) {
         await hideBubble(controller);
@@ -200,13 +200,13 @@ export const qiangsTripDemo: DemoConfig = {
       summary: 'Part 2: unknown time',
       initialElements: [makeTripElement({ ...PART1_DRAWN, stepIdx: 4 })],
       async play(c) {
-        scene.set(c, { r2Op: 1 });
-        background(scene.to(c, { y55: 1 }, 400));
+        scene.set(c, { part2Opacity: 1 });
+        background(scene.to(c, { speed2ChipOpacity: 1 }, 400));
         await c.wait(1000);
-        await scene.to(c, { carX: 2.5, r2Rev: 2 / 3 }, 2000);
-        background(scene.to(c, { r2LabOp: 1 }, 500));
+        await scene.to(c, { carX: 2.5, part2Reach: 2 / 3 }, 2000);
+        background(scene.to(c, { part2LabelOpacity: 1 }, 500));
         await c.wait(150);
-        await scene.to(c, { brkOp: 1 }, 500);
+        await scene.to(c, { time2BraceOpacity: 1 }, 500);
       },
     },
     {
@@ -215,8 +215,8 @@ export const qiangsTripDemo: DemoConfig = {
       summary: 'The average speed',
       initialElements: [makeTripElement({ ...PART2_DRAWN, stepIdx: 5 })],
       async play(c) {
-        background(scene.to(c, { carOp: 0 }, 500));
-        await scene.to(c, { avgP: 1 }, 1000);
+        background(scene.to(c, { carOpacity: 0 }, 500));
+        await scene.to(c, { averageProgress: 1 }, 1000);
       },
     },
     {
@@ -226,14 +226,14 @@ export const qiangsTripDemo: DemoConfig = {
       initialElements: [makeTripElement({ ...AVERAGE_DRAWN, stepIdx: 6 })],
       async play(c) {
         await c.wait(300);
-        background(scene.to(c, { hiOp: 1 }, 600));
+        background(scene.to(c, { areasOutlineOpacity: 1 }, 600));
         await c.wait(1100);
         background(showBubble(c, 'equal'));
-        await scene.to(c, { eqOp: 1 }, 450);
+        await scene.to(c, { equalArrowsOpacity: 1 }, 450);
       },
       async exit({ controller }) {
         // the bubble, and the two arrows that point from it at the areas
-        await scene.to(controller, { bubble0: 0, eqOp: 0 }, BUBBLE_OUT_MS);
+        await scene.to(controller, { bubbleOpacity: 0, equalArrowsOpacity: 0 }, BUBBLE_OUT_MS);
       },
     },
     {
@@ -245,7 +245,7 @@ export const qiangsTripDemo: DemoConfig = {
         await c.wait(300);
         background(showBubble(c, 'area'));
         await c.wait(1000);
-        await scene.to(c, { hlOp: 1 }, 500);
+        await scene.to(c, { areasLabelOpacity: 1 }, 500);
       },
       async exit({ controller }) {
         await hideBubble(controller);
@@ -260,7 +260,7 @@ export const qiangsTripDemo: DemoConfig = {
         await c.wait(300);
         background(showBubble(c, 'time2'));
         await c.wait(1500);
-        await scene.to(c, { lab: 1, x25: 1 }, 500);
+        await scene.to(c, { time2Known: 1, endTimeChipOpacity: 1 }, 500);
       },
       async exit({ controller }) {
         await hideBubble(controller);
@@ -275,7 +275,7 @@ export const qiangsTripDemo: DemoConfig = {
         await c.wait(300);
         background(showBubble(c, 'answer'));
         await c.wait(1200);
-        await scene.to(c, { ans: 1 }, 500);
+        await scene.to(c, { distance2Known: 1 }, 500);
       },
     },
   ],

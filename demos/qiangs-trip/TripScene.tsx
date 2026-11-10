@@ -101,76 +101,76 @@ const SAY: Record<BubbleKey, ReactNode> = {
 
 export interface TripState {
   stepIdx: number;
-  view: number;
-  road: number;
-  ptX: number;
-  ptY: number;
-  uX: number;
-  uY: number;
-  dragOn: boolean;
-  hR: number;
-  hOp: number;
-  ring: number;
-  hov: number;
-  fOp: number;
-  xtOp: number;
-  r1Op: number;
-  r1Lab: number;
-  gdOp: number;
-  gxOp: number;
-  carOp: number;
+  chartView: number;
+  roadProgress: number;
+  pointX: number;
+  pointY: number;
+  pickedX: number;
+  pickedY: number;
+  draggable: boolean;
+  handleRadius: number;
+  handleOpacity: number;
+  handleRing: number;
+  handleHover: number;
+  formulaOpacity: number;
+  timeTicksOpacity: number;
+  part1Opacity: number;
+  part1LabelOpacity: number;
+  speedChipOpacity: number;
+  timeChipOpacity: number;
+  carOpacity: number;
   carX: number;
-  r2Op: number;
-  r2Rev: number;
-  r2LabOp: number;
-  y55: number;
-  brkOp: number;
-  avgP: number;
-  hiOp: number;
-  eqOp: number;
-  hlOp: number;
-  lab: number;
-  x25: number;
-  ans: number;
+  part2Opacity: number;
+  part2Reach: number;
+  part2LabelOpacity: number;
+  speed2ChipOpacity: number;
+  time2BraceOpacity: number;
+  averageProgress: number;
+  areasOutlineOpacity: number;
+  equalArrowsOpacity: number;
+  areasLabelOpacity: number;
+  time2Known: number;
+  endTimeChipOpacity: number;
+  distance2Known: number;
   bubbleKey: BubbleKey;
-  bubble0: number;
+  bubbleOpacity: number;
 }
 
 export const BASE_STATE: TripState = {
   stepIdx: 0,
-  view: 0,
-  road: 0,
-  ptX: START.x,
-  ptY: START.y,
-  uX: START.x,
-  uY: START.y,
-  dragOn: false,
-  hR: 11,
-  hOp: 0,
-  ring: 0,
-  hov: 0,
-  fOp: 0,
-  xtOp: 1,
-  r1Op: 0,
-  r1Lab: 0,
-  gdOp: 0,
-  gxOp: 0,
-  carOp: 0,
+  chartView: 0,
+  roadProgress: 0,
+  pointX: START.x,
+  pointY: START.y,
+  pickedX: START.x,
+  pickedY: START.y,
+  draggable: false,
+  handleRadius: 11,
+  handleOpacity: 0,
+  handleRing: 0,
+  handleHover: 0,
+  formulaOpacity: 0,
+  timeTicksOpacity: 1,
+  part1Opacity: 0,
+  part1LabelOpacity: 0,
+  speedChipOpacity: 0,
+  timeChipOpacity: 0,
+  carOpacity: 0,
   carX: 0.5,
-  r2Op: 0,
-  r2Rev: 0,
-  r2LabOp: 0,
-  y55: 0,
-  brkOp: 0,
-  avgP: 0,
-  hiOp: 0,
-  eqOp: 0,
-  hlOp: 0,
-  lab: 0,
-  x25: 0,
-  ans: 0,
+  part2Opacity: 0,
+  part2Reach: 0,
+  part2LabelOpacity: 0,
+  speed2ChipOpacity: 0,
+  time2BraceOpacity: 0,
+  averageProgress: 0,
+  areasOutlineOpacity: 0,
+  equalArrowsOpacity: 0,
+  areasLabelOpacity: 0,
+  time2Known: 0,
+  endTimeChipOpacity: 0,
+  distance2Known: 0,
   bubbleKey: 'none',
-  bubble0: 0,
+  bubbleOpacity: 0,
 };
 
 /* attributes for a rect and a text placed from the drawing's numbers (opacity clamped to 0–1) */
@@ -277,7 +277,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
     formulaRef,
     () => (pw ? { w: formulaRef.current!.offsetWidth, h: formulaRef.current!.offsetHeight } : undefined),
     { w: 0, h: 0 },
-    [S.uX, S.uY, pw]
+    [S.pickedX, S.pickedY, pw]
   );
   const bubble = useMeasure(
     bubbleRef,
@@ -303,17 +303,17 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
   useEffect(() => () => window.cancelAnimationFrame(tweenRafRef.current), []);
 
   function animatePointTo(x: number, y: number) {
-    if (x === S.uX && y === S.uY) return;
+    if (x === S.pickedX && y === S.pickedY) return;
     window.cancelAnimationFrame(tweenRafRef.current);
-    const fromX = S.ptX,
-      fromY = S.ptY;
+    const fromX = S.pointX,
+      fromY = S.pointY;
     const t0 = performance.now();
     const dur = 140;
-    updateState({ uX: x, uY: y });
+    updateState({ pickedX: x, pickedY: y });
     const tick = (now: number) => {
       const uVal = Math.min(1, (now - t0) / dur);
       const eased = uVal >= 1 ? 1 : stdEaseOut(uVal);
-      updateState({ ptX: lerp(fromX, x, eased), ptY: lerp(fromY, y, eased), uX: x, uY: y });
+      updateState({ pointX: lerp(fromX, x, eased), pointY: lerp(fromY, y, eased), pickedX: x, pickedY: y });
       if (uVal < 1) tweenRafRef.current = window.requestAnimationFrame(tick);
     };
     tweenRafRef.current = window.requestAnimationFrame(tick);
@@ -322,8 +322,8 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
   function onPoint(e: React.PointerEvent) {
     const b = svgRef.current!.getBoundingClientRect(),
       r = e.pointerType === 'mouse' ? 28 : 40;
-    const dx = e.clientX - b.left - px(S.ptX),
-      dy = e.clientY - b.top - py(S.ptY);
+    const dx = e.clientX - b.left - px(S.pointX),
+      dy = e.clientY - b.top - py(S.pointY);
     return dx * dx + dy * dy < r * r;
   }
 
@@ -341,28 +341,28 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
 
   const capHandlers = {
     onPointerDown(e: React.PointerEvent<SVGRectElement>) {
-      if (!S.dragOn || !onPoint(e)) return;
+      if (!S.draggable || !onPoint(e)) return;
       e.preventDefault();
       dragRef.current = true;
       setDragging(true);
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch (_) {}
-      updateState({ hov: 1 });
+      updateState({ handleHover: 1 });
     },
     onPointerMove(e: React.PointerEvent<SVGRectElement>) {
-      if (!S.dragOn) return;
+      if (!S.draggable) return;
       if (dragRef.current) {
         moveTo(e);
         return;
       }
       const isNear = onPoint(e);
       setNear(isNear);
-      if (S.hov > 0.5 !== isNear) updateState({ hov: isNear ? 1 : 0 });
+      if (S.handleHover > 0.5 !== isNear) updateState({ handleHover: isNear ? 1 : 0 });
     },
     onPointerLeave() {
       setNear(false);
-      if (!dragRef.current && S.hov !== 0) updateState({ hov: 0 });
+      if (!dragRef.current && S.handleHover !== 0) updateState({ handleHover: 0 });
     },
     onPointerUp: endDrag,
     onPointerCancel: endDrag,
@@ -370,9 +370,9 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
   };
 
   function onHandleKey(e: React.KeyboardEvent) {
-    if (!S.dragOn) return;
-    let x = S.uX,
-      y = S.uY;
+    if (!S.draggable) return;
+    let x = S.pickedX,
+      y = S.pickedY;
     switch (e.key) {
       case 'ArrowLeft':
         x -= 0.5;
@@ -398,24 +398,24 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
 
   const x0 = px(0),
     y0 = py(0);
-  const P = S.stepIdx === EXPLORE ? { x: S.uX, y: S.uY } : PART1;
+  const P = S.stepIdx === EXPLORE ? { x: S.pickedX, y: S.pickedY } : PART1;
 
   // the first part's rectangle: its corner is the point
-  const rx = px(S.ptX),
-    ry = py(S.ptY),
+  const rx = px(S.pointX),
+    ry = py(S.pointY),
     w1 = rx - x0,
     h1 = y0 - ry;
   const small = w1 < 62;
   const yTxt = fmt(P.y),
     yW = 14 + 8 * yTxt.length;
-  const hr = S.hR + 2.5 * S.hov;
+  const hr = S.handleRadius + 2.5 * S.handleHover;
 
   // the second part's rectangle, its brace, and the average line
   const a = px(0.5),
     b = px(XM),
     t55 = py(55),
     t50 = py(50);
-  const bx = a + (b - a) * S.r2Rev;
+  const bx = a + (b - a) * S.part2Reach;
   const big = pw >= 420 ? 26 : 20;
   const by = py(58);
   const brkPoints =
@@ -431,7 +431,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
     dW = px(0.5) - x0,
     dcx = x0 + dW / 2;
   const ins = Math.min(7, dW / 5);
-  const hlo = S.hlOp * S.hiOp,
+  const hlo = S.areasLabelOpacity * S.areasOutlineOpacity,
     narrowH = dW - 2 * ins < 60,
     hfs = (pw < 420 ? 14 : 17) + 'px';
 
@@ -449,11 +449,11 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
     time2: [px(1.5), py(58) + 3, 'above'],
     answer: [px(1.5), py(27) + 16, 'below'],
   };
-  const bubbleOp = clamp(S.bubble0 || 0, 0, 1);
+  const bubbleOp = clamp(S.bubbleOpacity || 0, 0, 1);
   const anchor = anchors[S.bubbleKey];
   const placed =
     anchor && bubbleOp >= 0.001 ? placeBubble(anchor, bubble, { x: M.l, y: M.t, w: pw, h: ph }) : null;
-  const eqOn = S.eqOp > 0.001 && S.bubble0 > 0.001 && placed;
+  const eqOn = S.equalArrowsOpacity > 0.001 && S.bubbleOpacity > 0.001 && placed;
   let eqA: string | undefined, eqB: string | undefined;
   if (eqOn) {
     const { left: bl, top: bt } = eqOn;
@@ -471,8 +471,8 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
   const yx = narrow ? 15 : 18,
     yy = M.t + ph / 2;
 
-  const intro = 1 - 2 * S.view,
-    chart = 2 * S.view - 1;
+  const intro = 1 - 2 * S.chartView,
+    chart = 2 * S.chartView - 1;
 
   return (
     <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%' }}>
@@ -491,7 +491,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
           <b className="c-ink">50 miles per hour</b>
           {' for the entire trip?'}
         </p>
-        <Road road={S.road} />
+        <Road road={S.roadProgress} />
       </div>
 
       <div
@@ -524,7 +524,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
             <line className="axis" x1={M.l} x2={M.l} y1={M.t} y2={M.t + ph} />
             <line className="axis" x1={M.l} x2={M.l + pw} y1={M.t + ph} y2={M.t + ph} />
           </g>
-          <g opacity={clamp(S.xtOp, 0, 1)}>
+          <g opacity={clamp(S.timeTicksOpacity, 0, 1)}>
             {times.map((t) => (
               <text key={t} className="tick" x={px(t)} y={py(0) + 19} textAnchor="middle">
                 {t < XM - 1e-9 ? fmt(t) : null}
@@ -532,26 +532,26 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
             ))}
           </g>
 
-          <rect className="rc r1" {...rectAt(x0, ry, w1, h1, S.r1Op)} />
-          <rect className="rc r2" {...rectAt(a, t55, bx - a, y0 - t55, S.r2Op)} />
-          <line className="avg" x1={x0} x2={x0 + S.avgP * (bx - x0)} y1={ay} y2={ay} opacity={clamp(S.avgP * 5, 0, 1)} />
-          <polyline className="brk" points={brkPoints} opacity={clamp(S.brkOp, 0, 1)} />
-          <rect className="hi" {...rectAt(x0 + ins, dT + ins, dW - 2 * ins, dB - dT - 2 * ins, S.hiOp)} />
-          <rect className="hi" {...rectAt(a + ins, t55 + ins, bx - a - 2 * ins, t50 - t55 - 2 * ins, S.hiOp)} />
-          <path className="eqa" d={eqA} opacity={eqOn ? clamp(S.eqOp, 0, 1) : 0} />
-          <path className="eqa" d={eqB} opacity={eqOn ? clamp(S.eqOp, 0, 1) : 0} />
+          <rect className="rc r1" {...rectAt(x0, ry, w1, h1, S.part1Opacity)} />
+          <rect className="rc r2" {...rectAt(a, t55, bx - a, y0 - t55, S.part2Opacity)} />
+          <line className="avg" x1={x0} x2={x0 + S.averageProgress * (bx - x0)} y1={ay} y2={ay} opacity={clamp(S.averageProgress * 5, 0, 1)} />
+          <polyline className="brk" points={brkPoints} opacity={clamp(S.time2BraceOpacity, 0, 1)} />
+          <rect className="hi" {...rectAt(x0 + ins, dT + ins, dW - 2 * ins, dB - dT - 2 * ins, S.areasOutlineOpacity)} />
+          <rect className="hi" {...rectAt(a + ins, t55 + ins, bx - a - 2 * ins, t50 - t55 - 2 * ins, S.areasOutlineOpacity)} />
+          <path className="eqa" d={eqA} opacity={eqOn ? clamp(S.equalArrowsOpacity, 0, 1) : 0} />
+          <path className="eqa" d={eqB} opacity={eqOn ? clamp(S.equalArrowsOpacity, 0, 1) : 0} />
 
           <text
             className="tx c-ink"
             style={{ fontSize: (small ? 13 : 17) + 'px' }}
-            {...textAt(x0 + w1 / 2, ry + h1 / 2 + 5, S.r1Op * S.r1Lab)}
+            {...textAt(x0 + w1 / 2, ry + h1 / 2 + 5, S.part1Opacity * S.part1LabelOpacity)}
           >
-            {fmt(Math.round(S.ptX * S.ptY * 10) / 10) + ' mi'}
+            {fmt(Math.round(S.pointX * S.pointY * 10) / 10) + ' mi'}
           </text>
-          <text className="tx c-ink" style={{ fontSize: big + 'px' }} {...textAt(px(1.5), py(27) + 4, S.r2LabOp * (1 - S.ans))}>
+          <text className="tx c-ink" style={{ fontSize: big + 'px' }} {...textAt(px(1.5), py(27) + 4, S.part2LabelOpacity * (1 - S.distance2Known))}>
             ? mi
           </text>
-          <text className="tx c-ink" style={{ fontSize: big + 'px' }} {...textAt(px(1.5), py(27) + 4, S.r2LabOp * S.ans)}>
+          <text className="tx c-ink" style={{ fontSize: big + 'px' }} {...textAt(px(1.5), py(27) + 4, S.part2LabelOpacity * S.distance2Known)}>
             110 mi
           </text>
           <text
@@ -574,17 +574,17 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
           <text
             className="tx c-ink halo"
             style={{ textAnchor: 'start', fontSize: afs + 'px' }}
-            {...textAt(ax, avgWrap ? ay + afs * 0.33 - afs * 0.55 : ay + afs * 0.33, (S.avgP - 0.75) * 4)}
+            {...textAt(ax, avgWrap ? ay + afs * 0.33 - afs * 0.55 : ay + afs * 0.33, (S.averageProgress - 0.75) * 4)}
           >
             <tspan>average</tspan>
             <tspan x={avgWrap ? ax : undefined} dy={avgWrap ? afs * 1.1 : undefined}>
               {avgWrap ? 'speed' : ' speed'}
             </tspan>
           </text>
-          <text className="tx c-ink" style={{ fontSize: '18px' }} {...textAt(px(1.5), by + 20, S.brkOp * (1 - S.lab))}>
+          <text className="tx c-ink" style={{ fontSize: '18px' }} {...textAt(px(1.5), by + 20, S.time2BraceOpacity * (1 - S.time2Known))}>
             ? h
           </text>
-          <text className="tx c-ink" style={{ fontSize: '18px' }} {...textAt(px(1.5), by + 20, S.brkOp * S.lab)}>
+          <text className="tx c-ink" style={{ fontSize: '18px' }} {...textAt(px(1.5), by + 20, S.time2BraceOpacity * S.time2Known)}>
             2 h
           </text>
           <text
@@ -605,13 +605,13 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
             average speed (mph)
           </text>
 
-          <Chip colour="blue" cx={rx} cy={y0 + 17} text={fmt(P.x)} opacity={S.gxOp * S.r1Op} />
-          <Chip colour="orange" cx={px(2.5)} cy={y0 + 17} text="2.5" opacity={S.x25} />
-          <Chip colour="blue" cx={M.l - 4 - yW / 2} cy={ry} text={yTxt} opacity={S.gdOp * S.r1Op} minWidth={yW} />
-          <Chip colour="orange" cx={M.l - 19} cy={py(55)} text="55" opacity={S.y55} minWidth={30} />
-          <Chip colour="ink" cx={M.l - 19} cy={py(50)} text="50" opacity={clamp(S.avgP * 3, 0, 1)} minWidth={30} />
+          <Chip colour="blue" cx={rx} cy={y0 + 17} text={fmt(P.x)} opacity={S.timeChipOpacity * S.part1Opacity} />
+          <Chip colour="orange" cx={px(2.5)} cy={y0 + 17} text="2.5" opacity={S.endTimeChipOpacity} />
+          <Chip colour="blue" cx={M.l - 4 - yW / 2} cy={ry} text={yTxt} opacity={S.speedChipOpacity * S.part1Opacity} minWidth={yW} />
+          <Chip colour="orange" cx={M.l - 19} cy={py(55)} text="55" opacity={S.speed2ChipOpacity} minWidth={30} />
+          <Chip colour="ink" cx={M.l - 19} cy={py(50)} text="50" opacity={clamp(S.averageProgress * 3, 0, 1)} minWidth={30} />
 
-          <g opacity={clamp(S.carOp, 0, 1)} transform={'translate(' + px(S.carX) + ' ' + y0 + ') scale(1.2)'}>
+          <g opacity={clamp(S.carOpacity, 0, 1)} transform={'translate(' + px(S.carX) + ' ' + y0 + ') scale(1.2)'}>
             <rect className="tcb" x={-15} y={-14} width={30} height={8} rx={3} />
             <path className="tcb" d="M-7 -14 L-3.5 -21 H5 L9.5 -14 Z" />
             <circle className="tcw" cx={-7.5} cy={-4} r={4} />
@@ -620,26 +620,26 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
 
           <g
             className="handle"
-            tabIndex={S.dragOn ? 0 : -1}
+            tabIndex={S.draggable ? 0 : -1}
             role="slider"
             aria-label="Point: speed and time. Arrow keys move it."
-            aria-valuetext={S.uY + ' mph, ' + S.uX + ' hours, ' + fmt(S.uX * S.uY) + ' miles'}
+            aria-valuetext={S.pickedY + ' mph, ' + S.pickedX + ' hours, ' + fmt(S.pickedX * S.pickedY) + ' miles'}
             transform={'translate(' + rx + ' ' + ry + ')'}
-            opacity={clamp(S.hOp, 0, 1)}
+            opacity={clamp(S.handleOpacity, 0, 1)}
             onKeyDown={onHandleKey}
           >
-            <circle className="hring" r={hr + 8} style={{ display: S.ring > 0.05 ? undefined : 'none' }} />
+            <circle className="hring" r={hr + 8} style={{ display: S.handleRing > 0.05 ? undefined : 'none' }} />
             <circle className="hfocus" r={hr + 6} />
             <circle className="hcore" r={String(hr)} />
             <path
               className="hicon"
               d="M-5 0H5M0-5V5M-2-3L0-5L2-3M-2 3L0 5L2 3M-3-2L-5 0L-3 2M3-2L5 0L3 2"
-              opacity={clamp((S.hR - 6) / 5, 0, 1)}
+              opacity={clamp((S.handleRadius - 6) / 5, 0, 1)}
             />
           </g>
           <rect
-            className={'cap-hit' + (S.dragOn ? ' on' : '') + (dragging ? ' drag' : '') + (near ? ' near' : '')}
-            style={{ pointerEvents: S.dragOn ? 'all' : 'none' }}
+            className={'cap-hit' + (S.draggable ? ' on' : '') + (dragging ? ' drag' : '') + (near ? ' near' : '')}
+            style={{ pointerEvents: S.draggable ? 'all' : 'none' }}
             {...rectAt(M.l, M.t, pw, ph)}
             {...capHandlers}
           />
@@ -663,22 +663,22 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
           style={{
             maxWidth: pw ? pw - 16 : undefined,
             transform: 'translate(' + fx + 'px,' + fy + 'px)',
-            opacity: clamp(S.fOp, 0, 1),
+            opacity: clamp(S.formulaOpacity, 0, 1),
           }}
         >
           <span className="w">distance = speed × time =</span>{' '}
           <span>
-            <b className="c-blue">{fmt(S.uY)}</b>
+            <b className="c-blue">{fmt(S.pickedY)}</b>
             <u>mph</u>
           </span>
           {' × '}
           <span>
-            <b className="c-blue">{fmt(S.uX)}</b>
+            <b className="c-blue">{fmt(S.pickedX)}</b>
             <u>h</u>
           </span>
           {' = '}
           <span>
-            <b className="c-blue z">{fmt(S.uX * S.uY)}</b>
+            <b className="c-blue z">{fmt(S.pickedX * S.pickedY)}</b>
             <u>mi</u>
           </span>
         </div>

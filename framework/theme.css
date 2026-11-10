@@ -367,6 +367,9 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
    and hides it from the animated values. */
 .deck{display:flex;flex-direction:column;padding:0 clamp(12px, 3vw, 32px) 12px}
 .stage{position:relative;flex:1;min-height:0;min-width:0;display:flex;flex-direction:column}
+.fw-visual-element{position:absolute;inset:0;display:flex;flex-direction:column;pointer-events:none}
+:where(.fw-visual-element) > *{pointer-events:auto}
+.fw-visual-element[data-inactive="true"] *{pointer-events:none!important}
 
 /* ---- the title band at the top (built by nav.js): the home link on the left, the step's title in the middle ---- */
 .titlebar{flex:none;height:56px;display:grid;grid-template-columns:var(--side, 120px) minmax(0,1fr) var(--side, 120px);

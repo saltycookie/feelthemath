@@ -10,7 +10,7 @@
 
 import { clamp } from './deck.js';
 
-export function createBubbles(container, { count = 1, bounds, gap = 11, inset = 4, maxWidth = 360 } = {}) {
+export function createBubbles(container, { count = 1, bounds = () => ({ x: 0, y: 0, w: 0, h: 0 }), gap = 11, inset = 4, maxWidth = 360 } = {}) {
   const els = [], sizes = [], anchors = [], rects = [];
   for (let i = 0; i < count; i++) {
     const el = document.createElement('div');

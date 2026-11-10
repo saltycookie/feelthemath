@@ -29,14 +29,14 @@ How the framework works, and how to start a new demo: [framework/README.md](fram
 
 **Online:** <https://feelthemath.app/>
 
-**On your computer:** the demos use JavaScript modules, which browsers only load from a web server,
-so double-clicking `index.html` won't work. From this folder run
+**On your computer:** install dependencies once with `npm install`, then run the development server or build static files for GitHub Pages (`github.io`):
 
 ```sh
-python3 -m http.server
+npm install
+npm run dev       # local dev server at http://localhost:5173
+npm run build     # compiles static files into dist/ (no backend server required)
+npm run preview   # preview the compiled static build in dist/
 ```
-
-then open <http://localhost:8000>. Any other static server works too.
 
 ## Folder layout
 

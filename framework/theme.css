@@ -195,7 +195,12 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
      dimness of the bottom of the box.
    - .box-walls, over both: the tops of the walls, square-cornered (the border, --box-wall), with a fine fold where
      each top meets the wall's inner side. */
-.box-piece{position:fixed;pointer-events:none}
+/* box.ts lays the pieces on the page itself just before the browser takes its pictures, and going back to the front
+   page, the browser keeps showing that last frame of the demo until the front page is ready to draw. So on the page
+   they lie under the .deck (z-index:-1), whose paper hides them: over it, they would cover the demo with an empty,
+   darkened box until the front page came (a flash before the lid closes). Each piece's own picture is still taken
+   whole, and the pictures are stacked as the transition needs (the view-transition-group z-indexes below). */
+.box-piece{position:fixed;z-index:-1;pointer-events:none}
 .box-inside{background:var(--paper);--in:var(--box-shadow-ink)}
 .box-inside::before{content:"";position:absolute;inset:var(--box-wall);          /* behind the sides: it shows as a fine crease */
   background:color-mix(in srgb, var(--paper), var(--in) 40%)}                /*   in each corner, where two sides meet */

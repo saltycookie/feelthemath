@@ -3,12 +3,10 @@
 //
 // WalkScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
 
-import { flushSync } from 'react-dom';
-import { createRoot } from 'react-dom/client';
 import {
   DemoConfig,
-  MathDemoPlayer,
   VisualElement,
+  mountDemo,
 } from '../../framework';
 import {
   BASE_STATE,
@@ -412,10 +410,4 @@ export const dannysWalkDemo: DemoConfig = {
   ],
 };
 
-const container = document.getElementById('deck');
-if (container) {
-  const root = createRoot(container);
-  flushSync(() => {
-    root.render(<MathDemoPlayer demo={dannysWalkDemo} />);
-  });
-}
+mountDemo(dannysWalkDemo);

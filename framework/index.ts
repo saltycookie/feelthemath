@@ -9,5 +9,6 @@ export * from './components/TitleBar';
 export * from './components/NavigationPanel';
 export * from './components/DemoCanvas';
 export * from './components/MathDemoPlayer';
+export * from './mount';
 export * from './components/Bubble';
 export * from './components/Chip';

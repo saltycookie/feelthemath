@@ -3,13 +3,11 @@
 //
 // SticksScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
 
-import { flushSync } from 'react-dom';
-import { createRoot } from 'react-dom/client';
 import {
   DemoConfig,
-  MathDemoPlayer,
   StepAnimationController,
   VisualElement,
+  mountDemo,
 } from '../../framework';
 import {
   BASE,
@@ -253,10 +251,4 @@ export const twoSticksDemo: DemoConfig = {
   ],
 };
 
-const container = document.getElementById('deck');
-if (container) {
-  const root = createRoot(container);
-  flushSync(() => {
-    root.render(<MathDemoPlayer demo={twoSticksDemo} />);
-  });
-}
+mountDemo(twoSticksDemo);

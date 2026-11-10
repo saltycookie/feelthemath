@@ -98,7 +98,14 @@ export const Bubble = forwardRef<HTMLDivElement, BubbleProps>(function Bubble(
     style['--tp'] = placement.tp + 'px';
   }
   return (
-    <div ref={ref} className="bubble" data-tail={placement?.tail} style={style}>
+    <div
+      ref={ref}
+      className="bubble"
+      data-tail={placement?.tail}
+      // A faded-out bubble stays on the page to be measured; keep it from being read out meanwhile.
+      aria-hidden={opacity <= 0 || undefined}
+      style={style}
+    >
       {children}
     </div>
   );

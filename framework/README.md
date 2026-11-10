@@ -18,6 +18,7 @@ exitAnimation.ts               canonical state cloning and default 250ms exit an
 useMeasure.ts                  reads sizes from the page for a renderer to draw from (see "Drawing a scene" below)
 math.ts                        clamp, lerp and easing curves
 paths.ts                       path data for SVG drawings (arrowPath)
+mount.tsx                      mountDemo: renders a demo's MathDemoPlayer into the page's #deck element
 components/MathDemoPlayer.tsx  top-level player component wiring useStepEngine, DemoCanvas, NavigationPanel, and box.ts
 components/DemoCanvas.tsx      renders TitleBar and .stage with VisualElement wrappers
 components/TitleBar.tsx        top title bar with the "All demos" home link and centered step title
@@ -30,12 +31,10 @@ box.ts                         the demo's side of it: the paper sinking into the
 
 ## How a demo works
 
-A demo defines a `DemoConfig` object and renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`:
+A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`:
 
 ```tsx
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { DemoConfig, MathDemoPlayer } from '../../framework';
+import { mountDemo, type DemoConfig } from '../../framework';
 
 export const myDemo: DemoConfig = {
   id: 'my-demo',
@@ -75,7 +74,7 @@ export const myDemo: DemoConfig = {
   ],
 };
 
-createRoot(document.getElementById('deck')!).render(<MathDemoPlayer demo={myDemo} />);
+mountDemo(myDemo);
 ```
 
 ### Step lifecycle rules

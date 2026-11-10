@@ -1,6 +1,7 @@
-// Two Perpendicular Sticks — migrated to the React MathDemoPlayer framework while preserving all content, style, animation, and wording.
+// Two Perpendicular Sticks: AB + CD = 10 cm: how long is AC? The figure is rebuilt with sticks, which are laid end to
+// end on a ruler.
 
-import { useLayoutEffect, useRef } from 'react';
+import React, { Fragment, ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
@@ -9,6 +10,7 @@ import {
   MathDemoPlayer,
   StepAnimationController,
   VisualElement,
+  useMeasure,
 } from '../../framework';
 
 /* ================= the setup (lengths in cm) ================= */
@@ -166,30 +168,6 @@ export type SticksState = typeof BASE &
   };
 
 /* ================= helpers ================= */
-const NS = 'http://www.w3.org/2000/svg';
-function mk(
-  tagName: string,
-  attrs?: Record<string, any> | null,
-  parent?: Element
-) {
-  const e = document.createElementNS(NS, tagName);
-  if (attrs) for (const k in attrs) e.setAttribute(k, String(attrs[k]));
-  if (parent) parent.appendChild(e);
-  return e;
-}
-function tag(
-  name: string,
-  attrs?: Record<string, any> | null,
-  html?: string,
-  parent?: HTMLElement
-) {
-  const e = document.createElement(name);
-  if (attrs) for (const k in attrs) e.setAttribute(k, String(attrs[k]));
-  if (html) e.innerHTML = html;
-  if (parent) parent.appendChild(e);
-  return e;
-}
-
 interface Pt {
   x: number;
   y: number;
@@ -213,38 +191,19 @@ const dirDeg = (a: number): Pt => ({
 });
 const ease = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-const op = (e: SVGElement | HTMLElement, v: number) => {
-  e.style.opacity = v <= 0.001 ? '0' : Math.min(1, v).toFixed(3);
-};
-function setXY(e: Element, p: Pt) {
-  e.setAttribute('x', u(p.x));
-  e.setAttribute('y', u(p.y));
-}
-function setLine(e: Element, p: Pt, q: Pt) {
-  e.setAttribute('x1', u(p.x));
-  e.setAttribute('y1', u(p.y));
-  e.setAttribute('x2', u(q.x));
-  e.setAttribute('y2', u(q.y));
-}
-function setRect(
-  e: Element,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r?: number
-) {
-  e.setAttribute('x', x.toFixed(2));
-  e.setAttribute('y', y.toFixed(2));
-  e.setAttribute('width', Math.max(0, w).toFixed(2));
-  e.setAttribute('height', Math.max(0, h).toFixed(2));
-  e.setAttribute('rx', (r || 0).toFixed(2));
-}
-function text(parent: Element, cls: string, str: string | number) {
-  const t = mk('text', { class: cls }, parent);
-  t.textContent = String(str);
-  return t;
-}
+
+/* attributes and styles from the drawing's numbers (lengths in cm, drawn at U units per cm) */
+const fade = (v: number) => (v <= 0.001 ? '0' : Math.min(1, v).toFixed(3));
+const seen = (v: number): React.CSSProperties => ({ opacity: fade(v) });
+const xyAt = (p: Pt) => ({ x: u(p.x), y: u(p.y) });
+const lineAt = (p: Pt, q: Pt) => ({ x1: u(p.x), y1: u(p.y), x2: u(q.x), y2: u(q.y) });
+const rectAt = (x: number, y: number, w: number, h: number, r?: number) => ({
+  x: x.toFixed(2),
+  y: y.toFixed(2),
+  width: Math.max(0, w).toFixed(2),
+  height: Math.max(0, h).toFixed(2),
+  rx: (r || 0).toFixed(2),
+});
 
 const REST = { x: 0.05, y: 0.08 };
 const CAP = 3 / U;
@@ -301,757 +260,643 @@ function besideSeg(seg: [Pt, Pt], sz: { w: number; h: number }) {
   return add(mid(p, q), n, reach(sz, n) + TT + 0.1);
 }
 
-const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({
-  element,
-}) => {
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const stateRef = useRef<SticksState>(element.state);
-  stateRef.current = element.state;
-  const renderFnRef = useRef<((s: SticksState) => void) | null>(null);
-  const pulseMarksRef = useRef<(() => void) | null>(null);
-  const lastPulseRef = useRef<number>(0);
+/* ================= drawing ================= */
 
-  useLayoutEffect(() => {
-    const stage = hostRef.current;
-    if (!stage) return;
-    stage.innerHTML = '';
+/** A main stick (AC or BD): wood with a pencil mark at O, or just a pencil line while `wood` is 0. */
+function Stick(props: { O: Pt; ang: number; lift: number; live: number; tick: number; wood: number }) {
+  const { O, ang, lift, live, tick } = props;
+  const w = props.wood,
+    x = YL,
+    y = ZL,
+    L = XL;
+  const h = 0.06 + 0.2 * w;
+  const rx = -x * U,
+    ry = (-h / 2) * U,
+    rw = L * U,
+    rh = h * U;
+  const e = 0.65,
+    bx = rx + e,
+    by = ry + e,
+    bw = rw - 2 * e,
+    bh = rh - 2 * e,
+    br = bh / 2;
+  const body = rectAt(bx, by, bw, bh, br);
+  return (
+    <g>
+      <rect
+        className="shadow"
+        filter="url(#soft)"
+        transform={`translate(${u(O.x + 0.05 + 0.24 * lift)} ${u(O.y + 0.08 + 0.34 * lift)}) rotate(${ang.toFixed(2)})`}
+        {...body}
+        style={seen(w * (0.32 + 0.2 * lift) * live)}
+      />
+      <g transform={`translate(${u(O.x)} ${u(O.y)}) rotate(${ang.toFixed(2)})`} style={seen(live)}>
+        <line className="pencil" y1={0} y2={0} x1={rx.toFixed(2)} x2={(y * U).toFixed(2)} style={seen(1 - w)} />
+        <rect className="wood" {...body} style={seen(w * 1.6)} />
+        <path
+          className="grain"
+          d={`M${(rx + 9).toFixed(1)} ${(-rh * 0.2).toFixed(1)}H${(y * U - 14).toFixed(1)}M${(rx + 24).toFixed(1)} ${(rh * 0.22).toFixed(1)}H${(y * U - 8).toFixed(1)}`}
+          style={seen(w * 0.5)}
+        />
+        <rect className="stick-line" {...body} style={seen(w)} />
+        <line className="omark" x1={0} x2={0} y1={(ry - 3).toFixed(2)} y2={(-ry + 3).toFixed(2)} style={seen(w * tick)} />
+      </g>
+    </g>
+  );
+}
 
-    const MAT = { w: 17.4, h: 14.4 };
-    let FIGY = 6.7;
-    const RUL = { x0: 1.2, top: 12.55, h: 1.45 };
-    let RY = RUL.top - 0.15;
+/** A thin stick (a side of the figure): a pencil line that turns into a stick as `stk` goes to 1. */
+function Thin({ seg, stk, rise, alpha }: { seg: [Pt, Pt]; stk: number; rise: number; alpha: number }) {
+  const [p, q] = trimSeg(seg[0], seg[1]);
+  const so = { x: REST.x + 0.1 * rise, y: REST.y + 0.14 * rise };
+  return (
+    <g style={seen(alpha)}>
+      <line className="pencil" {...lineAt(seg[0], seg[1])} style={seen(1 - stk)} />
+      <line
+        className="thin-shadow"
+        filter="url(#softU)"
+        {...lineAt(add(p, so, 1), add(q, so, 1))}
+        style={seen(stk * (0.3 + 0.25 * rise))}
+      />
+      <line className="thin-edge" {...lineAt(p, q)} style={seen(stk)} />
+      <line className="thin thin-n" {...lineAt(p, q)} style={seen(stk)} />
+    </g>
+  );
+}
 
-    tag('h1', { class: 'sr-only' }, 'Two Perpendicular Sticks', stage);
-    const box = tag('div', { class: 'benchbox' }, '', stage);
-    const bench = tag('div', { class: 'bench' }, '', box);
-    const svg = mk(
-      'svg',
-      { class: 'scene', role: 'img', 'aria-label': 'The figure' },
-      bench
-    ) as SVGSVGElement;
-    const overlay = tag(
-      'div',
-      { class: 'overlay', 'aria-hidden': 'true' },
-      '',
-      bench
-    );
+/* the words and maths written on the paper */
+const Yi = () => <i>y</i>;
+const XminusY = () => (
+  <>
+    <i>x</i> − <i>y</i>
+  </>
+);
+/** √2 · (and `then`, written on in the same run of text, as the original HTML had it) */
+const R2 = ({ then = '' }: { then?: string }) => (
+  <>
+    <span className="rad">
+      <span>2</span>
+    </span>
+    {'\u202f·\u202f' + then}
+  </>
+);
+const RAD2 = () => (
+  <span className="rad">
+    <span>2</span>
+  </span>
+);
 
-    const defs = mk('defs', null, svg);
-    const soft = mk(
-      'filter',
-      { id: 'soft', x: '-30%', y: '-80%', width: '160%', height: '260%' },
-      defs
-    );
-    mk('feGaussianBlur', { stdDeviation: '3.2' }, soft);
-    const softU = mk(
-      'filter',
-      {
-        id: 'softU',
-        filterUnits: 'userSpaceOnUse',
-        x: -200,
-        y: -200,
-        width: 1200,
-        height: 1200,
-      },
-      defs
-    );
-    mk('feGaussianBlur', { stdDeviation: '2.4' }, softU);
+const LB_KEYS = ['yA', 'yB', 'zA', 'zB', 'xA', 'xB', 't1', 'plus', 't2', 'eq', 'ten'] as const;
+type LbKey = (typeof LB_KEYS)[number];
+const LB: Record<LbKey, { cls: string; body: ReactNode }> = {
+  yA: { cls: 'ml c-blue', body: <Yi /> },
+  yB: { cls: 'ml c-blue', body: <Yi /> },
+  zA: { cls: 'ml c-orange', body: <XminusY /> },
+  zB: { cls: 'ml c-orange', body: <XminusY /> },
+  xA: { cls: 'ml', body: <i>x</i> },
+  xB: { cls: 'ml', body: <i>x</i> },
+  t1: { cls: 'ml c-blue', body: <><R2 /><Yi /></> },
+  plus: { cls: 'ml', body: '+' },
+  t2: { cls: 'ml c-orange', body: <><R2 then="(" /><XminusY />)</> },
+  eq: { cls: 'ml', body: '=' },
+  ten: { cls: 'ml', body: '10' },
+};
 
-    const matBg = mk('rect', { class: 'mat-bg', x: 2, y: 2, rx: 14 }, svg);
-    const gGrid = mk('g', null, svg);
-    const gRuler = mk('g', null, svg);
-    let num10: SVGElement | null = null;
+/** The working, one line per row; `on` and `struck` say which rows show and whether row 2 is crossed out. */
+function SolveRows({ on, struck, bx }: { on?: boolean[]; struck?: boolean; bx?: { l: string; r: string } }) {
+  const cls = (n: number, extra = '') => 'srow' + extra + (on?.[n - 1] ? ' on' : '') + (n === 2 && struck ? ' struck' : '');
+  return (
+    <>
+      <div className={cls(1)} data-r="1">
+        <span className="sl">
+          <span className="ph" data-p="t1">
+            <span className="c-blue"><R2 /><Yi /></span>
+          </span>{' '}
+          <span className="ph" data-p="plus">+</span>{' '}
+          <span className="ph" data-p="t2">
+            <span className="c-orange"><R2 then="(" /><XminusY />)</span>
+          </span>
+        </span>
+        <span className="se"><span className="ph" data-p="eq">=</span></span>
+        <span className="sr"><span className="ph" data-p="ten">10</span></span>
+        <span className="sn">what the ruler shows</span>
+      </div>
+      <div className={cls(2)} data-r="2">
+        <span className="sl">
+          <span className="c-blue st"><R2 /><Yi /></span>
+          {' + '}
+          <span className="c-orange">
+            <R2 /><i>x</i>{' '}
+            <span className="st">{'− '}<R2 /><Yi /></span>
+          </span>
+        </span>
+        <span className="se">=</span>
+        <span className="sr">10</span>
+        <span className="sn">open the bracket</span>
+      </div>
+      <div className={cls(3)} data-r="3">
+        <span className="sl"><R2 /><i>x</i></span>
+        <span className="se">=</span>
+        <span className="sr">10</span>
+        <span className="sn">the <i>y</i> parts cancel</span>
+      </div>
+      <div className={cls(4)} data-r="4">
+        <span className="sl"><i>x</i></span>
+        <span className="se">=</span>
+        <span className="sr">10 ÷ <RAD2 /></span>
+        <span className="sn">divide both sides by √2</span>
+      </div>
+      <div className={cls(5)} data-r="5">
+        <span className="sl"></span>
+        <span className="se">=</span>
+        <span className="sr">5<RAD2 /></span>
+        <span className="sn">since 10 = 5 × √2 × √2</span>
+      </div>
+      <div
+        className={cls(6, ' ans')}
+        data-r="6"
+        style={bx ? ({ '--bx-l': bx.l, '--bx-r': bx.r } as React.CSSProperties) : undefined}
+      >
+        <span className="sl">AC</span>
+        <span className="se">=</span>
+        <span className="sr">5<RAD2 /> cm</span>
+      </div>
+    </>
+  );
+}
 
-    function buildStatic() {
-      svg.setAttribute('viewBox', `0 0 ${MAT.w * U} ${MAT.h * U}`);
-      matBg.setAttribute('width', String(MAT.w * U - 4));
-      matBg.setAttribute('height', String(MAT.h * U - 4));
-      gGrid.textContent = '';
-      let g1 = '',
-        g5 = '';
-      for (let i = 1; i < MAT.w; i++) {
-        const s = `M${i * U} 6V${MAT.h * U - 6}`;
-        if (i % 5) g1 += s;
-        else g5 += s;
-      }
-      for (let j = 1; j < MAT.h; j++) {
-        const s = `M6 ${j * U}H${MAT.w * U - 6}`;
-        if (j % 5) g1 += s;
-        else g5 += s;
-      }
-      mk('path', { class: 'grid', d: g1 }, gGrid);
-      mk('path', { class: 'grid5', d: g5 }, gGrid);
-      gRuler.textContent = '';
-      mk(
-        'rect',
-        {
-          class: 'ruler-body',
-          x: u(RUL.x0 - 0.4),
-          y: u(RUL.top),
-          width: u(15.8),
-          height: u(RUL.h),
-          rx: 5,
-        },
-        gRuler
-      );
-      let dt = '';
-      for (let i = 0; i <= 150; i++) {
-        const X0 = (RUL.x0 + i / 10) * U,
-          len = i % 10 === 0 ? 0.44 : i % 5 === 0 ? 0.3 : 0.17;
-        dt += `M${X0.toFixed(1)} ${u(RUL.top)}v${u(len)}`;
-      }
-      mk('path', { class: 'ruler-ticks', d: dt }, gRuler);
-      for (let n = 0; n <= 15; n++) {
-        const t = text(gRuler, 'ruler-num', n);
-        setXY(t, { x: RUL.x0 + n, y: RUL.top + 0.74 });
-        if (n === 10) num10 = t;
-      }
-      setXY(text(gRuler, 'ruler-unit', 'cm'), {
-        x: RUL.x0 - 0.22,
-        y: RUL.top + 1.16,
-      });
-    }
+type Size = { w: number; h: number };
 
-    const gMarks = mk('g', null, svg);
-    const drTickY = mk('path', { class: 'tick tick-y' }, gMarks);
-    const drTickZ = mk('path', { class: 'tick tick-z' }, gMarks);
-    const drSq = mk('path', { class: 'sqr' }, gMarks);
-    const gPrint = mk('g', null, svg);
-    const drLbl: Record<string, SVGElement> = {};
-    for (const n of ['A', 'B', 'C', 'D', 'O'])
-      drLbl[n] = text(gPrint, 'lbl print', n);
+const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ element }) => {
+  const P = element.state;
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const benchRef = useRef<HTMLDivElement | null>(null);
+  const promptRef = useRef<HTMLParagraphElement | null>(null);
+  const probRef = useRef<HTMLParagraphElement | null>(null);
+  const solveRef = useRef<HTMLDivElement | null>(null);
+  const solveProbeRef = useRef<HTMLDivElement | null>(null);
+  const labelEls = useRef<Partial<Record<LbKey, HTMLSpanElement | null>>>({});
+  const labelRefs = useMemo(
+    () =>
+      Object.fromEntries(
+        LB_KEYS.map((k) => [k, (el: HTMLSpanElement | null) => void (labelEls.current[k] = el)])
+      ) as Record<LbKey, (el: HTMLSpanElement | null) => void>,
+    []
+  );
 
-    const gSq = mk('g', null, svg);
-    const sqTL = mk('path', { class: 'sqr' }, gSq);
-    const sqBR = mk('path', { class: 'sqr' }, gSq);
+  /* ---- measure 1: the box the mat sits in; it sets the scale ---- */
+  const box = useMeasure<Size | null>(
+    boxRef,
+    () => {
+      const r = boxRef.current!.getBoundingClientRect();
+      return r.width && r.height ? { w: r.width, h: r.height } : undefined;
+    },
+    null
+  );
+  // a squarer mat when the box is tall
+  const mode = !box ? '' : box.w / box.h < 1.12 ? 'narrow' : 'wide';
+  const MAT = { w: 17.4, h: mode === 'narrow' ? 17.0 : 14.4 };
+  const RUL = { x0: 1.2, top: MAT.h - 1.85, h: 1.45 };
+  const RY = RUL.top - 0.15;
+  const ar = MAT.w / MAT.h;
+  const H = box?.h ?? 0,
+    bw = box ? Math.min(box.w, H * ar) : 0,
+    bh = bw / ar;
+  const cmPx = bw / MAT.w;
+  const KS = clamp(27 / cmPx, 1, 1.45);
+  const KT = clamp(15 / (0.48 * cmPx), 1, 1.6);
+  const scale = { cm: cmPx.toFixed(3) + 'px', k: KS.toFixed(3), kt: KT.toFixed(3) };
 
-    const gSticks = mk('g', null, svg);
-    function makeStick() {
-      const w = mk('g', null, gSticks);
-      const shadow = mk('rect', { class: 'shadow', filter: 'url(#soft)' }, w);
-      const g = mk('g', null, w);
-      const pencil = mk('line', { class: 'pencil', y1: 0, y2: 0 }, g);
-      const body = mk('rect', { class: 'wood' }, g);
-      const grain = mk('path', { class: 'grain' }, g);
-      const outline = mk('rect', { class: 'stick-line' }, g);
-      const omark = mk('line', { class: 'omark', x1: 0, x2: 0 }, g);
-      return { w, shadow, g, pencil, body, grain, outline, omark };
-    }
-    const stAC = makeStick();
-    const stBD = makeStick();
-
-    function makeThin() {
-      const w = mk('g', null, gSticks);
+  /* ---- measure 2: the words at that scale, and whether the working is too wide for one line per row ---- */
+  const text = useMeasure<{ sz: Record<LbKey, Size>; promptH: number; probH: number; stack: boolean } | null>(
+    overlayRef,
+    () => {
+      const els = labelEls.current;
+      if (!box || !promptRef.current || !probRef.current || !solveProbeRef.current || !benchRef.current) return undefined;
+      const sz = {} as Record<LbKey, Size>;
+      for (const k of LB_KEYS) sz[k] = { w: els[k]!.offsetWidth / cmPx, h: els[k]!.offsetHeight / cmPx };
       return {
-        w,
-        ink: mk('line', { class: 'pencil' }, w),
-        shadow: mk('line', { class: 'thin-shadow', filter: 'url(#softU)' }, w),
-        edge: mk('line', { class: 'thin-edge' }, w),
-        paint: mk('line', { class: 'thin thin-n' }, w),
+        sz,
+        promptH: promptRef.current.offsetHeight / cmPx,
+        probH: probRef.current.offsetHeight / cmPx,
+        stack: solveProbeRef.current.offsetWidth > benchRef.current.clientWidth * 0.96,
       };
-    }
-    const TH = {
-      AB: makeThin(),
-      BC: makeThin(),
-      CD: makeThin(),
-      DA: makeThin(),
-    };
-    const ALL = [stAC, stBD, TH.AB, TH.BC, TH.CD, TH.DA];
-    let zSig = '';
-    function restack(z: number[]) {
-      const idx = ALL.map((_, i) => i).sort((a, b) => z[a] - z[b]);
-      const sig = idx.join('');
-      if (sig === zSig) return;
-      zSig = sig;
-      for (const i of idx) gSticks.appendChild(ALL[i].w);
-    }
+    },
+    null,
+    [mode, scale.cm, scale.k, scale.kt]
+  );
+  const SZ: Record<LbKey, Size> =
+    text?.sz ?? (Object.fromEntries(LB_KEYS.map((k) => [k, { w: 1, h: 0.7 }])) as Record<LbKey, Size>);
+  const promptH = text?.promptH ?? 0.7,
+    probH = text?.probH ?? 0.7;
+  const stack = text?.stack ?? false;
 
-    const gDim = mk('g', null, svg);
-    const dimAC = mk('path', { class: 'dim' }, gDim),
-      dimBD = mk('path', { class: 'dim' }, gDim);
-    const guideEnds = mk('path', { class: 'guide' }, gDim);
-    const guideO = mk('path', { class: 'guide' }, svg);
-    const pickMark = mk('path', { class: 'pick' }, svg);
-
-    const lbA = text(svg, 'lbl', 'A'),
-      lbB = text(svg, 'lbl', 'B'),
-      lbC = text(svg, 'lbl', 'C'),
-      lbD = text(svg, 'lbl', 'D');
-    const lbOa = text(svg, 'lbl', 'O'),
-      lbOb = text(svg, 'lbl', 'O');
-    const readLine = mk('line', { class: 'read' }, svg);
-
-    const promptTxt = tag(
-      'p',
-      { class: 'ptxt bold prompt' },
-      'Imagine: how would you build this shape using sticks?',
-      overlay
-    );
-    const probTxt = tag(
-      'p',
-      { class: 'ptxt' },
-      'In the figure, <i>AB</i> + <i>CD</i> = 10&nbsp;cm. What is the length of <i>AC</i>?',
-      overlay
-    );
-    const Y_HTML = '<i>y</i>',
-      XY_HTML = '<i>x</i> − <i>y</i>',
-      R2_HTML = '<span class="rad"><span>2</span></span>&#8239;·&#8239;';
-    const label = (cls: string, html: string) =>
-      tag('span', { class: 'ml' + (cls ? ' ' + cls : '') }, html, overlay);
-    const LB = {
-      yA: label('c-blue', Y_HTML),
-      yB: label('c-blue', Y_HTML),
-      zA: label('c-orange', XY_HTML),
-      zB: label('c-orange', XY_HTML),
-      xA: label('', '<i>x</i>'),
-      xB: label('', '<i>x</i>'),
-      t1: label('c-blue', R2_HTML + Y_HTML),
-      plus: label('', '+'),
-      t2: label('c-orange', R2_HTML + '(' + XY_HTML + ')'),
-      eq: label('', '='),
-      ten: label('', '10'),
-    };
-    type LbKey = keyof typeof LB;
-    const SZ: Record<LbKey, { w: number; h: number }> = {} as any;
-    for (const k of Object.keys(LB) as LbKey[]) SZ[k] = { w: 1, h: 0.7 };
-    let promptH = 0.7,
-      probH = 0.7,
-      promptTop = 11.6;
-
-    const solve = tag(
-      'div',
-      { class: 'solve' },
-      `
-  <div class="srow" data-r="1"><span class="sl"><span class="ph" data-p="t1"><span class="c-blue">${R2_HTML}${Y_HTML}</span></span> <span class="ph" data-p="plus">+</span> <span class="ph" data-p="t2"><span class="c-orange">${R2_HTML}(${XY_HTML})</span></span></span><span class="se"><span class="ph" data-p="eq">=</span></span><span class="sr"><span class="ph" data-p="ten">10</span></span><span class="sn">what the ruler shows</span></div>
-  <div class="srow" data-r="2"><span class="sl"><span class="c-blue st">${R2_HTML}${Y_HTML}</span> + <span class="c-orange">${R2_HTML}<i>x</i> <span class="st">−&#8239;${R2_HTML}${Y_HTML}</span></span></span><span class="se">=</span><span class="sr">10</span><span class="sn">open the bracket</span></div>
-  <div class="srow" data-r="3"><span class="sl">${R2_HTML}<i>x</i></span><span class="se">=</span><span class="sr">10</span><span class="sn">the <i>y</i> parts cancel</span></div>
-  <div class="srow" data-r="4"><span class="sl"><i>x</i></span><span class="se">=</span><span class="sr">10 ÷ <span class="rad"><span>2</span></span></span><span class="sn">divide both sides by √2</span></div>
-  <div class="srow" data-r="5"><span class="sl"></span><span class="se">=</span><span class="sr">5<span class="rad"><span>2</span></span></span><span class="sn">since 10 = 5 × √2 × √2</span></div>
-  <div class="srow ans" data-r="6"><span class="sl">AC</span><span class="se">=</span><span class="sr">5<span class="rad"><span>2</span></span> cm</span></div>`,
-      overlay
-    );
-    const rows = [...solve.querySelectorAll<HTMLElement>('.srow')];
-    const rowN = (n: number) => rows[n - 1];
-    const TGT: Record<string, Pt> = {};
-    let cmPx = 30,
-      KS = 1,
-      mode = '';
-
-    function at(elNode: HTMLElement, p: Pt, a: number) {
-      elNode.style.left = ((p.x / MAT.w) * 100).toFixed(3) + '%';
-      elNode.style.top = ((p.y / MAT.h) * 100).toFixed(3) + '%';
-      elNode.style.opacity = a <= 0.001 ? '0' : Math.min(1, a).toFixed(3);
-    }
-    function atTop(elNode: HTMLElement, y: number, a: number) {
-      elNode.style.top = ((y / MAT.h) * 100).toFixed(3) + '%';
-      elNode.style.opacity = a <= 0.001 ? '0' : Math.min(1, a).toFixed(3);
-    }
-
-    function placeStick(
-      st: ReturnType<typeof makeStick>,
-      O: Pt,
-      ang: number,
-      lift: number,
-      live: number,
-      tick: number,
-      woodVal: number
-    ) {
-      const w = woodVal,
-        x = YL,
-        y = ZL,
-        L = XL;
-      const h = 0.06 + 0.2 * w;
-      st.g.setAttribute(
-        'transform',
-        `translate(${u(O.x)} ${u(O.y)}) rotate(${ang.toFixed(2)})`
-      );
-      const rx = -x * U,
-        ry = (-h / 2) * U,
-        rw = L * U,
-        rh = h * U;
-      const e = 0.65,
-        bx = rx + e,
-        by = ry + e,
-        bw = rw - 2 * e,
-        bh = rh - 2 * e,
-        br = bh / 2;
-      setRect(st.body, bx, by, bw, bh, br);
-      op(st.body, w * 1.6);
-      st.pencil.setAttribute('x1', rx.toFixed(2));
-      st.pencil.setAttribute('x2', (y * U).toFixed(2));
-      op(st.pencil, 1 - w);
-      st.grain.setAttribute(
-        'd',
-        `M${(rx + 9).toFixed(1)} ${(-rh * 0.2).toFixed(1)}H${(y * U - 14).toFixed(1)}M${(rx + 24).toFixed(1)} ${(rh * 0.22).toFixed(1)}H${(y * U - 8).toFixed(1)}`
-      );
-      op(st.grain, w * 0.5);
-      setRect(st.outline, bx, by, bw, bh, br);
-      op(st.outline, w);
-      st.omark.setAttribute('y1', (ry - 3).toFixed(2));
-      st.omark.setAttribute('y2', (-ry + 3).toFixed(2));
-      op(st.omark, w * tick);
-      op(st.g, live);
-      st.shadow.setAttribute(
-        'transform',
-        `translate(${u(O.x + 0.05 + 0.24 * lift)} ${u(O.y + 0.08 + 0.34 * lift)}) rotate(${ang.toFixed(2)})`
-      );
-      setRect(st.shadow, bx, by, bw, bh, br);
-      op(st.shadow, w * (0.32 + 0.2 * lift) * live);
-    }
-
-    function placeThin(
-      th: ReturnType<typeof makeThin>,
-      seg: [Pt, Pt],
-      stk: number,
-      rise: number,
-      alpha: number
-    ) {
-      setLine(th.ink, seg[0], seg[1]);
-      op(th.ink, 1 - stk);
-      const [p, q] = trimSeg(seg[0], seg[1]);
-      const so = { x: REST.x + 0.1 * rise, y: REST.y + 0.14 * rise };
-      setLine(th.shadow, add(p, so, 1), add(q, so, 1));
-      op(th.shadow, stk * (0.3 + 0.25 * rise));
-      setLine(th.edge, p, q);
-      setLine(th.paint, p, q);
-      op(th.edge, stk);
-      op(th.paint, stk);
-      op(th.w, alpha);
-    }
-
-    function render(P: SticksState) {
-      if (!mode) return;
-      svg.setAttribute(
-        'aria-label',
-        `The figure, step ${P.stepIdx + 1} of 7. ${ALT[P.stepIdx] || ALT[0]}`
-      );
-
-      const k = KS,
-        X = XL,
-        Y = YL,
-        Z = ZL;
-      const left = FIGX - X / 2,
-        top = FIGY - X / 2;
-      const c = P.cross,
-        live = 1 - P.fade;
-      const Oc = { x: left + Y, y: top + Y };
-      const gap = 1.3 * k;
-      const Oac = lerp2({ x: left + Y, y: FIGY - gap }, Oc, c);
-      const Ac = { x: left, y: top + Y },
-        Bc = { x: left + Y, y: top },
-        Cc = { x: left + X, y: top + Y },
-        Dc = { x: left + Y, y: top + X };
-
-      const placed = P.bdOut >= 0.999 && P.bdIn >= 0.999;
-      let Obd: Pt, aBD: number, liftBD: number;
-      if (placed) {
-        Obd = lerp2({ x: left + Y, y: FIGY + gap }, Oc, c);
-        aBD = 90 * c;
-        liftBD = 4 * c * (1 - c);
-      } else {
-        const pileBD = pileSeg('BD', Bc, Dc);
-        let seg: [Pt, Pt], t: number;
-        if (P.bdOut < 0.999) {
-          t = P.bdOut;
-          seg = t > 0 ? rigid(Bc, Dc, pileBD[0], pileBD[1], t) : [Bc, Dc];
-        } else {
-          t = P.bdIn;
-          seg =
-            t > 0
-              ? rigid(
-                  pileBD[0],
-                  pileBD[1],
-                  { x: left, y: FIGY + gap },
-                  { x: left + X, y: FIGY + gap },
-                  t
-                )
-              : pileBD;
-        }
-        const d = {
-          x: (seg[1].x - seg[0].x) / X,
-          y: (seg[1].y - seg[0].y) / X,
-        };
-        Obd = add(seg[0], d, Y);
-        aBD = (Math.atan2(d.y, d.x) * 180) / Math.PI;
-        liftBD = airborne(t);
-      }
-      const tickO = clamp((P.pick - 0.8) / 0.2);
-      const bl = P.bdl,
-        on = placed ? 1 : 0;
-      const nameBD =
-        P.bdOut < 0.999 ? 1 - clamp(P.bdOut * 5) : clamp(bl / 0.2) * on;
-      const tickBD = clamp((bl - 0.2) / 0.15) * on;
-      const dA = { x: 1, y: 0 },
-        dB = dirDeg(aBD),
-        nB = { x: dB.y, y: -dB.x },
-        nBneg = { x: -nB.x, y: -nB.y };
-      const A = add(Oac, dA, -Y),
-        C = add(Oac, dA, Z),
-        B = add(Obd, dB, -Y),
-        D = add(Obd, dB, Z);
-
-      atTop(promptTxt, promptTop + 0.25 * (1 - P.prompt), P.prompt);
-      atTop(probTxt, TXT_TOP, P.prob);
-
-      op(gGrid, live);
-      op(gRuler, live);
-      placeStick(stAC, Oac, 0, 4 * c * (1 - c), live, tickO, P.wood);
-      placeStick(stBD, Obd, aBD, liftBD, live, tickBD, P.wood);
-
-      op(gMarks, P.marks);
-      op(gPrint, P.draw);
-      if (P.marks > 0.001 || P.draw > 0.001) {
-        const t = 0.2;
-        const mAO = { x: left + Y / 2, y: Oc.y },
-          mBO = { x: Oc.x, y: top + Y / 2 };
-        const mOC = { x: Oc.x + Z / 2, y: Oc.y },
-          mOD = { x: Oc.x, y: Oc.y + Z / 2 };
-        drTickY.setAttribute(
-          'd',
-          `M${u(mAO.x)} ${u(mAO.y - t)}V${u(mAO.y + t)}M${u(mBO.x - t)} ${u(mBO.y)}H${u(mBO.x + t)}`
-        );
-        drTickZ.setAttribute(
-          'd',
-          `M${u(mOC.x - 0.09)} ${u(mOC.y - t)}V${u(mOC.y + t)}M${u(mOC.x + 0.09)} ${u(mOC.y - t)}V${u(mOC.y + t)}` +
-            `M${u(mOD.x - t)} ${u(mOD.y - 0.09)}H${u(mOD.x + t)}M${u(mOD.x - t)} ${u(mOD.y + 0.09)}H${u(mOD.x + t)}`
-        );
-        const s = 0.42;
-        drSq.setAttribute(
-          'd',
-          `M${u(Oc.x)} ${u(Oc.y - s)}H${u(Oc.x + s)}V${u(Oc.y)}`
-        );
-        setXY(drLbl.A, { x: Ac.x - 0.6 * k, y: Ac.y });
-        setXY(drLbl.B, { x: Bc.x, y: Bc.y - 0.6 * k });
-        setXY(drLbl.C, { x: Cc.x + 0.6 * k, y: Cc.y });
-        setXY(drLbl.D, { x: Dc.x, y: Dc.y + 0.62 * k });
-        setXY(drLbl.O, { x: Oc.x - 0.45 * k, y: Oc.y + 0.5 * k });
-      }
-
-      const figT: Record<'AB' | 'BC' | 'CD' | 'DA', [Pt, Pt]> = {
-        AB: [Ac, Bc],
-        BC: [Bc, Cc],
-        CD: [Cc, Dc],
-        DA: [Dc, Ac],
-      };
-      const aT: Record<string, number> = {},
-        segT: Record<'AB' | 'BC' | 'CD' | 'DA', [Pt, Pt]> = {} as any,
-        riseT: Record<string, number> = {},
-        pileT: Record<'AB' | 'BC' | 'CD' | 'DA', [Pt, Pt]> = {} as any;
-      for (const key of ['AB', 'BC', 'CD', 'DA'] as const) {
-        const f = figT[key],
-          pile = (pileT[key] = pileSeg(key, f[0], f[1]));
-        const a = (aT[key] = ease(clamp((P.away - SIDE_START[key]) / 0.4)));
-        segT[key] = a > 0 ? rigid(f[0], f[1], pile[0], pile[1], a) : f;
-        riseT[key] = airborne(a);
-      }
-      const ab = SQ2 * Y,
-        cd = SQ2 * Z;
-      const tAB = ease(clamp(P.lay / 0.6)),
-        tCD = ease(clamp((P.lay - 0.4) / 0.6));
-      const Q0 = { x: RUL.x0, y: RY },
-        Q1 = { x: RUL.x0 + ab, y: RY },
-        Q2 = { x: RUL.x0 + ab + cd, y: RY };
-      if (tAB > 0) {
-        segT.AB = rigid(A, B, Q0, Q1, tAB);
-        riseT.AB = airborne(tAB);
-      } else if (P.thinAB > 0) {
-        segT.AB = rigid(pileT.AB[0], pileT.AB[1], A, B, P.thinAB);
-        riseT.AB = airborne(P.thinAB);
-      }
-      if (tCD > 0) {
-        segT.CD = rigid(C, D, Q1, Q2, tCD);
-        riseT.CD = airborne(tCD);
-      } else if (P.thinCD > 0) {
-        segT.CD = rigid(pileT.CD[0], pileT.CD[1], C, D, P.thinCD);
-        riseT.CD = airborne(P.thinCD);
-      }
-      for (const key of ['AB', 'BC', 'CD', 'DA'] as const)
-        placeThin(TH[key], segT[key], P.lift, riseT[key], live);
-      const segAB = segT.AB,
-        segCD = segT.CD;
-      restack([
-        0,
-        P.bdOut >= 0.999 && P.bdIn > 0 ? 16 : P.bdOut > 0 ? 14 : 1,
-        tAB > 0 ? 21 : P.thinAB > 0 ? 19 : aT.AB > 0 ? 12 : 2,
-        aT.BC > 0 ? 10 : 4,
-        tCD > 0 ? 22 : P.thinCD > 0 ? 20 : aT.CD > 0 ? 13 : 3,
-        aT.DA > 0 ? 11 : 5,
-      ]);
-
-      const pl = (1 - P.draw) * live;
-      setXY(lbA, add(A, dA, -0.6 * k));
-      setXY(lbC, add(C, dA, 0.6 * k));
-      setXY(lbB, add(B, dB, -0.6 * k));
-      setXY(lbD, add(D, dB, 0.62 * k));
-      op(lbA, pl);
-      op(lbC, pl);
-      op(lbB, pl * nameBD);
-      op(lbD, pl * nameBD);
-      setXY(
-        lbOa,
-        add(
-          Oac,
-          lerp2({ x: 0, y: 0.56 * k }, { x: -0.46 * k, y: 0.52 * k }, c),
-          1
-        )
-      );
-      op(lbOa, pl * Math.max(P.wood * (1 - clamp(P.bdOut * 2)), tickO));
-      setXY(lbOb, { x: Obd.x, y: Obd.y - 0.56 * k });
-      op(lbOb, pl * tickBD * (1 - c));
-
-      const pk = P.pick;
-      const pxk =
-        pk < 0.5
-          ? lerp(0.35, 1.4 * Y, ease(pk / 0.5))
-          : lerp(1.4 * Y, Y, ease(clamp((pk - 0.5) / 0.3)));
-      const tip = { x: A.x + pxk, y: Oac.y - TM - 0.07 };
-      pickMark.setAttribute(
-        'd',
-        `M${u(tip.x)} ${u(tip.y)}l${u(-0.17)} ${u(-0.32)}h${u(0.34)}Z`
-      );
-      op(pickMark, clamp(pk / 0.08) * (1 - clamp((pk - 0.85) / 0.15)) * live);
-
-      const my = P.ylbl,
-        mz = P.zlbl,
-        cl = TM + 0.09;
-      const bxl = clamp((bl - 0.4) / 0.2) * on,
-        byl = clamp((bl - 0.6) / 0.2) * on,
-        bzl = clamp((bl - 0.8) / 0.2) * on;
-      const flip = clamp(Math.abs(c - 0.5) * 4);
-      const up = { x: 0, y: -1 },
-        sideYA = c < 0.5 ? up : { x: 0, y: 1 },
-        sideYB = c < 0.5 ? nBneg : nB;
-      const alongYA =
-        c < 0.5
-          ? Y / 2
-          : Math.min(
-              Y - SZ.yA.w / 2 - 0.05,
-              Math.max(Y / 2, 0.46 * k + 0.25 * k + SZ.yA.w / 2 + 0.35)
-            );
-      at(
-        LB.yA,
-        add(add(Oac, dA, -alongYA), sideYA, reach(SZ.yA, sideYA) + cl),
-        my * flip * live
-      );
-      at(
-        LB.zA,
-        add(add(Oac, dA, Z / 2), up, reach(SZ.zA, up) + cl),
-        mz * live
-      );
-      at(
-        LB.yB,
-        add(add(Obd, dB, -Y / 2), sideYB, reach(SZ.yB, sideYB) + cl),
-        byl * flip * live
-      );
-      at(
-        LB.zB,
-        add(add(Obd, dB, Z / 2), nBneg, reach(SZ.zB, nBneg) + cl),
-        bzl * live
-      );
-
-      const xa = P.xdim * (1 - c) * live;
-      const ya = Oac.y - (cl + SZ.yA.h + 0.14),
-        yb = Obd.y + (cl + SZ.yB.h + 0.14);
-      dimAC.setAttribute(
-        'd',
-        `M${u(left)} ${u(ya + 0.16)}V${u(ya)}H${u(left + X)}V${u(ya + 0.16)}`
-      );
-      dimBD.setAttribute(
-        'd',
-        `M${u(left)} ${u(yb - 0.16)}V${u(yb)}H${u(left + X)}V${u(yb - 0.16)}`
-      );
-      guideEnds.setAttribute(
-        'd',
-        `M${u(left)} ${u(Oac.y - 0.3)}V${u(Obd.y + 0.3)}M${u(left + X)} ${u(Oac.y - 0.3)}V${u(Obd.y + 0.3)}`
-      );
-      op(dimAC, xa);
-      op(dimBD, xa * bxl);
-      op(guideEnds, clamp((bl - 0.05) / 0.2) * on * (1 - c) * live);
-      at(LB.xA, { x: left + X / 2, y: ya - 0.08 - SZ.xA.h / 2 }, xa);
-      at(LB.xB, { x: left + X / 2, y: yb + 0.08 + SZ.xB.h / 2 }, xa * bxl);
-      guideO.setAttribute(
-        'd',
-        `M${u(Oac.x)} ${u(Oac.y + 0.26)}V${u(Obd.y - 0.26)}`
-      );
-      op(guideO, clamp((bl - 0.12) / 0.15) * on * tickO * (1 - c) * 0.9 * live);
-
-      const s = Math.min(0.5, Y * 0.25, Z * 0.25);
-      sqTL.setAttribute(
-        'd',
-        `M${u(Oc.x - s)} ${u(Oc.y)}V${u(Oc.y - s)}H${u(Oc.x)}`
-      );
-      sqBR.setAttribute(
-        'd',
-        `M${u(Oc.x + s)} ${u(Oc.y)}V${u(Oc.y + s)}H${u(Oc.x)}`
-      );
-      op(gSq, P.sq * c * live);
-
-      const g = P.gather,
-        swap = g >= 0.999;
-      const G = (p: Pt, key: string) => (TGT[key] ? lerp2(p, TGT[key], g) : p);
-      const rowY = RY - (SZ.t1.h / 2 + TT + 0.1);
-      const pPlus = {
-        x: Math.max(
-          RUL.x0 + ab,
-          RUL.x0 + ab / 2 + SZ.t1.w / 2 + 0.15 + SZ.plus.w / 2
-        ),
-        y: rowY,
-      };
-      const pEq = { x: RUL.x0 + 10 + 0.3 + SZ.eq.w / 2, y: rowY };
-      const pTen = {
-        x: pEq.x + SZ.eq.w / 2 + 0.2 + SZ.ten.w / 2,
-        y: rowY,
-      };
-      const hide = swap ? 0 : 1;
-      at(
-        LB.t1,
-        G(besideSeg(tAB > 0 ? segAB : [A, B], SZ.t1), 't1'),
-        P.t1l * hide
-      );
-      at(
-        LB.t2,
-        G(besideSeg(tCD > 0 ? segCD : [C, D], SZ.t2), 't2'),
-        P.t2l * hide
-      );
-      at(LB.plus, G(pPlus, 'plus'), P.eqn * hide);
-      at(LB.eq, G(pEq, 'eq'), P.eqn * hide);
-      at(LB.ten, G(pTen, 'ten'), P.eqn * hide);
-
-      rows[0].classList.toggle('on', swap);
-      for (let n = 2; n <= 6; n++) {
-        const val = (P as any)['sol' + n] as number;
-        rowN(n).classList.toggle('on', val > 0.5);
-      }
-      rowN(2).classList.toggle('struck', P.strike > 0.5);
-
-      setLine(
-        readLine,
-        { x: RUL.x0 + 10, y: RY - 0.42 },
-        { x: RUL.x0 + 10, y: RUL.top + 0.56 }
-      );
-      op(readLine, P.eqn * live);
-      if (num10) num10.classList.toggle('hot', P.eqn * live > 0.5);
-    }
-
-    function measureSolve() {
-      solve.classList.remove('stack');
-      solve.style.maxWidth = 'none';
-      const natural = solve.offsetWidth;
-      solve.style.maxWidth = '';
-      if (natural > bench.clientWidth * 0.96) solve.classList.add('stack');
+  /* ---- measure 3: where the working's first row puts its terms, for the labels to fly to; the answer's box ---- */
+  const solveAt = useMeasure<{ tgt: Record<string, Pt>; bx: { l: string; r: string } } | null>(
+    overlayRef,
+    () => {
+      const solve = solveRef.current,
+        overlay = overlayRef.current;
+      if (!box || !solve || !overlay) return undefined;
+      const rows = solve.querySelectorAll<HTMLElement>('.srow');
       const or = overlay.getBoundingClientRect();
-      const ans = rowN(6),
+      const ans = rows[5],
         ar = ans.getBoundingClientRect();
-      const slEl = ans.querySelector('.sl') as HTMLElement;
-      const srEl = ans.querySelector('.sr') as HTMLElement;
-      ans.style.setProperty(
-        '--bx-l',
-        (slEl.getBoundingClientRect().left - ar.left).toFixed(1) + 'px'
-      );
-      ans.style.setProperty(
-        '--bx-r',
-        (ar.right - srEl.getBoundingClientRect().right).toFixed(1) + 'px'
-      );
+      const sl = ans.querySelector('.sl')!.getBoundingClientRect(),
+        sr = ans.querySelector('.sr')!.getBoundingClientRect();
+      const tgt: Record<string, Pt> = {};
       rows[0].querySelectorAll<HTMLElement>('[data-p]').forEach((ph) => {
         const r = ph.getBoundingClientRect();
-        const key = ph.dataset.p!;
-        TGT[key] = {
-          x: (r.left + r.width / 2 - or.left) / cmPx,
-          y: (r.top + r.height / 2 - or.top) / cmPx,
-        };
+        tgt[ph.dataset.p!] = { x: (r.left + r.width / 2 - or.left) / cmPx, y: (r.top + r.height / 2 - or.top) / cmPx };
       });
-    }
+      return {
+        tgt,
+        bx: { l: (sl.left - ar.left).toFixed(1) + 'px', r: (ar.right - sr.right).toFixed(1) + 'px' },
+      };
+    },
+    null,
+    [mode, scale.cm, scale.k, scale.kt, stack]
+  );
+  const TGT = solveAt?.tgt ?? {};
 
-    function layout() {
-      const r = box.getBoundingClientRect();
-      if (!r.width || !r.height) return;
-      const m = r.width / r.height < 1.12 ? 'narrow' : 'wide';
-      if (m !== mode) {
-        mode = m;
-        MAT.h = m === 'narrow' ? 17.0 : 14.4;
-        RUL.top = MAT.h - 1.85;
-        RY = RUL.top - 0.15;
-        buildStatic();
-      }
-      const ar = MAT.w / MAT.h;
-      const top = 0,
-        H = r.height,
-        w = Math.min(r.width, H * ar);
-      const h = w / ar;
-      bench.style.width = w + 'px';
-      bench.style.height = h + 'px';
-      bench.style.left = (r.width - w) / 2 + 'px';
-      bench.style.top = top + (H - h) / 2 + 'px';
-
-      cmPx = w / MAT.w;
-      KS = clamp(27 / cmPx, 1, 1.45);
-      const KT = clamp(15 / (0.48 * cmPx), 1, 1.6);
-      bench.style.setProperty('--cm', cmPx.toFixed(3) + 'px');
-      bench.style.setProperty('--k', KS.toFixed(3));
-      bench.style.setProperty('--kt', KT.toFixed(3));
-      for (const key of Object.keys(LB) as LbKey[]) {
-        SZ[key] = {
-          w: LB[key].offsetWidth / cmPx,
-          h: LB[key].offsetHeight / cmPx,
-        };
-      }
-      promptH = promptTxt.offsetHeight / cmPx;
-      probH = probTxt.offsetHeight / cmPx;
-      promptTop = RUL.top - 0.3 - promptH;
-      const regionTop = TXT_TOP + probH + 0.25;
-      const regionBot = Math.min(RY - (SZ.t1.h + TT + 0.1), promptTop) - 0.2;
-      FIGY = (regionTop + regionBot) / 2;
-      measureSolve();
-      render(stateRef.current);
-    }
-
-    let pulseTimer = 0;
-    pulseMarksRef.current = () => {
-      gMarks.classList.remove('pulse');
-      requestAnimationFrame(() => {
-        gMarks.classList.add('pulse');
-        window.clearTimeout(pulseTimer);
-        pulseTimer = window.setTimeout(
-          () => gMarks.classList.remove('pulse'),
-          3600
-        );
-      });
-    };
-
-    renderFnRef.current = render;
-    layout();
-    document.fonts?.ready?.then(layout);
-    const ro = new ResizeObserver(layout);
-    ro.observe(box);
-
-    return () => {
-      window.clearTimeout(pulseTimer);
-      ro.disconnect();
-    };
-  }, []);
-
+  /* ---- the ticks and square pulse when the figure first shows (step 1) ---- */
+  // Restarting the CSS animation takes a frame with the class off, then on again.
+  const [pulse, setPulse] = useState(false);
+  const pulseRaf = useRef(0),
+    pulseTimer = useRef(0);
   useLayoutEffect(() => {
-    renderFnRef.current?.(element.state);
-    if (element.state.pulseCount !== lastPulseRef.current) {
-      lastPulseRef.current = element.state.pulseCount;
-      if (element.state.pulseCount > 0) {
-        pulseMarksRef.current?.();
-      }
-    }
-  }, [element.state]);
+    if (P.pulseCount <= 0) return;
+    setPulse(false);
+    cancelAnimationFrame(pulseRaf.current);
+    pulseRaf.current = requestAnimationFrame(() => {
+      setPulse(true);
+      window.clearTimeout(pulseTimer.current);
+      pulseTimer.current = window.setTimeout(() => setPulse(false), 3600);
+    });
+  }, [P.pulseCount]);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(pulseRaf.current);
+      window.clearTimeout(pulseTimer.current);
+    },
+    []
+  );
 
-  return (
-    <div
-      ref={hostRef}
-      style={{
-        position: 'relative',
-        flex: 1,
-        minHeight: 0,
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    />
+  const shell = (inner: ReactNode) => (
+    <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', display: 'flex', flexDirection: 'column' }}>
+      <h1 className="sr-only">Two Perpendicular Sticks</h1>
+      <div ref={boxRef} className="benchbox">
+        {inner}
+      </div>
+    </div>
+  );
+  if (!box) return shell(null);
+
+  /* ---- draw ---- */
+
+  const promptTop = RUL.top - 0.3 - promptH;
+  const regionTop = TXT_TOP + probH + 0.25;
+  const regionBot = Math.min(RY - (SZ.t1.h + TT + 0.1), promptTop) - 0.2;
+  const FIGY = (regionTop + regionBot) / 2;
+
+  const k = KS,
+    X = XL,
+    Y = YL,
+    Z = ZL;
+  const left = FIGX - X / 2,
+    top = FIGY - X / 2;
+  const c = P.cross,
+    live = 1 - P.fade;
+  const Oc = { x: left + Y, y: top + Y };
+  const gap = 1.3 * k;
+  const Oac = lerp2({ x: left + Y, y: FIGY - gap }, Oc, c);
+  const Ac = { x: left, y: top + Y },
+    Bc = { x: left + Y, y: top },
+    Cc = { x: left + X, y: top + Y },
+    Dc = { x: left + Y, y: top + X };
+
+  // BD: taken from the pile, laid under AC, then turned across it
+  const placed = P.bdOut >= 0.999 && P.bdIn >= 0.999;
+  let Obd: Pt, aBD: number, liftBD: number;
+  if (placed) {
+    Obd = lerp2({ x: left + Y, y: FIGY + gap }, Oc, c);
+    aBD = 90 * c;
+    liftBD = 4 * c * (1 - c);
+  } else {
+    const pileBD = pileSeg('BD', Bc, Dc);
+    let seg: [Pt, Pt], t: number;
+    if (P.bdOut < 0.999) {
+      t = P.bdOut;
+      seg = t > 0 ? rigid(Bc, Dc, pileBD[0], pileBD[1], t) : [Bc, Dc];
+    } else {
+      t = P.bdIn;
+      seg =
+        t > 0
+          ? rigid(pileBD[0], pileBD[1], { x: left, y: FIGY + gap }, { x: left + X, y: FIGY + gap }, t)
+          : pileBD;
+    }
+    const d = { x: (seg[1].x - seg[0].x) / X, y: (seg[1].y - seg[0].y) / X };
+    Obd = add(seg[0], d, Y);
+    aBD = (Math.atan2(d.y, d.x) * 180) / Math.PI;
+    liftBD = airborne(t);
+  }
+  const tickO = clamp((P.pick - 0.8) / 0.2);
+  const bl = P.bdl,
+    on = placed ? 1 : 0;
+  const nameBD = P.bdOut < 0.999 ? 1 - clamp(P.bdOut * 5) : clamp(bl / 0.2) * on;
+  const tickBD = clamp((bl - 0.2) / 0.15) * on;
+  const dA = { x: 1, y: 0 },
+    dB = dirDeg(aBD),
+    nB = { x: dB.y, y: -dB.x },
+    nBneg = { x: -nB.x, y: -nB.y };
+  const A = add(Oac, dA, -Y),
+    C = add(Oac, dA, Z),
+    B = add(Obd, dB, -Y),
+    D = add(Obd, dB, Z);
+
+  // the homework figure's marks (steps 1-2)
+  const t = 0.2;
+  const mAO = { x: left + Y / 2, y: Oc.y },
+    mBO = { x: Oc.x, y: top + Y / 2 };
+  const mOC = { x: Oc.x + Z / 2, y: Oc.y },
+    mOD = { x: Oc.x, y: Oc.y + Z / 2 };
+  const sMark = 0.42;
+
+  // the thin sticks: from the figure to the pile, back onto the figure, then onto the ruler
+  const figT: Record<'AB' | 'BC' | 'CD' | 'DA', [Pt, Pt]> = { AB: [Ac, Bc], BC: [Bc, Cc], CD: [Cc, Dc], DA: [Dc, Ac] };
+  const aT: Record<string, number> = {},
+    segT = {} as Record<'AB' | 'BC' | 'CD' | 'DA', [Pt, Pt]>,
+    riseT: Record<string, number> = {},
+    pileT = {} as Record<'AB' | 'BC' | 'CD' | 'DA', [Pt, Pt]>;
+  for (const key of ['AB', 'BC', 'CD', 'DA'] as const) {
+    const f = figT[key],
+      pile = (pileT[key] = pileSeg(key, f[0], f[1]));
+    const a = (aT[key] = ease(clamp((P.away - SIDE_START[key]) / 0.4)));
+    segT[key] = a > 0 ? rigid(f[0], f[1], pile[0], pile[1], a) : f;
+    riseT[key] = airborne(a);
+  }
+  const ab = SQ2 * Y,
+    cd = SQ2 * Z;
+  const tAB = ease(clamp(P.lay / 0.6)),
+    tCD = ease(clamp((P.lay - 0.4) / 0.6));
+  const Q0 = { x: RUL.x0, y: RY },
+    Q1 = { x: RUL.x0 + ab, y: RY },
+    Q2 = { x: RUL.x0 + ab + cd, y: RY };
+  if (tAB > 0) {
+    segT.AB = rigid(A, B, Q0, Q1, tAB);
+    riseT.AB = airborne(tAB);
+  } else if (P.thinAB > 0) {
+    segT.AB = rigid(pileT.AB[0], pileT.AB[1], A, B, P.thinAB);
+    riseT.AB = airborne(P.thinAB);
+  }
+  if (tCD > 0) {
+    segT.CD = rigid(C, D, Q1, Q2, tCD);
+    riseT.CD = airborne(tCD);
+  } else if (P.thinCD > 0) {
+    segT.CD = rigid(pileT.CD[0], pileT.CD[1], C, D, P.thinCD);
+    riseT.CD = airborne(P.thinCD);
+  }
+  // the stick being moved goes on top
+  const sticks: [string, number, ReactNode][] = [
+    ['AC', 0, <Stick O={Oac} ang={0} lift={4 * c * (1 - c)} live={live} tick={tickO} wood={P.wood} />],
+    [
+      'BD',
+      P.bdOut >= 0.999 && P.bdIn > 0 ? 16 : P.bdOut > 0 ? 14 : 1,
+      <Stick O={Obd} ang={aBD} lift={liftBD} live={live} tick={tickBD} wood={P.wood} />,
+    ],
+    ['AB', tAB > 0 ? 21 : P.thinAB > 0 ? 19 : aT.AB > 0 ? 12 : 2, <Thin seg={segT.AB} stk={P.lift} rise={riseT.AB} alpha={live} />],
+    ['BC', aT.BC > 0 ? 10 : 4, <Thin seg={segT.BC} stk={P.lift} rise={riseT.BC} alpha={live} />],
+    ['CD', tCD > 0 ? 22 : P.thinCD > 0 ? 20 : aT.CD > 0 ? 13 : 3, <Thin seg={segT.CD} stk={P.lift} rise={riseT.CD} alpha={live} />],
+    ['DA', aT.DA > 0 ? 11 : 5, <Thin seg={segT.DA} stk={P.lift} rise={riseT.DA} alpha={live} />],
+  ];
+  const stacked = sticks.map((s, i) => [s, i] as const).sort((p, q) => p[0][1] - q[0][1]);
+
+  // letters on the sticks
+  const pl = (1 - P.draw) * live;
+
+  // the point O being picked on AC (step 3)
+  const pk = P.pick;
+  const pxk = pk < 0.5 ? lerp(0.35, 1.4 * Y, ease(pk / 0.5)) : lerp(1.4 * Y, Y, ease(clamp((pk - 0.5) / 0.3)));
+  const tip = { x: A.x + pxk, y: Oac.y - TM - 0.07 };
+
+  // y, x − y and x beside the main sticks
+  const my = P.ylbl,
+    mz = P.zlbl,
+    cl = TM + 0.09;
+  const bxl = clamp((bl - 0.4) / 0.2) * on,
+    byl = clamp((bl - 0.6) / 0.2) * on,
+    bzl = clamp((bl - 0.8) / 0.2) * on;
+  const flip = clamp(Math.abs(c - 0.5) * 4);
+  const up = { x: 0, y: -1 },
+    sideYA = c < 0.5 ? up : { x: 0, y: 1 },
+    sideYB = c < 0.5 ? nBneg : nB;
+  const alongYA =
+    c < 0.5 ? Y / 2 : Math.min(Y - SZ.yA.w / 2 - 0.05, Math.max(Y / 2, 0.46 * k + 0.25 * k + SZ.yA.w / 2 + 0.35));
+  const xa = P.xdim * (1 - c) * live;
+  const ya = Oac.y - (cl + SZ.yA.h + 0.14),
+    yb = Obd.y + (cl + SZ.yB.h + 0.14);
+  const sq = Math.min(0.5, Y * 0.25, Z * 0.25);
+
+  // the equation on the ruler, which flies up into the working (steps 6-7)
+  const g = P.gather,
+    swap = g >= 0.999;
+  const G = (p: Pt, key: string) => (TGT[key] ? lerp2(p, TGT[key], g) : p);
+  const rowY = RY - (SZ.t1.h / 2 + TT + 0.1);
+  const pPlus = {
+    x: Math.max(RUL.x0 + ab, RUL.x0 + ab / 2 + SZ.t1.w / 2 + 0.15 + SZ.plus.w / 2),
+    y: rowY,
+  };
+  const pEq = { x: RUL.x0 + 10 + 0.3 + SZ.eq.w / 2, y: rowY };
+  const pTen = { x: pEq.x + SZ.eq.w / 2 + 0.2 + SZ.ten.w / 2, y: rowY };
+  const hide = swap ? 0 : 1;
+
+  // where each word on the paper goes, and how much of it shows
+  const at = (p: Pt, a: number): React.CSSProperties => ({
+    left: ((p.x / MAT.w) * 100).toFixed(3) + '%',
+    top: ((p.y / MAT.h) * 100).toFixed(3) + '%',
+    opacity: fade(a),
+  });
+  const atTop = (y: number, a: number): React.CSSProperties => ({ top: ((y / MAT.h) * 100).toFixed(3) + '%', opacity: fade(a) });
+  const labelAt: Record<LbKey, React.CSSProperties> = {
+    yA: at(add(add(Oac, dA, -alongYA), sideYA, reach(SZ.yA, sideYA) + cl), my * flip * live),
+    yB: at(add(add(Obd, dB, -Y / 2), sideYB, reach(SZ.yB, sideYB) + cl), byl * flip * live),
+    zA: at(add(add(Oac, dA, Z / 2), up, reach(SZ.zA, up) + cl), mz * live),
+    zB: at(add(add(Obd, dB, Z / 2), nBneg, reach(SZ.zB, nBneg) + cl), bzl * live),
+    xA: at({ x: left + X / 2, y: ya - 0.08 - SZ.xA.h / 2 }, xa),
+    xB: at({ x: left + X / 2, y: yb + 0.08 + SZ.xB.h / 2 }, xa * bxl),
+    t1: at(G(besideSeg(tAB > 0 ? segT.AB : [A, B], SZ.t1), 't1'), P.t1l * hide),
+    plus: at(G(pPlus, 'plus'), P.eqn * hide),
+    t2: at(G(besideSeg(tCD > 0 ? segT.CD : [C, D], SZ.t2), 't2'), P.t2l * hide),
+    eq: at(G(pEq, 'eq'), P.eqn * hide),
+    ten: at(G(pTen, 'ten'), P.eqn * hide),
+  };
+  const rowsOn = [swap, P.sol2 > 0.5, P.sol3 > 0.5, P.sol4 > 0.5, P.sol5 > 0.5, P.sol6 > 0.5];
+
+  // the mat's centimetre grid and the ruler
+  let g1 = '',
+    g5 = '';
+  for (let i = 1; i < MAT.w; i++) {
+    const s = `M${i * U} 6V${MAT.h * U - 6}`;
+    if (i % 5) g1 += s;
+    else g5 += s;
+  }
+  for (let j = 1; j < MAT.h; j++) {
+    const s = `M6 ${j * U}H${MAT.w * U - 6}`;
+    if (j % 5) g1 += s;
+    else g5 += s;
+  }
+  let rulerTicks = '';
+  for (let i = 0; i <= 150; i++) {
+    const X0 = (RUL.x0 + i / 10) * U,
+      len = i % 10 === 0 ? 0.44 : i % 5 === 0 ? 0.3 : 0.17;
+    rulerTicks += `M${X0.toFixed(1)} ${u(RUL.top)}v${u(len)}`;
+  }
+  const benchStyle = {
+    width: bw + 'px',
+    height: bh + 'px',
+    left: (box.w - bw) / 2 + 'px',
+    top: 0 + (H - bh) / 2 + 'px',
+    '--cm': scale.cm,
+    '--k': scale.k,
+    '--kt': scale.kt,
+  } as React.CSSProperties;
+
+  return shell(
+    <div ref={benchRef} className="bench" style={benchStyle}>
+      <svg
+        className="scene"
+        role="img"
+        aria-label={`The figure, step ${P.stepIdx + 1} of 7. ${ALT[P.stepIdx] || ALT[0]}`}
+        viewBox={`0 0 ${MAT.w * U} ${MAT.h * U}`}
+      >
+        <defs>
+          <filter id="soft" x="-30%" y="-80%" width="160%" height="260%">
+            <feGaussianBlur stdDeviation="3.2" />
+          </filter>
+          <filter id="softU" filterUnits="userSpaceOnUse" x={-200} y={-200} width={1200} height={1200}>
+            <feGaussianBlur stdDeviation="2.4" />
+          </filter>
+        </defs>
+        <rect className="mat-bg" x={2} y={2} rx={14} width={String(MAT.w * U - 4)} height={String(MAT.h * U - 4)} />
+        <g style={seen(live)}>
+          <path className="grid" d={g1} />
+          <path className="grid5" d={g5} />
+        </g>
+        <g style={seen(live)}>
+          <rect className="ruler-body" x={u(RUL.x0 - 0.4)} y={u(RUL.top)} width={u(15.8)} height={u(RUL.h)} rx={5} />
+          <path className="ruler-ticks" d={rulerTicks} />
+          {Array.from({ length: 16 }, (_, n) => (
+            <text
+              key={n}
+              className={'ruler-num' + (n === 10 && P.eqn * live > 0.5 ? ' hot' : '')}
+              {...xyAt({ x: RUL.x0 + n, y: RUL.top + 0.74 })}
+            >
+              {String(n)}
+            </text>
+          ))}
+          <text className="ruler-unit" {...xyAt({ x: RUL.x0 - 0.22, y: RUL.top + 1.16 })}>
+            cm
+          </text>
+        </g>
+
+        <g className={pulse ? 'pulse' : undefined} style={seen(P.marks)}>
+          <path
+            className="tick tick-y"
+            d={`M${u(mAO.x)} ${u(mAO.y - t)}V${u(mAO.y + t)}M${u(mBO.x - t)} ${u(mBO.y)}H${u(mBO.x + t)}`}
+          />
+          <path
+            className="tick tick-z"
+            d={
+              `M${u(mOC.x - 0.09)} ${u(mOC.y - t)}V${u(mOC.y + t)}M${u(mOC.x + 0.09)} ${u(mOC.y - t)}V${u(mOC.y + t)}` +
+              `M${u(mOD.x - t)} ${u(mOD.y - 0.09)}H${u(mOD.x + t)}M${u(mOD.x - t)} ${u(mOD.y + 0.09)}H${u(mOD.x + t)}`
+            }
+          />
+          <path className="sqr" d={`M${u(Oc.x)} ${u(Oc.y - sMark)}H${u(Oc.x + sMark)}V${u(Oc.y)}`} />
+        </g>
+        <g style={seen(P.draw)}>
+          <text className="lbl print" {...xyAt({ x: Ac.x - 0.6 * k, y: Ac.y })}>A</text>
+          <text className="lbl print" {...xyAt({ x: Bc.x, y: Bc.y - 0.6 * k })}>B</text>
+          <text className="lbl print" {...xyAt({ x: Cc.x + 0.6 * k, y: Cc.y })}>C</text>
+          <text className="lbl print" {...xyAt({ x: Dc.x, y: Dc.y + 0.62 * k })}>D</text>
+          <text className="lbl print" {...xyAt({ x: Oc.x - 0.45 * k, y: Oc.y + 0.5 * k })}>O</text>
+        </g>
+
+        <g style={seen(P.sq * c * live)}>
+          <path className="sqr" d={`M${u(Oc.x - sq)} ${u(Oc.y)}V${u(Oc.y - sq)}H${u(Oc.x)}`} />
+          <path className="sqr" d={`M${u(Oc.x + sq)} ${u(Oc.y)}V${u(Oc.y + sq)}H${u(Oc.x)}`} />
+        </g>
+
+        <g>
+          {stacked.map(([[key, , node]]) => (
+            <Fragment key={key}>{node}</Fragment>
+          ))}
+        </g>
+
+        <g>
+          <path className="dim" d={`M${u(left)} ${u(ya + 0.16)}V${u(ya)}H${u(left + X)}V${u(ya + 0.16)}`} style={seen(xa)} />
+          <path className="dim" d={`M${u(left)} ${u(yb - 0.16)}V${u(yb)}H${u(left + X)}V${u(yb - 0.16)}`} style={seen(xa * bxl)} />
+          <path
+            className="guide"
+            d={`M${u(left)} ${u(Oac.y - 0.3)}V${u(Obd.y + 0.3)}M${u(left + X)} ${u(Oac.y - 0.3)}V${u(Obd.y + 0.3)}`}
+            style={seen(clamp((bl - 0.05) / 0.2) * on * (1 - c) * live)}
+          />
+        </g>
+        <path
+          className="guide"
+          d={`M${u(Oac.x)} ${u(Oac.y + 0.26)}V${u(Obd.y - 0.26)}`}
+          style={seen(clamp((bl - 0.12) / 0.15) * on * tickO * (1 - c) * 0.9 * live)}
+        />
+        <path
+          className="pick"
+          d={`M${u(tip.x)} ${u(tip.y)}l${u(-0.17)} ${u(-0.32)}h${u(0.34)}Z`}
+          style={seen(clamp(pk / 0.08) * (1 - clamp((pk - 0.85) / 0.15)) * live)}
+        />
+
+        <text className="lbl" {...xyAt(add(A, dA, -0.6 * k))} style={seen(pl)}>A</text>
+        <text className="lbl" {...xyAt(add(B, dB, -0.6 * k))} style={seen(pl * nameBD)}>B</text>
+        <text className="lbl" {...xyAt(add(C, dA, 0.6 * k))} style={seen(pl)}>C</text>
+        <text className="lbl" {...xyAt(add(D, dB, 0.62 * k))} style={seen(pl * nameBD)}>D</text>
+        <text
+          className="lbl"
+          {...xyAt(add(Oac, lerp2({ x: 0, y: 0.56 * k }, { x: -0.46 * k, y: 0.52 * k }, c), 1))}
+          style={seen(pl * Math.max(P.wood * (1 - clamp(P.bdOut * 2)), tickO))}
+        >
+          O
+        </text>
+        <text className="lbl" {...xyAt({ x: Obd.x, y: Obd.y - 0.56 * k })} style={seen(pl * tickBD * (1 - c))}>
+          O
+        </text>
+        <line
+          className="read"
+          {...lineAt({ x: RUL.x0 + 10, y: RY - 0.42 }, { x: RUL.x0 + 10, y: RUL.top + 0.56 })}
+          style={seen(P.eqn * live)}
+        />
+      </svg>
+
+      <div ref={overlayRef} className="overlay" aria-hidden="true">
+        <p ref={promptRef} className="ptxt bold prompt" style={atTop(promptTop + 0.25 * (1 - P.prompt), P.prompt)}>
+          Imagine: how would you build this shape using sticks?
+        </p>
+        <p ref={probRef} className="ptxt" style={atTop(TXT_TOP, P.prob)}>
+          In the figure, <i>AB</i> + <i>CD</i>
+          {' = 10 cm. What is the length of '}
+          <i>AC</i>?
+        </p>
+        {LB_KEYS.map((key) => (
+          <span key={key} ref={labelRefs[key]} className={LB[key].cls} style={labelAt[key]}>
+            {LB[key].body}
+          </span>
+        ))}
+        <div ref={solveRef} className={'solve' + (stack ? ' stack' : '')}>
+          <SolveRows on={rowsOn} struck={P.strike > 0.5} bx={solveAt?.bx} />
+        </div>
+        {/* the working at its natural width, unseen: measured to decide whether its rows must stack */}
+        <div ref={solveProbeRef} className="solve" style={{ maxWidth: 'none', visibility: 'hidden' }}>
+          <SolveRows />
+        </div>
+      </div>
+    </div>
   );
 };
 

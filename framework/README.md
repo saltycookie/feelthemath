@@ -15,14 +15,17 @@ types.ts                       TypeScript interfaces (DemoConfig, StepConfig, Vi
 useStepEngine.ts               core step lifecycle state machine (initialElements -> play -> idle -> exit)
 useHashStepRouter.ts           #step-X URL hash parser and synchronization hook
 exitAnimation.ts               canonical state cloning and default 250ms exit animation
+useMeasure.ts                  reads sizes from the page for a renderer to draw from (see "Drawing a scene" below)
+math.ts                        clamp, lerp and easing curves
+paths.ts                       path data for SVG drawings (arrowPath)
 components/MathDemoPlayer.tsx  top-level player component wiring useStepEngine, DemoCanvas, NavigationPanel, and box.js
 components/DemoCanvas.tsx      renders TitleBar and .stage with VisualElement wrappers
 components/TitleBar.tsx        top title bar with the "All demos" home link and centered step title
 components/NavigationPanel.tsx bottom navigation bar with Back, step dots, Replay, and Next / Finish
+components/Bubble.tsx          callout bubbles that point at things (Bubble, and placeBubble to work out where they go)
+components/Chip.tsx            a small label marking a known value on a chart's axis
 lid.js                         the front page's lid, opened going into a demo and closed coming back
 box.js                         the demo's side of it: the paper sinking into the box and rising from it
-bubbles.js                     callout bubbles that point at things
-svg.js                         small helpers for drawing in SVG
 ```
 
 ## How a demo works
@@ -97,6 +100,30 @@ createRoot(document.getElementById('deck')!).render(<MathDemoPlayer demo={myDemo
 
 `<MathDemoPlayer />` updates the `<html>` element with `data-step="N"` and toggles `data-step-busy` while `play` or `exit` is animating:
 `<html data-step="5" data-step-busy>` while step 5 plays, and `<html data-step="5">` once it has finished.
+
+## Drawing a scene
+
+A renderer draws its scene as JSX, worked out from `element.state` on every render. It does not build or change the
+DOM by hand. Its code falls into three parts:
+
+1. **Measure.** Whatever the drawing needs to know about the page (how big the paper is, how wide a line of text came
+   out, how tall a bubble is) it reads with `useMeasure(ref, measure, initial, deps)`. `measure` only reads the DOM and
+   returns plain numbers; it runs in a layout effect, again whenever the element in `ref` changes size or the fonts
+   finish loading, and the renderer draws from its result before the browser paints. Point `ref` at an element whose
+   size changes along with what `measure` reads (the paper the words are written on, say): while the window is being
+   resized, a read made straight after a render can still see the old layout, and that element's resizing brings the
+   measurement up to date.
+   - When one size depends on another that is only known once drawn (the working's height once its font size is
+     chosen), use one `useMeasure` per pass, each listing the one before it in its `deps`. Danny's Walk does this.
+   - To learn how big something would be without a limit on it (the working's natural width), draw an unseen copy of
+     it (`visibility: hidden`, `aria-hidden`) and measure that. Two Sticks and Danny's Walk do this.
+2. **Draw.** Plain calculations from the state and the measurements, then JSX. Shared pieces: `<Bubble>` with
+   `placeBubble`, `<Chip>`, `arrowPath`, and `clamp`, `lerp` and the easing curves.
+3. **Interact.** Pointer and key handling as JSX event handlers (`onPointerDown`, `onKeyDown`, `onClick`), which change
+   the element's state with `updateState`.
+
+Reaching into the DOM from an effect is kept for the rare thing React does not express: Danny's Walk sets the phase of
+its marching dashes that way, so that tiny changes do not restart them.
 
 ## Starting a new demo
 

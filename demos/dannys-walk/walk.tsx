@@ -1,6 +1,7 @@
-// Danny's Walk — migrated to the React MathDemoPlayer framework while preserving all content, style, animation, and wording.
+// Danny's Walk: from the playground to the river and on home: how short can the walk be? A paper folded along the
+// river unfolds, and the shortest walk becomes a straight line.
 
-import { useLayoutEffect, useRef } from 'react';
+import React, { ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
@@ -11,21 +12,8 @@ import {
   clamp,
   easeOut,
   lerp,
+  useMeasure,
 } from '../../framework';
-import { el, text, setText, setOpacity } from '../../framework/svg.js';
-
-function tag(
-  name: string,
-  attrs: Record<string, any>,
-  html: string,
-  parent?: HTMLElement
-): HTMLElement {
-  const n = document.createElement(name);
-  for (const k in attrs) n.setAttribute(k, String(attrs[k]));
-  if (html) n.innerHTML = html;
-  if (parent) parent.appendChild(n);
-  return n;
-}
 
 /* ---------- the places, in metres ---------- */
 const A = { x: 0, y: 20 }; // Danny's home: on the back half of the paper
@@ -194,741 +182,449 @@ function crossAt(
   return t > 0 && t < 1 && u > 0 && u < 1 ? t : null;
 }
 
-const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({
-  element,
-  updateState,
-}) => {
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const stateRef = useRef<WalkState>(element.state);
-  stateRef.current = element.state;
+type XY = [number, number];
+type Map2 = (x: number, y: number) => XY;
+type View = ReturnType<typeof makeView>;
 
-  const updateStateRef = useRef(updateState);
-  updateStateRef.current = updateState;
+const SIDE = 16; // the words under the paper keep this far from the stage's sides
 
-  const renderFnRef = useRef<((s: WalkState) => void) | null>(null);
-  const flipRafRef = useRef<number>(0);
+/* attributes for the drawing's marks */
+const pathD = (on: boolean, p: XY, q: XY) => (on ? 'M' + p + 'L' + q : '');
+const textAt = (x: number, y: number, op: number) => ({ x, y, opacity: clamp(op, 0, 1) });
 
-  useLayoutEffect(() => {
-    const stage = hostRef.current;
-    if (!stage) return;
-    stage.innerHTML = '';
+/** The working of step 6: AB = √(120² + 50²) = … = 130 m. `s` gives each of its five pieces' styles. */
+function Working({ s, ring }: { s?: (i: number) => React.CSSProperties; ring?: ReactNode }) {
+  return (
+    <>
+      <span className="ml" data-s="1" style={s?.(1)}>
+        <i>AB</i>
+      </span>
+      <span className="me" data-s="1" style={s?.(1)}>
+        =
+      </span>
+      <span className="mr">
+        <span data-s="1" style={s?.(1)}>
+          <span className="rad">
+            <span>
+              120<sup>2</sup> + 50<sup>2</sup>
+            </span>
+          </span>
+        </span>{' '}
+        <span data-s="2" style={s?.(2)}>
+          {'= 10 × '}
+          <span className="rad">
+            <span>
+              12<sup>2</sup> + 5<sup>2</sup>
+            </span>
+          </span>
+        </span>
+      </span>
+      <span className="ml"></span>
+      <span className="me" data-s="3" style={s?.(3)}>
+        =
+      </span>
+      <span className="mr">
+        <span data-s="3" style={s?.(3)}>
+          {'10 × '}
+          <span className="rad">
+            <span>169</span>
+          </span>
+        </span>{' '}
+        <span data-s="4" style={s?.(4)}>
+          = 10 × 13
+        </span>
+      </span>
+      <span className="ml"></span>
+      <span className="me" data-s="5" style={s?.(5)}>
+        =
+      </span>
+      <span className="mr">
+        <span className="ans" data-s="5" style={s?.(5)}>
+          130 m{ring}
+        </span>
+      </span>
+    </>
+  );
+}
 
-    const prob = tag(
-      'p',
-      { class: 'problem' },
-      `Danny's home is <b>20 meters</b> north of a <b class="c-blue">straight river</b>
-  that flows from west to east. A playground is <b>120 meters</b> east of his home and <b>30 meters</b> north of the river.
-  After playing at the playground, Danny wants to walk to the river bank to wash up before going home. What is the
-  shortest total distance he needs to walk?`,
-      stage
-    );
-    const box = tag('div', { class: 'figbox' }, '', stage);
-    const ask = tag(
-      'p',
-      { class: 'ask' },
-      'How short can <i>BC</i> + <i>CA</i> be?',
-      stage
-    );
-    const svg = el('svg', {
-      id: 'fig',
-      role: 'img',
-      'aria-label': 'The figure',
-    }, stage) as unknown as SVGSVGElement;
+const HINTS: ReactNode[] = [
+  "Fold and unfold Danny's world yourself!",
+  'Which path is the shortest? Unfold to find it out!',
+  <>
+    <i>BC</i>
+    <sub>3</sub> + <i>C</i>
+    <sub>3</sub>
+    <i>A</i> is the shortest because it forms a straight line!
+  </>,
+];
 
-    const hints = [
-      "Fold and unfold Danny's world yourself!",
-      'Which path is the shortest? Unfold to find it out!',
-      '<i>BC</i><sub>3</sub> + <i>C</i><sub>3</sub><i>A</i> is the shortest because it forms a straight line!',
-    ].map((html) => tag('p', { class: 'hint' }, html, stage));
-    const [hint3, hint4, hint5] = hints;
+/** How far the paper reaches when seen from the side, folded or unfolded, at scale 1. */
+function reach(PAPER: { x0: number; x1: number; h: number }) {
+  const v = makeView(1, 1, 0, 0);
+  const e = { x0: 0, x1: 0, y0: 0, y1: 0, mid: 0 };
+  const add = ([x, y]: XY) => {
+    e.x0 = Math.min(e.x0, x);
+    e.x1 = Math.max(e.x1, x);
+    e.y0 = Math.min(e.y0, -y);
+    e.y1 = Math.max(e.y1, -y);
+  };
+  for (const x of [PAPER.x0, PAPER.x1]) {
+    add(proj(v, x, PAPER.h));
+    for (let i = 0; i <= 12; i++) {
+      const p = (i / 12) * Math.PI;
+      add(proj(v, x, PAPER.h * Math.cos(p), -PAPER.h * Math.sin(p)));
+    }
+  }
+  e.mid = (proj(v, PAPER.x0, 0)[0] + proj(v, PAPER.x1, 0)[0]) / 2;
+  return e;
+}
 
-    const math = tag(
-      'div',
-      { class: 'math' },
-      `
-  <span class="ml" data-s="1"><i>AB</i></span><span class="me" data-s="1">=</span><span class="mr"><span data-s="1"><span class="rad"><span>120<sup>2</sup> + 50<sup>2</sup></span></span></span>
-    <span data-s="2">= 10 × <span class="rad"><span>12<sup>2</sup> + 5<sup>2</sup></span></span></span></span>
-  <span class="ml"></span><span class="me" data-s="3">=</span><span class="mr"><span data-s="3">10 × <span class="rad"><span>169</span></span></span>
-    <span data-s="4">= 10 × 13</span></span>
-  <span class="ml"></span><span class="me" data-s="5">=</span><span class="mr"><span class="ans" data-s="5">130 m<svg class="ring" aria-hidden="true"><path/></svg></span></span>`,
-      stage
-    );
-    const ring = math.querySelector('.ring') as SVGSVGElement;
-    const ringPath = ring.querySelector('path') as SVGPathElement;
-    const pieces = [1, 2, 3, 4, 5].map((i) => [
-      ...math.querySelectorAll<HTMLElement>('[data-s="' + i + '"]'),
+/** The hand-drawn ring round the answer, for a box w × h. */
+function ringPath(w: number, h: number) {
+  const n = 64,
+    a0 = -2.5,
+    sweep = 2 * Math.PI + 0.55,
+    pts: string[][] = [];
+  for (let i = 0; i <= n; i++) {
+    const u = i / n,
+      a = a0 + sweep * u,
+      g = 1.035 - 0.07 * u;
+    pts.push([
+      (w / 2 + (w / 2 - 3) * g * Math.cos(a)).toFixed(1),
+      (h / 2 + (h / 2 - 3) * g * Math.sin(a)).toFixed(1),
     ]);
+  }
+  return 'M' + pts.join('L');
+}
 
-    const switcher = tag('div', { class: 'switcher' }, '', stage);
-    const wordFold = tag(
-      'button',
-      { class: 'switch-word', type: 'button', tabindex: -1, 'aria-hidden': 'true' },
-      'fold',
-      switcher
-    );
-    const toggle = tag(
-      'button',
-      {
-        class: 'switch',
-        type: 'button',
-        role: 'switch',
-        'aria-checked': 'false',
-        'aria-label': 'Unfold the paper',
-        tabindex: -1,
-        'aria-disabled': 'true',
-      },
-      '<span class="knob"></span>',
-      switcher
-    ) as HTMLButtonElement;
-    const wordUnfold = tag(
-      'button',
-      { class: 'switch-word', type: 'button', tabindex: -1, 'aria-hidden': 'true' },
-      'unfold',
-      switcher
-    );
+const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element, updateState }) => {
+  const S = element.state;
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const probRef = useRef<HTMLParagraphElement | null>(null);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const askRef = useRef<HTMLParagraphElement | null>(null);
+  const hintRefs = [useRef<HTMLParagraphElement | null>(null), useRef<HTMLParagraphElement | null>(null), useRef<HTMLParagraphElement | null>(null)];
+  const mathRef = useRef<HTMLDivElement | null>(null);
+  const mathProbeRef = useRef<HTMLDivElement | null>(null);
+  const ringRef = useRef<SVGSVGElement | null>(null);
+  const ringPathRef = useRef<SVGPathElement | null>(null);
+  const switcherRef = useRef<HTMLDivElement | null>(null);
+  const tERef = useRef<SVGTextElement | null>(null);
+  const walkARefs = [useRef<SVGPathElement | null>(null), useRef<SVGPathElement | null>(null), useRef<SVGPathElement | null>(null), useRef<SVGPathElement | null>(null)];
 
-    let SW = 0,
-      SH = 0;
-    let fs = 18,
-      compact = false;
-    let V2: ReturnType<typeof makeView> | null = null,
-      V3: ReturnType<typeof makeView> | null = null,
-      V5: ReturnType<typeof makeView> | null = null,
-      V6: ReturnType<typeof makeView> | null = null;
-    let PAPER: { x0: number; x1: number; h: number } | null = null;
-    let RIVER: [number, number] | null = null;
-    let gapW = 0;
-    let hintY = 0,
-      hintY5 = 0,
-      mathY = 0;
-    let ringLen = 0;
+  /* ---- measure, in four passes: each one reads what the one before it has laid out ---- */
 
-    function subText(parent: Element, cls: string, main: string, sub: string) {
-      const t = text(parent, cls, main);
-      el('tspan', { class: 'sub', dy: '.35em' }, t).textContent = sub;
-      return t;
-    }
+  // 1. the stage, and the words above and below the figure
+  const stage = useMeasure(
+    stageRef,
+    () => {
+      const el = stageRef.current!;
+      if (!el.clientWidth || !el.clientHeight) return undefined;
+      return {
+        SW: el.clientWidth,
+        SH: el.clientHeight,
+        gap: parseFloat(getComputedStyle(el).rowGap) || 0,
+        probH: probRef.current!.offsetHeight,
+        askH: askRef.current!.offsetHeight,
+        swW: switcherRef.current!.offsetWidth,
+        swH: switcherRef.current!.offsetHeight,
+      };
+    },
+    null as null | { SW: number; SH: number; gap: number; probH: number; askH: number; swW: number; swH: number }
+  );
+  const SW = stage?.SW ?? 0,
+    SH = stage?.SH ?? 0;
+  const g = SW < 560 ? 56 : 70;
+  const W = Math.min(960, SW - g),
+    fx = Math.min((SW - W) / 2, SW - g - W);
+  const room = SH - (stage?.probH ?? 0) - (stage?.askH ?? 0) - 2 * (stage?.gap ?? 0);
+  const fs = stage ? clamp(Math.min(W / 48, room / 9), 12, 21) : 18;
+  const m = { l: fs * 3.4, r: fs * 3.4, t: fs * 3.3, b: fs * 2.9 };
+  const fit = (top: number) => Math.min((W - m.l - m.r) / SPAN.w, (room - top - m.b) / SPAN.h, MAX_K);
+  const compact = stage ? fit(m.t) < 3 && fit(fs * 2.1) > fit(m.t) : false;
+  if (compact) m.t = fs * 2.1;
+  const k = stage ? Math.max(0.5, fit(m.t)) : 1;
+  const boxH = Math.round(SPAN.h * k + m.t + m.b);
+  const RIVER: XY = [MID + (fx + 3 - (fx + W / 2)) / k, MID + (fx + W - 3 - (fx + W / 2)) / k];
+  const PAPER = {
+    x0: -(m.l + (compact ? fs * 0.8 : 0)) / k,
+    x1: SPAN.w + m.r / k,
+    h: SPAN.h + (m.t * 0.92) / k,
+  };
 
-    const R: Record<string, any> = {};
-    R.sheetB = el('path', { class: 'sheet' }, svg);
-    R.back = el('g', {}, svg);
-    R.dimA = el('path', { class: 'dim' }, R.back);
-    R.sqA = el('path', { class: 'sq' }, R.back);
-    R.walkA = CS.map((_, i) =>
-      el('path', { class: 'walk w' + (i + 1) }, R.back)
-    );
-    R.pA = el('circle', { class: 'pt' }, R.back);
-    R.lA = text(R.back, 'lbl', 'A');
-    R.cA = text(R.back, 'cap', 'home');
-    R.tA = text(R.back, 'len', '20 m');
+  // 2. where the figure's box landed, the hints' heights at their width, the 120 m label at this size, and the
+  //    working's natural width
+  const placed = useMeasure(
+    stageRef,
+    () =>
+      stage
+        ? {
+            boxTop: boxRef.current!.offsetTop,
+            hintH: hintRefs.map((r) => r.current!.offsetHeight),
+            tE: tERef.current!.getComputedTextLength(),
+            mathW: mathProbeRef.current!.offsetWidth,
+            mathF: parseFloat(getComputedStyle(mathProbeRef.current!).fontSize),
+          }
+        : undefined,
+    null as null | { boxTop: number; hintH: number[]; tE: number; mathW: number; mathF: number },
+    [stage]
+  );
+  const pad = fs * 0.6,
+    hg = fs * 0.9;
+  const V2 = makeView(0, k, fx + W / 2, (placed?.boxTop ?? 0) + m.t + SPAN.h * k);
+  const e = reach(PAPER);
+  const hh = placed ? Math.max(...placed.hintH) : 0,
+    up = e.y1,
+    down = -e.y0;
+  const wide = 2 * Math.max(e.mid - e.x0, e.x1 - e.mid);
+  const k3 = Math.max(0.5, Math.min(k, W / wide, (SH / 2 - pad) / up, (SH / 2 - pad - hg - hh) / down));
+  const oy3 = (SH - (up + down) * k3 - hg - hh) / 2 + up * k3;
+  const V3 = makeView(1, k3, fx + W / 2 - k3 * e.mid, oy3);
+  const hintY = oy3 + down * k3 + hg;
+  const ph = PAPER.h,
+    h5 = placed?.hintH[2] ?? 0;
+  const k5 = Math.max(0.5, Math.min(k, W / (PAPER.x1 - PAPER.x0), (SH - 2 * pad - hg - h5) / (2 * ph)));
+  const oy5 = (SH - 2 * ph * k5 - hg - h5) / 2 + ph * k5;
+  const V5 = makeView(0, k5, fx + W / 2 + k5 * (MID - (PAPER.x0 + PAPER.x1) / 2), oy5);
+  const hintY5 = oy5 + ph * k5 + hg;
+  const mathFont =
+    placed && placed.mathW > SW - 2 * SIDE
+      ? Math.floor((placed.mathF * (SW - 2 * SIDE)) / placed.mathW) + 'px'
+      : undefined;
+  const gapW = ((placed?.tE || fs * 2.6) + fs * 0.7);
+  const swW = stage?.swW ?? 0,
+    swH = stage?.swH ?? 0;
+  const sy = clamp(oy3 - swH / 2, 0, Math.max(0, SH - swH));
 
-    const mask = el(
-      'mask',
-      { id: 'imprint', maskUnits: 'userSpaceOnUse' },
-      el('defs', {}, svg)
-    );
-    R.maskAll = el('rect', { fill: '#fff' }, mask);
-    const g = el('g', { class: 'imprint' }, mask);
-    R.imp = {
-      g,
-      mask,
-      dimA: el('path', { class: 'dim' }, g),
-      sqA: el('path', { class: 'sq' }, g),
-      walkA: CS.map(() => el('path', { class: 'walk' }, g)),
-      pA: el('circle', { class: 'pt' }, g),
-      lA: text(g, 'lbl', 'A'),
-      cA: text(g, 'cap', 'home'),
-      tA: text(g, 'len', '20 m'),
+  // 3. the working at its size, and the box its answer's ring goes round
+  const sized = useMeasure(
+    stageRef,
+    () => {
+      if (!placed) return undefined;
+      const r = ringRef.current!.getBoundingClientRect();
+      return { mathH: mathRef.current!.offsetHeight, ringW: r.width, ringH: r.height };
+    },
+    null as null | { mathH: number; ringW: number; ringH: number },
+    [placed, mathFont]
+  );
+  const mh = sized?.mathH ?? 0;
+  const k6 = Math.max(0.5, Math.min(k5, (SH - 2 * pad - hg - mh) / (2 * ph)));
+  const oy6 = pad + ph * k6;
+  const V6 = makeView(0, k6, SW / 2 + k6 * (MID - (PAPER.x0 + PAPER.x1) / 2), oy6);
+  const mathY = oy6 + ph * k6 + hg;
+  const ringBox = sized && sized.ringW && sized.ringH ? { w: sized.ringW, h: sized.ringH } : null;
+  const ringD = ringBox ? ringPath(ringBox.w, ringBox.h) : undefined;
+
+  // 4. how long the ring's path is, so it can draw itself
+  const ringLen = useMeasure(ringPathRef, () => (ringD ? ringPathRef.current!.getTotalLength() : undefined), 0, [ringD]);
+
+  const ready = Boolean(stage && placed && sized);
+
+  /* ---- interact: the switch folds and unfolds the paper (steps 3-4) ---- */
+
+  const flipRaf = useRef(0);
+  useEffect(() => () => window.cancelAnimationFrame(flipRaf.current), []);
+  function flip(on: boolean) {
+    if (!S.controlsOn) return;
+    window.cancelAnimationFrame(flipRaf.current);
+    const fromUnf = S.unf;
+    const toUnf = on ? 1 : 0;
+    const dur = Math.max(400, 2600 * Math.abs(toUnf - fromUnf));
+    const t0 = performance.now();
+    updateState({ switchOpen: on });
+    const tick = (now: number) => {
+      const u = Math.min(1, (now - t0) / dur);
+      const eased = u >= 1 ? 1 : easeOut(u);
+      updateState({ unf: lerp(fromUnf, toUnf, eased), switchOpen: on });
+      if (u < 1) flipRaf.current = window.requestAnimationFrame(tick);
     };
+    flipRaf.current = window.requestAnimationFrame(tick);
+  }
 
-    R.front = el('g', {}, svg);
-    R.sheetF = el('path', { class: 'sheet', mask: 'url(#imprint)' }, R.front);
-    R.dimB = el('path', { class: 'dim' }, R.front);
-    R.sqB = el('path', { class: 'sq' }, R.front);
-    R.walkB = CS.map((_, i) =>
-      el('path', { class: 'walk w' + (i + 1) }, R.front)
-    );
-    R.pB = el('circle', { class: 'pt' }, R.front);
-    R.lB = text(R.front, 'lbl', 'B');
-    R.cB = text(R.front, 'cap', 'playground');
-    R.tB = text(R.front, 'len', '30 m');
+  /* ---- draw ---- */
 
-    R.river = el('path', { class: 'river' }, svg);
-    R.riverT = text(svg, 'cap river-cap', 'river');
-    R.pC = el('circle', { class: 'pt c' }, svg);
-    R.lC = text(svg, 'lbl c', 'C');
-    R.pCs = CS.map((_, i) => el('circle', { class: 'pt w' + (i + 1) }, svg));
-    R.lCs = CS.map((_, i) =>
-      subText(svg, 'lbl w' + (i + 1), 'C', String(i + 1))
-    );
-    R.ext = el('path', { class: 'ext' }, svg);
-    R.dimE = el('path', { class: 'dim' }, svg);
-    R.tE = text(svg, 'len', '120 m');
+  // the camera: flat on (step 2), turned to see the fold (steps 3-5), flat again for the triangle (step 6)
+  const t = S.view,
+    F = S.flat,
+    U = S.rise;
+  const flat = (key: 'k' | 'ox' | 'oy') => lerp(lerp(V2[key], V5[key], F), V6[key], U);
+  const v: View = makeView(t, lerp(flat('k'), V3.k, t), lerp(flat('ox'), V3.ox, t), lerp(flat('oy'), V3.oy, t));
+  const phi = Math.PI * S.unf,
+    cf = Math.cos(phi),
+    sf = Math.sin(phi);
+  const front: Map2 = (x, y) => proj(v, x, y);
+  const back: Map2 = (x, y) => proj(v, x, y * cf, -y * sf);
+  const s = (fs * 0.6) / v.k;
 
-    R.legs = el('path', { class: 'leg' }, svg);
-    R.sqD = el('path', { class: 'sq' }, svg);
-    R.pD = el('circle', { class: 'pt' }, svg);
-    R.lD = text(svg, 'lbl', 'D');
-    R.tBD = text(svg, 'len', '50 m');
-    R.tAD = text(svg, 'len', '120 m');
+  const pointAt = (p: XY, op: number) => ({
+    cx: p[0],
+    cy: p[1],
+    r: fs * 0.34 * (0.4 + 0.6 * op),
+    opacity: clamp(op, 0, 1),
+  });
+  const labelAt = (map: Map2, x: number, y: number, dx: number, dy: number, op: number) => {
+    const [px, py] = map(x + (dx * fs) / v.k, y + (dy * fs) / v.k);
+    return textAt(px, py, op);
+  };
+  const cornerD = (map: Map2, x: number, y: number, d1: XY, d2: XY) =>
+    'M' + map(x + d1[0] * s, y + d1[1] * s) +
+    'L' + map(x + (d1[0] + d2[0]) * s, y + (d1[1] + d2[1]) * s) +
+    'L' + map(x + d2[0] * s, y + d2[1] * s);
+  const sheetD = (map: Map2) =>
+    PAPER.h > 0
+      ? 'M' + map(PAPER.x0, 0) + 'L' + map(PAPER.x1, 0) + 'L' + map(PAPER.x1, PAPER.h) + 'L' + map(PAPER.x0, PAPER.h) + 'Z'
+      : '';
+  const capAnchor: React.CSSProperties = { textAnchor: compact ? 'end' : undefined };
+  /** a place's letter, and under it (beside it, when space is short) what it is */
+  const names = (map: Map2, p: { x: number; y: number }, op: number) => ({
+    letter: labelAt(map, p.x, p.y, 0, 1.05, op),
+    caption: compact ? labelAt(map, p.x, p.y, -0.75, 1.05, op) : labelAt(map, p.x, p.y, 0, 2.2, op),
+  });
 
-    function reach() {
-      const v = makeView(1, 1, 0, 0);
-      const e = { x0: 0, x1: 0, y0: 0, y1: 0, mid: 0 };
-      const add = ([x, y]: [number, number]) => {
-        e.x0 = Math.min(e.x0, x);
-        e.x1 = Math.max(e.x1, x);
-        e.y0 = Math.min(e.y0, -y);
-        e.y1 = Math.max(e.y1, -y);
-      };
-      for (const x of [PAPER!.x0, PAPER!.x1]) {
-        add(proj(v, x, PAPER!.h));
-        for (let i = 0; i <= 12; i++) {
-          const p = (i / 12) * Math.PI;
-          add(proj(v, x, PAPER!.h * Math.cos(p), -PAPER!.h * Math.sin(p)));
-        }
-      }
-      e.mid = (proj(v, PAPER!.x0, 0)[0] + proj(v, PAPER!.x1, 0)[0]) / 2;
-      return e;
-    }
+  // the river, then home (on the back half) and the playground (on the front half)
+  const xa = lerp(RIVER[0], PAPER.x0, S.paper),
+    xb = lerp(RIVER[1], PAPER.x1, S.paper),
+    end = front(xb, 0);
+  const b = front(B.x, B.y);
+  const nB = names(front, B, S.b);
 
-    function drawRing() {
-      const r = ring.getBoundingClientRect(),
-        w = r.width,
-        h = r.height;
-      if (!w || !h) return;
-      const n = 64,
-        a0 = -2.5,
-        sweep = 2 * Math.PI + 0.55,
-        pts: string[][] = [];
-      for (let i = 0; i <= n; i++) {
-        const u = i / n,
-          a = a0 + sweep * u,
-          g = 1.035 - 0.07 * u;
-        pts.push([
-          (w / 2 + (w / 2 - 3) * g * Math.cos(a)).toFixed(1),
-          (h / 2 + (h / 2 - 3) * g * Math.sin(a)).toFixed(1),
-        ]);
-      }
-      ring.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-      ringPath.setAttribute('d', 'M' + pts.join('L'));
-      ringLen = ringPath.getTotalLength();
-      ringPath.style.strokeDasharray = String(ringLen);
-    }
-
-    function line(
-      n: Element,
-      p: [number, number],
-      q: [number, number],
-      on: boolean
-    ) {
-      n.setAttribute('d', on ? 'M' + p + 'L' + q : '');
-    }
-
-    function sheet(
-      n: Element,
-      map: (x: number, y: number) => [number, number],
-      h: number,
-      op: number
-    ) {
-      n.setAttribute(
-        'd',
-        h > 0
-          ? 'M' +
-              map(PAPER!.x0, 0) +
-              'L' +
-              map(PAPER!.x1, 0) +
-              'L' +
-              map(PAPER!.x1, h) +
-              'L' +
-              map(PAPER!.x0, h) +
-              'Z'
-          : ''
-      );
-      setOpacity(n, op);
-    }
-
-    function corner(
-      n: Element,
-      map: (x: number, y: number) => [number, number],
-      x: number,
-      y: number,
-      d1: [number, number],
-      d2: [number, number],
-      s: number,
-      op: number
-    ) {
-      n.setAttribute(
-        'd',
-        'M' +
-          map(x + d1[0] * s, y + d1[1] * s) +
-          'L' +
-          map(x + (d1[0] + d2[0]) * s, y + (d1[1] + d2[1]) * s) +
-          'L' +
-          map(x + d2[0] * s, y + d2[1] * s)
-      );
-      setOpacity(n, op);
-    }
-
-    function label(
-      n: Element,
-      map: (x: number, y: number) => [number, number],
-      x: number,
-      y: number,
-      dx: number,
-      dy: number,
-      op: number,
-      k: number
-    ) {
-      const [px, py] = map(x + (dx * fs) / k, y + (dy * fs) / k);
-      setText(n, px, py, op);
-    }
-
-    function names(
-      lt: Element,
-      cap: Element,
-      map: (x: number, y: number) => [number, number],
-      p: { x: number; y: number },
-      op: number,
-      k: number
-    ) {
-      label(lt, map, p.x, p.y, 0, 1.05, op, k);
-      if (compact) label(cap, map, p.x, p.y, -0.75, 1.05, op, k);
-      else label(cap, map, p.x, p.y, 0, 2.2, op, k);
-    }
-
-    function point(n: Element, p: [number, number], op: number) {
-      n.setAttribute('cx', String(p[0]));
-      n.setAttribute('cy', String(p[1]));
-      n.setAttribute('r', String(fs * 0.34 * (0.4 + 0.6 * op)));
-      setOpacity(n, op);
-    }
-
-    function under(n: HTMLElement, op: number, y: number) {
-      n.style.opacity = String(clamp(op, 0, 1));
-      n.style.transform = 'translateY(' + (y + (1 - op) * 10) + 'px)';
-    }
-
-    const lagNow = CS.map(() => 0);
-
-    function render(S: WalkState) {
-      if (!V2 || !V3 || !V5 || !V6 || !PAPER || !RIVER) return;
-
-      // Sync accessibility attributes
-      if (S.stepIdx === 0) svg.setAttribute('aria-hidden', 'true');
-      else svg.removeAttribute('aria-hidden');
-      svg.setAttribute('aria-label', ALT[S.stepIdx] || ALT[1]);
-      prob.setAttribute('aria-hidden', S.stepIdx >= FOLD ? 'true' : 'false');
-
-      // Sync switch visual & interactive state
-      toggle.setAttribute('aria-checked', S.switchOpen ? 'true' : 'false');
-      wordFold.classList.toggle('now', !S.switchOpen);
-      wordUnfold.classList.toggle('now', S.switchOpen);
-      switcher.classList.toggle('on', S.controlsOn);
-      toggle.tabIndex = S.controlsOn ? 0 : -1;
-      if (S.controlsOn) toggle.removeAttribute('aria-disabled');
-      else toggle.setAttribute('aria-disabled', 'true');
-
-      const t = S.view,
-        F = S.flat,
-        U = S.rise;
-      const flat = (key: 'k' | 'ox' | 'oy') =>
-        lerp(lerp(V2![key], V5![key], F), V6![key], U);
-      const v = makeView(
-        t,
-        lerp(flat('k'), V3.k, t),
-        lerp(flat('ox'), V3.ox, t),
-        lerp(flat('oy'), V3.oy, t)
-      );
-      const phi = Math.PI * S.unf,
-        cf = Math.cos(phi),
-        sf = Math.sin(phi);
-      const front = (x: number, y: number) => proj(v, x, y);
-      const back = (x: number, y: number) => proj(v, x, y * cf, -y * sf);
-      const s = (fs * 0.6) / v.k;
-
-      prob.style.opacity = String(S.txt);
-      ask.style.opacity = String(clamp(S.ask, 0, 1));
-      ask.style.transform = 'translateY(' + (1 - S.ask) * 10 + 'px)';
-      const hy = lerp(lerp(hintY, hintY5, F * (1 - t)), mathY, U);
-      under(hint3, S.hint3, hy);
-      under(hint4, S.hint4, hy);
-      under(hint5, S.hint5, hy);
-
-      math.style.transform = 'translate(-50%,' + mathY + 'px)';
-      [S.m1, S.m2, S.m3, S.m4, S.m5].forEach((o, i) =>
-        pieces[i].forEach((n) => {
-          n.style.opacity = String(clamp(o, 0, 1));
-          n.style.transform = 'translateY(' + (1 - o) * 8 + 'px)';
-        })
-      );
-      ringPath.style.strokeDashoffset = String(ringLen * (1 - S.ring));
-      ring.style.opacity = S.ring > 0 ? '1' : '0';
-
-      sheet(R.sheetB, back, PAPER.h, S.paper);
-      sheet(R.sheetF, front, PAPER.h, S.paper);
-      setOpacity(R.back, 1 - 0.45 * S.paper * clamp(0.5 + cf, 0, 1));
-
-      const xa = lerp(RIVER[0], PAPER.x0, S.paper),
-        xb = lerp(RIVER[1], PAPER.x1, S.paper),
-        end = front(xb, 0);
-      line(R.river, front(xa, 0), front(lerp(xa, xb, S.river), 0), S.river > 0);
-      setText(
-        R.riverT,
-        Math.max(end[0] - fs * 1.9 + 3, (front(B.x, 0)[0] + end[0]) / 2),
-        end[1] + fs * 1.05,
-        fadeIn(S.river, 0.7)
-      );
-
-      const home = (
-        map: (x: number, y: number) => [number, number],
-        n: Record<string, any>
-      ) => {
-        const a = map(A.x, A.y);
-        point(n.pA, a, S.a);
-        names(n.lA, n.cA, map, A, S.a, v.k);
-        line(n.dimA, a, map(A.x, A.y * (1 - S.aDim)), S.aDim > 0);
-        corner(n.sqA, map, A.x, 0, [1, 0], [0, 1], s, fadeIn(S.aDim));
-        label(n.tA, map, A.x, A.y / 2, -1.75, 0, fadeIn(S.aDim), v.k);
-      };
-      home(back, R);
-      home(front, R.imp);
-      const im = clamp(S.unf / 0.6, 0, 1);
-      setOpacity(R.imp.g, S.paper * im * im * (3 - 2 * im));
-
-      const b = front(B.x, B.y);
-      point(R.pB, b, S.b);
-      names(R.lB, R.cB, front, B, S.b, v.k);
-      line(R.dimB, b, front(B.x, B.y * (1 - S.bRiver)), S.bRiver > 0);
-      corner(R.sqB, front, B.x, 0, [-1, 0], [0, 1], s, fadeIn(S.bRiver));
-      label(R.tB, front, B.x, B.y / 2, 1.75, 0, fadeIn(S.bRiver), v.k);
-
-      const keep = CS.map((_, i) => (i === 2 ? 1 : 1 - S.focus));
-      const cs = CS.map((p) => front(p.x, p.y));
-      const shown = [S.c * S.sub, S.c2, S.c3, S.c4].map((o, i) => o * keep[i]);
-      point(R.pC, cs[0], S.c);
-      setOpacity(R.pC, S.c * (1 - S.sub));
-      setText(R.lC, cs[0][0], cs[0][1] + fs * 1.15, S.c * (1 - S.sub));
-      cs.forEach((q, i) => {
-        point(R.pCs[i], q, i ? shown[i] : S.c * keep[0]);
-        setOpacity(R.pCs[i], shown[i]);
-        setText(R.lCs[i], q[0], q[1] + fs * 1.15, shown[i]);
-      });
-
-      const drawn = [S.walk, S.w2, S.w3, S.w4];
-      let u1 = 0;
-      CS.forEach((p, i) => {
-        const bc = Math.hypot(B.x - p.x, B.y - p.y),
-          ca = Math.hypot(A.x - p.x, A.y - p.y),
-          d = drawn[i] * (bc + ca);
-        const t1 = clamp(d / bc, 0, 1),
-          t2 = clamp((d - bc) / ca, 0, 1);
-        line(
-          R.walkB[i],
-          b,
-          front(lerp(B.x, p.x, t1), lerp(B.y, p.y, t1)),
-          d > 0
-        );
-        line(
-          R.walkA[i],
-          cs[i],
-          back(lerp(p.x, A.x, t2), lerp(p.y, A.y, t2)),
-          t2 > 0
-        );
-        line(
-          R.imp.walkA[i],
-          cs[i],
-          front(lerp(p.x, A.x, t2), lerp(p.y, A.y, t2)),
-          t2 > 0
-        );
-        setOpacity(R.walkB[i], keep[i]);
-        setOpacity(R.walkA[i], keep[i]);
-        setOpacity(R.imp.walkA[i], keep[i]);
-        const lag =
-          ((Math.hypot(b[0] - cs[i][0], b[1] - cs[i][1]) % DASH) / DASH) *
-            MARCH -
-          MARCH;
-        if (Math.abs(lag - lagNow[i]) > 0.004) {
-          R.walkA[i].style.animationDelay = lag + 's';
-          lagNow[i] = lag;
-        }
-        if (!i) u1 = t2;
-      });
-
-      const fB = (front(B.x, -1)[1] - front(B.x, 0)[1]) / v.k;
-      const dm = (fs * 2.3) / (v.k * fB),
-        om = (fs * 0.4) / v.k,
-        hm = (fs * 0.45) / v.k;
-      const p0 = front(A.x, -dm),
-        p1 = front(B.x, -dm),
-        len2 = (p1[0] - p0[0]) ** 2 + (p1[1] - p0[1]) ** 2 || 1,
-        len = Math.sqrt(len2);
-      const at = (q: [number, number]) =>
-        ((q[0] - p0[0]) * (p1[0] - p0[0]) + (q[1] - p0[1]) * (p1[1] - p0[1])) /
-        len2;
-      const P = (f: number): [number, number] => [
-        lerp(p0[0], p1[0], f),
-        lerp(p0[1], p1[1], f),
-      ];
-      R.ext.setAttribute(
-        'd',
-        'M' +
-          front(A.x, -om) +
-          'L' +
-          front(A.x, -dm - om) +
-          'M' +
-          front(B.x, -om) +
-          'L' +
-          front(B.x, -dm - om)
-      );
-      const gone = 1 - S.swap;
-      setOpacity(R.ext, clamp(S.bEast * 5, 0, 1) * gone);
-      setOpacity(R.dimE, gone);
-      const half = gapW / 2 / len,
-        room = half + (fs * 0.25) / len,
-        fmid = at(front((A.x + B.x) / 2, -dm));
-      const band = fs * 0.5,
-        up = (q: [number, number]): [number, number] => [q[0], q[1] - band],
-        dn = (q: [number, number]): [number, number] => [q[0], q[1] + band];
-      const passes = (
-        q0: [number, number],
-        q1: [number, number]
-      ): [number, number] | null => {
-        const f1 = crossAt(up(p0), up(p1), q0, q1),
-          f2 = crossAt(dn(p0), dn(p1), q0, q1);
-        return f1 === null && f2 === null
-          ? null
-          : [Math.min(f1 ?? f2!, f2 ?? f1!), Math.max(f1 ?? f2!, f2 ?? f1!)];
-      };
-      const clearOf = (walks: [ [number, number], [number, number] ][]) => {
-        let f = fmid;
-        const ranges = walks
-          .map(([q0, q1]) => passes(q0, q1))
-          .filter((r): r is [number, number] => Boolean(r))
-          .sort((r1, r2) => r1[0] - r2[0]);
-        for (const [lo, hi] of ranges)
-          if (f - room < hi && f + room > lo) f = hi + room;
-        return clamp(f, fmid, 1 - half);
-      };
-      const fNow = clearOf(
-        u1 > 0
-          ? [[cs[0], back(lerp(C.x, A.x, u1), lerp(C.y, A.y, u1))]]
-          : []
-      );
-      const homeOpen = front(A.x, -A.y);
-      const fl = lerp(
-        fNow,
-        clearOf(cs.map((q) => [q, homeOpen])),
-        S.lab4
-      );
-      if (S.bEast > 0) {
-        const tx = lerp(A.x, B.x, S.bEast),
-          ft = at(front(tx, -dm));
-        const head = (x: number, dir: number) =>
-          'M' +
-          front(x - dir * hm, -dm + 0.55 * hm) +
-          'L' +
-          front(x, -dm) +
-          'L' +
-          front(x - dir * hm, -dm - 0.55 * hm);
-        let d = 'M' + p0 + 'L' + P(Math.min(ft, fl - half));
-        if (ft > fl + half) d += 'M' + P(fl + half) + 'L' + P(ft);
-        R.dimE.setAttribute('d', d + head(A.x, -1) + head(tx, 1));
-      } else R.dimE.setAttribute('d', '');
-      const lp = P(fl);
-      setText(R.tE, lp[0], lp[1], fadeIn(S.bEast) * gone);
-
-      if (S.tri > 0) {
-        const r = (fs * 0.34) / v.k,
-          d = front(D.x, D.y);
-        R.legs.setAttribute(
-          'd',
-          'M' +
-            front(A.x + r, D.y) +
-            'L' +
-            front(lerp(A.x + r, D.x, S.tri), D.y) +
-            'M' +
-            front(B.x, B.y - r) +
-            'L' +
-            front(B.x, lerp(B.y - r, D.y, S.tri))
-        );
-        point(R.pD, d, S.dpt);
-      } else {
-        R.legs.setAttribute('d', '');
-        setOpacity(R.pD, 0);
-      }
-      corner(R.sqD, front, D.x, D.y, [-1, 0], [0, 1], s, S.dpt);
-      label(R.lD, front, D.x, D.y, 0.85, -0.95, S.dpt, v.k);
-      const [bx, by] = front(D.x - (fs * 1.25) / v.k, 0);
-      setText(R.tBD, bx, by, S.swap);
-      R.tBD.setAttribute('transform', 'rotate(-90 ' + bx + ' ' + by + ')');
-      label(R.tAD, front, (A.x + D.x) / 2, D.y, 0, -1, S.swap, v.k);
-
-      switcher.style.opacity = String(S.sw);
-    }
-
-    function layout() {
-      if (!stage) return;
-      SW = stage.clientWidth;
-      SH = stage.clientHeight;
-      if (!SW || !SH) return;
-      const gap = parseFloat(getComputedStyle(stage).rowGap) || 0;
-      const g = SW < 560 ? 56 : 70;
-      const W = Math.min(960, SW - g),
-        fx = Math.min((SW - W) / 2, SW - g - W);
-      const room = SH - prob.offsetHeight - ask.offsetHeight - 2 * gap;
-      fs = clamp(Math.min(W / 48, room / 9), 12, 21);
-      const m = { l: fs * 3.4, r: fs * 3.4, t: fs * 3.3, b: fs * 2.9 };
-      const fit = (top: number) =>
-        Math.min((W - m.l - m.r) / SPAN.w, (room - top - m.b) / SPAN.h, MAX_K);
-      compact = fit(m.t) < 3 && fit(fs * 2.1) > fit(m.t);
-      if (compact) m.t = fs * 2.1;
-      const k = Math.max(0.5, fit(m.t));
-      box.style.height = Math.round(SPAN.h * k + m.t + m.b) + 'px';
-      V2 = makeView(0, k, fx + W / 2, box.offsetTop + m.t + SPAN.h * k);
-      RIVER = [MID + (fx + 3 - V2.ox) / k, MID + (fx + W - 3 - V2.ox) / k];
-
-      PAPER = {
-        x0: -(m.l + (compact ? fs * 0.8 : 0)) / k,
-        x1: SPAN.w + m.r / k,
-        h: SPAN.h + (m.t * 0.92) / k,
-      };
-      const side = 16;
-      hints.forEach((n) => {
-        n.style.width = SW - 2 * side + 'px';
-        n.style.left = side + 'px';
-      });
-      const e = reach(),
-        pad = fs * 0.6,
-        hg = fs * 0.9,
-        hh = Math.max(...hints.map((n) => n.offsetHeight)),
-        up = e.y1,
-        down = -e.y0;
-      const wide = 2 * Math.max(e.mid - e.x0, e.x1 - e.mid);
-      const k3 = Math.max(
-        0.5,
-        Math.min(
-          k,
-          W / wide,
-          (SH / 2 - pad) / up,
-          (SH / 2 - pad - hg - hh) / down
-        )
-      );
-      const oy3 = (SH - (up + down) * k3 - hg - hh) / 2 + up * k3;
-      V3 = makeView(1, k3, fx + W / 2 - k3 * e.mid, oy3);
-      hintY = oy3 + down * k3 + hg;
-
-      const ph = PAPER.h,
-        h5 = hint5.offsetHeight;
-      const k5 = Math.max(
-        0.5,
-        Math.min(
-          k,
-          W / (PAPER.x1 - PAPER.x0),
-          (SH - 2 * pad - hg - h5) / (2 * ph)
-        )
-      );
-      const oy5 = (SH - 2 * ph * k5 - hg - h5) / 2 + ph * k5;
-      V5 = makeView(
-        0,
-        k5,
-        fx + W / 2 + k5 * (MID - (PAPER.x0 + PAPER.x1) / 2),
-        oy5
-      );
-      hintY5 = oy5 + ph * k5 + hg;
-
-      math.style.fontSize = '';
-      const mw = math.offsetWidth,
-        mf = parseFloat(getComputedStyle(math).fontSize);
-      if (mw > SW - 2 * side)
-        math.style.fontSize = Math.floor((mf * (SW - 2 * side)) / mw) + 'px';
-      const mh = math.offsetHeight;
-      const k6 = Math.max(
-        0.5,
-        Math.min(k5, (SH - 2 * pad - hg - mh) / (2 * ph))
-      );
-      const oy6 = pad + ph * k6;
-      V6 = makeView(
-        0,
-        k6,
-        SW / 2 + k6 * (MID - (PAPER.x0 + PAPER.x1) / 2),
-        oy6
-      );
-      mathY = oy6 + ph * k6 + hg;
-      drawRing();
-
-      const sy = clamp(
-        oy3 - switcher.offsetHeight / 2,
-        0,
-        Math.max(0, SH - switcher.offsetHeight)
-      );
-      switcher.style.transform =
-        'translate(' +
-        ((fx + W + SW) / 2 - switcher.offsetWidth / 2) +
-        'px,' +
-        sy +
-        'px)';
-
-      svg.setAttribute('viewBox', '0 0 ' + SW + ' ' + SH);
-      svg.style.setProperty('--fs', fs + 'px');
-      for (const n of [R.imp.mask, R.maskAll]) {
-        n.setAttribute('x', String(-SW));
-        n.setAttribute('y', String(-SH));
-        n.setAttribute('width', String(3 * SW));
-        n.setAttribute('height', String(3 * SH));
-      }
-      R.cA.style.textAnchor =
-        R.cB.style.textAnchor =
-        R.imp.cA.style.textAnchor =
-          compact ? 'end' : '';
-      gapW = (R.tE.getComputedTextLength() || fs * 2.6) + fs * 0.7;
-      render(stateRef.current);
-    }
-
-    function flip(on: boolean) {
-      if (!stateRef.current.controlsOn) return;
-      window.cancelAnimationFrame(flipRafRef.current);
-      const fromUnf = stateRef.current.unf;
-      const toUnf = on ? 1 : 0;
-      const dur = Math.max(400, 2600 * Math.abs(toUnf - fromUnf));
-      const t0 = performance.now();
-      updateStateRef.current({ switchOpen: on });
-
-      const tick = (now: number) => {
-        const u = Math.min(1, (now - t0) / dur);
-        const eased = u >= 1 ? 1 : easeOut(u);
-        const nextUnf = lerp(fromUnf, toUnf, eased);
-        updateStateRef.current({ unf: nextUnf, switchOpen: on });
-        if (u < 1) {
-          flipRafRef.current = window.requestAnimationFrame(tick);
-        }
-      };
-      flipRafRef.current = window.requestAnimationFrame(tick);
-    }
-
-    toggle.addEventListener('click', () => flip(!stateRef.current.switchOpen));
-    wordFold.addEventListener('click', () => flip(false));
-    wordUnfold.addEventListener('click', () => flip(true));
-
-    renderFnRef.current = render;
-    layout();
-    document.fonts?.ready?.then(layout);
-    const ro = new ResizeObserver(layout);
-    ro.observe(stage);
-
-    return () => {
-      window.cancelAnimationFrame(flipRafRef.current);
-      ro.disconnect();
+  // C and the walks through it
+  const keep = CS.map((_, i) => (i === 2 ? 1 : 1 - S.focus));
+  const cs = CS.map((p) => front(p.x, p.y));
+  const shown = [S.c * S.sub, S.c2, S.c3, S.c4].map((o, i) => o * keep[i]);
+  const drawn = [S.walk, S.w2, S.w3, S.w4];
+  const walks = CS.map((p, i) => {
+    const bc = Math.hypot(B.x - p.x, B.y - p.y),
+      ca = Math.hypot(A.x - p.x, A.y - p.y),
+      d = drawn[i] * (bc + ca);
+    const t1 = clamp(d / bc, 0, 1),
+      t2 = clamp((d - bc) / ca, 0, 1);
+    return {
+      B: pathD(d > 0, b, front(lerp(B.x, p.x, t1), lerp(B.y, p.y, t1))),
+      A: pathD(t2 > 0, cs[i], back(lerp(p.x, A.x, t2), lerp(p.y, A.y, t2))),
+      imprintA: pathD(t2 > 0, cs[i], front(lerp(p.x, A.x, t2), lerp(p.y, A.y, t2))),
+      t2,
+      // the dashes march from B through C towards home: start the back half's dashes where the front half's end
+      lag: ((Math.hypot(b[0] - cs[i][0], b[1] - cs[i][1]) % DASH) / DASH) * MARCH - MARCH,
     };
-  }, []);
+  });
+  const u1 = walks[0].t2;
 
+  // the 120 m measure under the river, kept clear of the walks that cross it
+  const fB = (front(B.x, -1)[1] - front(B.x, 0)[1]) / v.k;
+  const dm = (fs * 2.3) / (v.k * fB),
+    om = (fs * 0.4) / v.k,
+    hm = (fs * 0.45) / v.k;
+  const p0 = front(A.x, -dm),
+    p1 = front(B.x, -dm),
+    len2 = (p1[0] - p0[0]) ** 2 + (p1[1] - p0[1]) ** 2 || 1,
+    len = Math.sqrt(len2);
+  const along = (q: XY) => ((q[0] - p0[0]) * (p1[0] - p0[0]) + (q[1] - p0[1]) * (p1[1] - p0[1])) / len2;
+  const P = (f: number): XY => [lerp(p0[0], p1[0], f), lerp(p0[1], p1[1], f)];
+  const gone = 1 - S.swap;
+  const half = gapW / 2 / len,
+    room2 = half + (fs * 0.25) / len,
+    fmid = along(front((A.x + B.x) / 2, -dm));
+  const band = fs * 0.5,
+    bandUp = (q: XY): XY => [q[0], q[1] - band],
+    bandDn = (q: XY): XY => [q[0], q[1] + band];
+  const passes = (q0: XY, q1: XY): XY | null => {
+    const f1 = crossAt(bandUp(p0), bandUp(p1), q0, q1),
+      f2 = crossAt(bandDn(p0), bandDn(p1), q0, q1);
+    return f1 === null && f2 === null
+      ? null
+      : [Math.min(f1 ?? f2!, f2 ?? f1!), Math.max(f1 ?? f2!, f2 ?? f1!)];
+  };
+  const clearOf = (crossing: [XY, XY][]) => {
+    let f = fmid;
+    const ranges = crossing
+      .map(([q0, q1]) => passes(q0, q1))
+      .filter((r): r is XY => Boolean(r))
+      .sort((r1, r2) => r1[0] - r2[0]);
+    for (const [lo, hi] of ranges) if (f - room2 < hi && f + room2 > lo) f = hi + room2;
+    return clamp(f, fmid, 1 - half);
+  };
+  const fNow = clearOf(u1 > 0 ? [[cs[0], back(lerp(C.x, A.x, u1), lerp(C.y, A.y, u1))]] : []);
+  const homeOpen = front(A.x, -A.y);
+  const fl = lerp(fNow, clearOf(cs.map((q): [XY, XY] => [q, homeOpen])), S.lab4);
+  let dimE = '';
+  if (S.bEast > 0) {
+    const tx = lerp(A.x, B.x, S.bEast),
+      ft = along(front(tx, -dm));
+    const head = (x: number, dir: number) =>
+      'M' + front(x - dir * hm, -dm + 0.55 * hm) + 'L' + front(x, -dm) + 'L' + front(x - dir * hm, -dm - 0.55 * hm);
+    let d = 'M' + p0 + 'L' + P(Math.min(ft, fl - half));
+    if (ft > fl + half) d += 'M' + P(fl + half) + 'L' + P(ft);
+    dimE = d + head(A.x, -1) + head(tx, 1);
+  }
+  const lp = P(fl);
+
+  // the right triangle ABD on the unfolded paper (step 6)
+  const r = (fs * 0.34) / v.k,
+    dPt = front(D.x, D.y);
+  const legs =
+    S.tri > 0
+      ? 'M' + front(A.x + r, D.y) + 'L' + front(lerp(A.x + r, D.x, S.tri), D.y) +
+        'M' + front(B.x, B.y - r) + 'L' + front(B.x, lerp(B.y - r, D.y, S.tri))
+      : '';
+  const [bdx, bdy] = front(D.x - (fs * 1.25) / v.k, 0);
+
+  // home's marks: drawn on the back half, and again (black, in a mask) as the see-through marks on the front half
+  const home = (map: Map2, imprint: boolean) => {
+    const a = map(A.x, A.y);
+    const n = names(map, A, S.a);
+    return (
+      <>
+        <path className="dim" d={pathD(S.aDim > 0, a, map(A.x, A.y * (1 - S.aDim)))} />
+        <path className="sq" d={cornerD(map, A.x, 0, [1, 0], [0, 1])} opacity={clamp(fadeIn(S.aDim), 0, 1)} />
+        {walks.map((w, i) => (
+          <path
+            key={i}
+            ref={imprint ? undefined : walkARefs[i]}
+            className={imprint ? 'walk' : 'walk w' + (i + 1)}
+            d={imprint ? w.imprintA : w.A}
+            opacity={clamp(keep[i], 0, 1)}
+          />
+        ))}
+        <circle className="pt" {...pointAt(a, S.a)} />
+        <text className="lbl" {...n.letter}>A</text>
+        <text className="cap" style={capAnchor} {...n.caption}>home</text>
+        <text className="len" {...labelAt(map, A.x, A.y / 2, -1.75, 0, fadeIn(S.aDim))}>20 m</text>
+      </>
+    );
+  };
+
+  // The back half's dashes keep their phase unless it moves by more than 4 ms, so they don't jitter. React has no
+  // say in this one style, so it is kept here.
+  const lagNow = useRef([0, 0, 0, 0]);
   useLayoutEffect(() => {
-    renderFnRef.current?.(element.state);
-  }, [element.state]);
+    if (!ready) return;
+    walks.forEach((w, i) => {
+      const n = walkARefs[i].current;
+      if (n && Math.abs(w.lag - lagNow.current[i]) > 0.004) {
+        n.style.animationDelay = w.lag + 's';
+        lagNow.current[i] = w.lag;
+      }
+    });
+  });
+
+  const im = clamp(S.unf / 0.6, 0, 1);
+  const hy = lerp(lerp(hintY, hintY5, F * (1 - t)), mathY, U);
+  const under = (op: number): React.CSSProperties => ({
+    width: SW - 2 * SIDE + 'px',
+    left: SIDE + 'px',
+    opacity: String(clamp(op, 0, 1)),
+    transform: 'translateY(' + (hy + (1 - op) * 10) + 'px)',
+  });
+  const piece = (i: number): React.CSSProperties => {
+    const o = [S.m1, S.m2, S.m3, S.m4, S.m5][i - 1];
+    return { opacity: String(clamp(o, 0, 1)), transform: 'translateY(' + (1 - o) * 8 + 'px)' };
+  };
+  const mask = { x: String(-SW), y: String(-SH), width: String(3 * SW), height: String(3 * SH) };
 
   return (
     <div
-      ref={hostRef}
+      ref={stageRef}
       style={{
         position: 'relative',
         flex: 1,
@@ -940,7 +636,174 @@ const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({
         alignItems: 'center',
         gap: 'inherit',
       }}
-    />
+    >
+      <p ref={probRef} className="problem" aria-hidden={S.stepIdx >= FOLD ? 'true' : 'false'} style={{ opacity: String(S.txt) }}>
+        Danny's home is <b>20 meters</b> north of a <b className="c-blue">straight river</b> that flows from west to
+        east. A playground is <b>120 meters</b> east of his home and <b>30 meters</b> north of the river. After
+        playing at the playground, Danny wants to walk to the river bank to wash up before going home. What is the
+        shortest total distance he needs to walk?
+      </p>
+      <div ref={boxRef} className="figbox" style={stage ? { height: boxH + 'px' } : undefined} />
+      <p
+        ref={askRef}
+        className="ask"
+        style={{ opacity: String(clamp(S.ask, 0, 1)), transform: 'translateY(' + (1 - S.ask) * 10 + 'px)' }}
+      >
+        How short can <i>BC</i> + <i>CA</i> be?
+      </p>
+
+      <svg
+        id="fig"
+        role="img"
+        aria-label={ALT[S.stepIdx] || ALT[1]}
+        aria-hidden={S.stepIdx === 0 ? 'true' : undefined}
+        viewBox={stage ? '0 0 ' + SW + ' ' + SH : undefined}
+        style={stage ? ({ '--fs': fs + 'px' } as React.CSSProperties) : undefined}
+      >
+        <path className="sheet" d={sheetD(back)} opacity={clamp(S.paper, 0, 1)} />
+        <g opacity={clamp(1 - 0.45 * S.paper * clamp(0.5 + cf, 0, 1), 0, 1)}>{home(back, false)}</g>
+        <defs>
+          <mask id="imprint" maskUnits="userSpaceOnUse" {...mask}>
+            <rect fill="#fff" {...mask} />
+            <g className="imprint" opacity={clamp(S.paper * im * im * (3 - 2 * im), 0, 1)}>
+              {home(front, true)}
+            </g>
+          </mask>
+        </defs>
+
+        <g>
+          <path className="sheet" mask="url(#imprint)" d={sheetD(front)} opacity={clamp(S.paper, 0, 1)} />
+          <path className="dim" d={pathD(S.bRiver > 0, b, front(B.x, B.y * (1 - S.bRiver)))} />
+          <path className="sq" d={cornerD(front, B.x, 0, [-1, 0], [0, 1])} opacity={clamp(fadeIn(S.bRiver), 0, 1)} />
+          {walks.map((w, i) => (
+            <path key={i} className={'walk w' + (i + 1)} d={w.B} opacity={clamp(keep[i], 0, 1)} />
+          ))}
+          <circle className="pt" {...pointAt(b, S.b)} />
+          <text className="lbl" {...nB.letter}>B</text>
+          <text className="cap" style={capAnchor} {...nB.caption}>playground</text>
+          <text className="len" {...labelAt(front, B.x, B.y / 2, 1.75, 0, fadeIn(S.bRiver))}>30 m</text>
+        </g>
+
+        <path className="river" d={pathD(S.river > 0, front(xa, 0), front(lerp(xa, xb, S.river), 0))} />
+        <text
+          className="cap river-cap"
+          {...textAt(Math.max(end[0] - fs * 1.9 + 3, (front(B.x, 0)[0] + end[0]) / 2), end[1] + fs * 1.05, fadeIn(S.river, 0.7))}
+        >
+          river
+        </text>
+        <circle className="pt c" {...pointAt(cs[0], S.c)} opacity={clamp(S.c * (1 - S.sub), 0, 1)} />
+        <text className="lbl c" {...textAt(cs[0][0], cs[0][1] + fs * 1.15, S.c * (1 - S.sub))}>C</text>
+        {cs.map((q, i) => (
+          <circle
+            key={i}
+            className={'pt w' + (i + 1)}
+            {...pointAt(q, i ? shown[i] : S.c * keep[0])}
+            opacity={clamp(shown[i], 0, 1)}
+          />
+        ))}
+        {cs.map((q, i) => (
+          <text key={i} className={'lbl w' + (i + 1)} {...textAt(q[0], q[1] + fs * 1.15, shown[i])}>
+            C
+            <tspan className="sub" dy=".35em">
+              {String(i + 1)}
+            </tspan>
+          </text>
+        ))}
+        <path
+          className="ext"
+          d={'M' + front(A.x, -om) + 'L' + front(A.x, -dm - om) + 'M' + front(B.x, -om) + 'L' + front(B.x, -dm - om)}
+          opacity={clamp(clamp(S.bEast * 5, 0, 1) * gone, 0, 1)}
+        />
+        <path className="dim" d={dimE} opacity={clamp(gone, 0, 1)} />
+        <text ref={tERef} className="len" {...textAt(lp[0], lp[1], fadeIn(S.bEast) * gone)}>
+          120 m
+        </text>
+
+        <path className="leg" d={legs} />
+        <path className="sq" d={cornerD(front, D.x, D.y, [-1, 0], [0, 1])} opacity={clamp(S.dpt, 0, 1)} />
+        <circle className="pt" {...pointAt(dPt, S.dpt)} opacity={S.tri > 0 ? clamp(S.dpt, 0, 1) : 0} />
+        <text className="lbl" {...labelAt(front, D.x, D.y, 0.85, -0.95, S.dpt)}>D</text>
+        <text className="len" {...textAt(bdx, bdy, S.swap)} transform={'rotate(-90 ' + bdx + ' ' + bdy + ')'}>
+          50 m
+        </text>
+        <text className="len" {...labelAt(front, (A.x + D.x) / 2, D.y, 0, -1, S.swap)}>120 m</text>
+      </svg>
+
+      {HINTS.map((h, i) => (
+        <p key={i} ref={hintRefs[i]} className="hint" style={stage ? under([S.hint3, S.hint4, S.hint5][i]) : undefined}>
+          {h}
+        </p>
+      ))}
+
+      <div
+        ref={mathRef}
+        className="math"
+        style={{ fontSize: mathFont, transform: 'translate(-50%,' + mathY + 'px)' }}
+      >
+        <Working
+          s={piece}
+          ring={
+            <svg
+              ref={ringRef}
+              className="ring"
+              aria-hidden="true"
+              viewBox={ringBox ? '0 0 ' + ringBox.w + ' ' + ringBox.h : undefined}
+              style={{ opacity: S.ring > 0 ? '1' : '0' }}
+            >
+              <path
+                ref={ringPathRef}
+                d={ringD}
+                style={{ strokeDasharray: String(ringLen), strokeDashoffset: String(ringLen * (1 - S.ring)) }}
+              />
+            </svg>
+          }
+        />
+      </div>
+      {/* the working at its natural size, unseen: measured to decide whether it must be made smaller to fit */}
+      <div ref={mathProbeRef} className="math" aria-hidden="true" style={{ visibility: 'hidden' }}>
+        <Working />
+      </div>
+
+      <div
+        ref={switcherRef}
+        className={'switcher' + (S.controlsOn ? ' on' : '')}
+        style={{
+          transform: stage ? 'translate(' + ((fx + W + SW) / 2 - swW / 2) + 'px,' + sy + 'px)' : undefined,
+          opacity: String(S.sw),
+        }}
+      >
+        <button
+          className={'switch-word' + (S.switchOpen ? '' : ' now')}
+          type="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          onClick={() => flip(false)}
+        >
+          fold
+        </button>
+        <button
+          className="switch"
+          type="button"
+          role="switch"
+          aria-checked={S.switchOpen ? 'true' : 'false'}
+          aria-label="Unfold the paper"
+          tabIndex={S.controlsOn ? 0 : -1}
+          aria-disabled={S.controlsOn ? undefined : 'true'}
+          onClick={() => flip(!S.switchOpen)}
+        >
+          <span className="knob"></span>
+        </button>
+        <button
+          className={'switch-word' + (S.switchOpen ? ' now' : '')}
+          type="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          onClick={() => flip(true)}
+        >
+          unfold
+        </button>
+      </div>
+    </div>
   );
 };
 

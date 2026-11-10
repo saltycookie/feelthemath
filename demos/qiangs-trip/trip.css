@@ -2,16 +2,16 @@
    Colour code: blue = the first part of the trip, orange = the second part, pink = the gap that has to be made up,
    ink = the 50 mph average. */
 
-/* Two layers on the stage, one over the other: the problem (steps 1-2) and the chart (steps 3-10). trip.js shows
+/* Two layers on the stage, one over the other: the problem (steps 1-2) and the chart (steps 3-10). trip.tsx shows
    one at a time, from the animated value `view`. */
 .layer{position:absolute;inset:0}
 
-/* ---- steps 1-2: the problem, then the trip drawn as a road (trip.js plays it) ---- */
+/* ---- steps 1-2: the problem, then the trip drawn as a road (trip.tsx plays it) ---- */
 .intro{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:clamp(18px,5vh,48px)}
 /* the road keeps its place on step 1 too (just invisible), so the problem text sits in the same spot on both steps */
 .road{width:100%;max-width:880px;max-height:300px;height:auto;display:block}
 .rline{fill:none;stroke-width:22}
-.rline.drawn{stroke-dasharray:1}                                  /* drawn from its start: trip.js moves the dash along */
+.rline.drawn{stroke-dasharray:1}                                  /* drawn from its start: trip.tsx moves the dash along */
 .road-base{stroke:var(--ink-faint);stroke-linecap:butt}          /* the pale road, there before the car moves */
 .rt{font-family:var(--font-hand);font-weight:700;text-anchor:middle}
 .rt.big{font-size:46px} .rt.sm{font-size:38px}

@@ -1,15 +1,21 @@
 // A minimal React StepDeck demo to copy when starting a new one.
 // Three steps: the question, a rectangle that draws itself under it, then the answer.
+//
+// A renderer draws its scene as JSX from the element's state. Whatever it needs to know about the page (how big the
+// paper is, how big a bubble came out) it reads with useMeasure, and draws from that.
 
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
+  Bubble,
   DemoConfig,
   ElementRendererComponent,
   MathDemoPlayer,
   VisualElement,
   clamp,
+  placeBubble,
+  useMeasure,
 } from '../../framework';
 
 interface GardenState {
@@ -23,45 +29,35 @@ const GardenRenderer: ElementRendererComponent<GardenState> = ({ element }) => {
   const { rectOp, grow, bubbleOp, answerOp } = element.state;
   const boxRef = useRef<HTMLDivElement | null>(null);
   const bubbleRef = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  const [bubbleSize, setBubbleSize] = useState({ w: 0, h: 0 });
 
-  useLayoutEffect(() => {
-    const box = boxRef.current;
-    if (!box) return;
-    const measure = () => {
-      const r = box.getBoundingClientRect();
-      setSize({ w: r.width, h: r.height });
-      if (bubbleRef.current) {
-        setBubbleSize({
-          w: bubbleRef.current.offsetWidth,
-          h: bubbleRef.current.offsetHeight,
-        });
-      }
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(box);
-    document.fonts?.ready?.then(measure);
-    return () => ro.disconnect();
-  }, []);
-
+  // measure: the space under the question, then the bubble at the width it may take there
+  const size = useMeasure(
+    boxRef,
+    () => {
+      const r = boxRef.current!.getBoundingClientRect();
+      return { w: r.width, h: r.height };
+    },
+    { w: 0, h: 0 }
+  );
   const W = size.w;
   const H = size.h;
+  const maxWidth = W ? Math.min(360, W - 24) : 360;
+  const bubbleSize = useMeasure(
+    bubbleRef,
+    () => ({ w: bubbleRef.current!.offsetWidth, h: bubbleRef.current!.offsetHeight }),
+    { w: 0, h: 0 },
+    [maxWidth]
+  );
+
+  // draw: a 3 × 2 rectangle as big as fits, with the bubble to the right of its top right corner
   const unit = W > 0 && H > 0 ? Math.min(W / 5, H / 4) : 0;
   const ox = (W - 3 * unit) / 2;
   const oy = (H - 2 * unit) / 2;
-
-  // Place callout bubble anchored at (ox + 3 * unit, oy) on the right
-  const ax = ox + 3 * unit;
-  const ay = oy;
-  const gap = 11;
-  const inset = 4;
-  const bw = bubbleSize.w || 96;
-  const bh = bubbleSize.h || 38;
-  const left = clamp(ax + gap, inset, Math.max(inset, W - inset - bw));
-  const top = clamp(ay - bh / 2, inset, Math.max(inset, H - inset - bh));
-  const tp = clamp(ay - top, 16, Math.max(16, bh - 16)) - 6;
+  const bubbleAt = placeBubble(
+    [ox + 3 * unit, oy, 'right'],
+    { w: bubbleSize.w || 96, h: bubbleSize.h || 38 },
+    { x: 0, y: 0, w: W, h: H }
+  );
 
   return (
     <>
@@ -92,23 +88,11 @@ const GardenRenderer: ElementRendererComponent<GardenState> = ({ element }) => {
             </>
           )}
         </svg>
-        <div
-          ref={bubbleRef}
-          className="bubble"
-          data-tail="right"
-          style={
-            {
-              opacity: clamp(bubbleOp, 0, 1),
-              maxWidth: W ? Math.min(360, W - 24) : 360,
-              transform: `translate(${left}px, ${top}px)`,
-              '--tp': `${tp}px`,
-            } as React.CSSProperties
-          }
-        >
+        <Bubble ref={bubbleRef} opacity={bubbleOp} placement={bubbleAt} maxWidth={maxWidth}>
           <b className="c-blue">3</b>
           <u>m</u> × <b className="c-blue">2</b>
           <u>m</u>
-        </div>
+        </Bubble>
       </div>
     </>
   );

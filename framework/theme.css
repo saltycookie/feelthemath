@@ -428,7 +428,7 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
   .btn{height:40px}
 }
 
-/* ---- callout bubbles (placed by bubbles.js); data-tail says which edge carries the tail ---- */
+/* ---- callout bubbles (components/Bubble.tsx); data-tail says which edge carries the tail ---- */
 .bubble{position:absolute;left:0;top:0;width:max-content;padding:7px 14px 8px;border:2px solid var(--ink);border-radius:14px;
   background:var(--paper);color:var(--ink);box-shadow:0 4px 14px var(--shadow);
   font:400 clamp(16px, 2vw, 21px)/1.25 var(--font-hand);font-variant-numeric:tabular-nums;text-align:center;
@@ -467,7 +467,7 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
 .c-orange-main{color:var(--orange);fill:var(--orange)}
 .c-pink-main{color:var(--pink);fill:var(--pink)}
 
-/* ---- chart basics (svg.js) ------------------------------------------------ */
+/* ---- chart basics (components/Chip.tsx draws the chips) ------------------- */
 .plot{fill:var(--panel);stroke:var(--grid-strong);stroke-width:1}
 .gl{stroke:var(--grid);stroke-width:1}
 .gl.major{stroke:var(--grid-strong)}

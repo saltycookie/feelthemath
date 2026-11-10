@@ -13,19 +13,15 @@
 <link rel="stylesheet" href="../../framework/theme.css">
 <style>
   /* styles for this demo only: the question at the top of the stage, the drawing in the space under it */
-  .stage{align-items:center;gap:16px}
+  .stage, .fw-visual-element{align-items:center;gap:16px}
   .box{position:relative;flex:1;min-height:0;align-self:stretch}
   #pic{position:absolute;inset:0;width:100%;height:100%}
   .area{fill:var(--blue-fill);stroke:var(--blue);stroke-width:2}
   .big{font:700 28px var(--font-hand);text-anchor:middle}
 </style>
-<script type="module" src="demo.js" blocking="render"></script>   <!-- drawn before the page first shows: under the opening lid too -->
+<script type="module" src="./demo.tsx"></script>
 </head>
 <body>
-<!-- only what every demo shares: the box, the stage (demo.js fills it) and the navigation (nav.js fills it) -->
-<div class="deck">
-  <div class="stage"></div>
-  <nav class="nav"></nav>
-</div>
+<div class="deck" id="deck"></div>
 </body>
 </html>

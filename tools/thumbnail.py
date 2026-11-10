@@ -19,7 +19,7 @@ How it works
     2. Opens the demo in headless Chromium at #step-N, which plays step N from its beginning. The window is
        860 pixels wide and exactly as tall as it takes to make the workspace square (see --viewport).
     3. Waits until the step has finished animating. StepDeck marks the page <html data-step="N" data-step-busy>
-       while step N plays and drops data-step-busy when it is done (framework/deck.js), then waits a moment longer.
+       while step N plays and drops data-step-busy when it is done (framework/components/MathDemoPlayer.tsx), then waits a moment longer.
     4. Screenshots only the workspace, the .stage element: no title band, home link or Back/Next.
     5. Cuts a square out of it (all of it when the workspace is square; see --focus and --zoom) and scales it down.
 
@@ -254,7 +254,8 @@ def main():
         return 1
 
     from playwright.sync_api import sync_playwright
-    server = serve(ROOT)
+    serve_dir = ROOT / 'dist' if (ROOT / 'dist' / 'index.html').is_file() else ROOT
+    server = serve(serve_dir)
     base = 'http://127.0.0.1:%d' % server.server_address[1]
     try:
         with sync_playwright() as p:

@@ -14,11 +14,16 @@
 //                above, between the tops of the walls and the bottom of the box
 //   box-shade    the walls' shade on the paper down in the box. It rises with the paper, fading as it comes up
 //   box-walls    the tops of the walls, over the paper while it is down in the box
-// createDeck() calls watchBox(), so every demo does this; a demo page loads its script with blocking="render", so
+// MathDemoPlayer calls watchBox(), so every demo does this; a demo page loads its script with blocking="render", so
 // that this is ready before the page's first frame.
 
 let watching = false, laidNo = 0;
+let arriving = null;
 const root = document.documentElement;
+
+export function waitForBoxArrival() {
+  return arriving;
+}
 
 // How the box looks from above with its paper down in it.
 //   sunk  how small the bottom of the box looks, the same across and down (the reader looks in from above the middle
@@ -103,9 +108,14 @@ export function watchBox() {
   addEventListener('pagereveal', e => {
     lift();
     if (!e.viewTransition) return;
+    arriving = e.viewTransition.finished.catch(() => {}).then(() => { arriving = null; });
     const m = measure(), n = lay(m);
     if (!n) return;
     sink(m);
     e.viewTransition.finished.finally(() => lift(n));
   });
+}
+
+if (typeof window !== 'undefined') {
+  watchBox();
 }

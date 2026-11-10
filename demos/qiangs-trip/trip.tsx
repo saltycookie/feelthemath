@@ -3,9 +3,12 @@
 // TripScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
 
 import {
-  DemoConfig,
-  VisualElement,
+  background,
+  elementControls,
   mountDemo,
+  type DemoConfig,
+  type StepAnimationController,
+  type VisualElement,
 } from '../../framework';
 import {
   BASE_STATE,
@@ -13,13 +16,17 @@ import {
   ROAD_MS,
   START,
   TripSceneRenderer,
+  type BubbleKey,
   type TripState,
 } from './TripScene';
 
+const SCENE = 'trip-scene';
+const scene = elementControls<TripState>(SCENE);
+
 function makeTripElement(patch: Partial<TripState>): VisualElement<TripState> {
   return {
-    id: 'trip-scene',
-    type: 'trip-scene',
+    id: SCENE,
+    type: SCENE,
     x: 0,
     y: 0,
     opacity: 1,
@@ -27,7 +34,27 @@ function makeTripElement(patch: Partial<TripState>): VisualElement<TripState> {
   };
 }
 
-const STEP4_START: Partial<TripState> = {
+/* ================= the bubble ================= */
+
+const BUBBLE_IN_MS = 260;
+const BUBBLE_OUT_MS = 220;
+
+/** Puts `key`'s words in the bubble and fades it in. Await it, or pass it to background() to carry on meanwhile. */
+function showBubble(c: StepAnimationController, key: BubbleKey): Promise<void> {
+  scene.set(c, { bubbleKey: key });
+  return scene.to(c, { bubble0: 1 }, BUBBLE_IN_MS);
+}
+
+/** Fades the bubble out: what a step with a bubble does on Next. */
+function hideBubble(c: StepAnimationController): Promise<void> {
+  return scene.to(c, { bubble0: 0 }, BUBBLE_OUT_MS);
+}
+
+/* ================= what the chart shows as each step begins ================= */
+// Each builds on the one before it, so a step's beginning is the end of the step before.
+
+/** The empty chart, the point and the car at the start of the first part. */
+const PART1_START: Partial<TripState> = {
   view: 1,
   ptX: 0,
   ptY: PART1.y,
@@ -37,8 +64,9 @@ const STEP4_START: Partial<TripState> = {
   dragOn: false,
 };
 
-const STEP4_DONE: Partial<TripState> = {
-  ...STEP4_START,
+/** The first part driven: its rectangle, labelled 15 mi, 30 mph tall and 0.5 h wide. */
+const PART1_DRAWN: Partial<TripState> = {
+  ...PART1_START,
   ptX: PART1.x,
   carX: PART1.x,
   r1Op: 1,
@@ -50,8 +78,9 @@ const STEP4_DONE: Partial<TripState> = {
   bubble0: 0,
 };
 
-const STEP5_DONE: Partial<TripState> = {
-  ...STEP4_DONE,
+/** The second part driven: its rectangle at 55 mph, of unknown width. */
+const PART2_DRAWN: Partial<TripState> = {
+  ...PART1_DRAWN,
   r2Op: 1,
   r2Rev: 2 / 3,
   r2LabOp: 1,
@@ -60,36 +89,40 @@ const STEP5_DONE: Partial<TripState> = {
   carX: 2.5,
 };
 
-const STEP6_DONE: Partial<TripState> = {
-  ...STEP5_DONE,
+/** The 50 mph average line across both parts; the car gone. */
+const AVERAGE_DRAWN: Partial<TripState> = {
+  ...PART2_DRAWN,
   avgP: 1,
   carOp: 0,
 };
 
-const STEP7_DONE: Partial<TripState> = {
-  ...STEP6_DONE,
+/** The deficit and the surplus outlined in pink. */
+const AREAS_OUTLINED: Partial<TripState> = {
+  ...AVERAGE_DRAWN,
   hiOp: 1,
   eqOp: 0,
-  bubbleKey: 'none',
-  bubble0: 0,
 };
 
-const STEP8_DONE: Partial<TripState> = {
-  ...STEP7_DONE,
+/** Both areas labelled 10 mi. */
+const AREAS_LABELLED: Partial<TripState> = {
+  ...AREAS_OUTLINED,
   hlOp: 1,
 };
 
-const STEP9_DONE: Partial<TripState> = {
-  ...STEP8_DONE,
+/** The second part's time found: 2 h, ending at 2.5 h. */
+const TIME2_FOUND: Partial<TripState> = {
+  ...AREAS_LABELLED,
   lab: 1,
   x25: 1,
 };
+
+/* ================= the steps ================= */
 
 export const qiangsTripDemo: DemoConfig = {
   id: 'qiangs-trip',
   name: "Qiang's Trip",
   renderers: {
-    'trip-scene': TripSceneRenderer,
+    [SCENE]: TripSceneRenderer,
   },
   steps: [
     {
@@ -104,18 +137,11 @@ export const qiangsTripDemo: DemoConfig = {
       summary: 'The trip as a road',
       initialElements: [makeTripElement({ stepIdx: 1, view: 0, road: 0 })],
       async play(c) {
-        await c.animateElement(
-          'trip-scene',
-          { state: { road: 1 } },
-          { durationMs: ROAD_MS, easing: 'linear' }
-        );
+        // The road draws itself on its own timeline (ROAD in TripScene.tsx), so `road` moves at a steady rate.
+        await scene.to(c, { road: 1 }, ROAD_MS, 'linear');
       },
       async exit({ controller }) {
-        await controller.animateElement(
-          'trip-scene',
-          { state: { view: 1 } },
-          { durationMs: 1100 }
-        );
+        await scene.to(controller, { view: 1 }, 1100);
       },
     },
     {
@@ -135,41 +161,14 @@ export const qiangsTripDemo: DemoConfig = {
         }),
       ],
       async play(c) {
-        await c.animateElement(
-          'trip-scene',
-          {
-            state: {
-              hOp: 1,
-              ring: 1,
-              r1Op: 1,
-              r1Lab: 1,
-              gdOp: 1,
-              gxOp: 1,
-              fOp: 1,
-            },
-          },
-          { durationMs: 500 }
-        );
+        await scene.to(c, { hOp: 1, ring: 1, r1Op: 1, r1Lab: 1, gdOp: 1, gxOp: 1, fOp: 1 }, 500);
       },
       async exit({ controller }) {
-        controller.updateElementImmediate('trip-scene', {
-          state: { dragOn: false },
-        });
-        await controller.animateElement(
-          'trip-scene',
-          {
-            state: {
-              hOp: 0,
-              ring: 0,
-              r1Op: 0,
-              r1Lab: 0,
-              gdOp: 0,
-              gxOp: 0,
-              fOp: 0,
-              xtOp: 0,
-            },
-          },
-          { durationMs: 220 }
+        scene.set(controller, { dragOn: false });
+        await scene.to(
+          controller,
+          { hOp: 0, ring: 0, r1Op: 0, r1Lab: 0, gdOp: 0, gxOp: 0, fOp: 0, xtOp: 0 },
+          220
         );
       },
     },
@@ -177,255 +176,106 @@ export const qiangsTripDemo: DemoConfig = {
       stepNumber: 4,
       title: "Let's Use Area to Describe the Problem",
       summary: 'Part 1: 0.5 hours',
-      initialElements: [
-        makeTripElement({
-          ...STEP4_START,
-          stepIdx: 3,
-        }),
-      ],
+      initialElements: [makeTripElement({ ...PART1_START, stepIdx: 3 })],
       async play(c) {
-        c.updateElementImmediate('trip-scene', { state: { r1Op: 1 } });
-        c.animateElement(
-          'trip-scene',
-          { state: { carOp: 1 } },
-          { durationMs: 350 }
-        ).catch(() => {});
+        scene.set(c, { r1Op: 1 });
+        background(scene.to(c, { carOp: 1 }, 350));
         await c.wait(200);
-        c.animateElement(
-          'trip-scene',
-          { state: { gdOp: 1 } },
-          { durationMs: 400 }
-        ).catch(() => {});
+        background(scene.to(c, { gdOp: 1 }, 400));
         await c.wait(900);
-        await c.animateElement(
-          'trip-scene',
-          { state: { carX: 0.5, ptX: 0.5 } },
-          { durationMs: 1500 }
-        );
+        await scene.to(c, { carX: PART1.x, ptX: PART1.x }, 1500);
         await c.wait(150);
-        c.animateElement(
-          'trip-scene',
-          { state: { r1Lab: 1 } },
-          { durationMs: 500 }
-        ).catch(() => {});
+        background(scene.to(c, { r1Lab: 1 }, 500));
         await c.wait(150);
-        c.updateElementImmediate('trip-scene', {
-          state: { bubbleKey: 'time1' },
-        });
-        await c.animateElement(
-          'trip-scene',
-          { state: { bubble0: 1 } },
-          { durationMs: 260 }
-        );
-        await c.animateElement(
-          'trip-scene',
-          { state: { gxOp: 1 } },
-          { durationMs: 400 }
-        );
+        await showBubble(c, 'time1');
+        await scene.to(c, { gxOp: 1 }, 400);
       },
       async exit({ controller }) {
-        await controller.animateElement(
-          'trip-scene',
-          { state: { bubble0: 0 } },
-          { durationMs: 220 }
-        );
+        await hideBubble(controller);
       },
     },
     {
       stepNumber: 5,
       title: "Let's Use Area to Describe the Problem",
       summary: 'Part 2: unknown time',
-      initialElements: [
-        makeTripElement({
-          ...STEP4_DONE,
-          stepIdx: 4,
-        }),
-      ],
+      initialElements: [makeTripElement({ ...PART1_DRAWN, stepIdx: 4 })],
       async play(c) {
-        c.updateElementImmediate('trip-scene', { state: { r2Op: 1 } });
-        c.animateElement(
-          'trip-scene',
-          { state: { y55: 1 } },
-          { durationMs: 400 }
-        ).catch(() => {});
+        scene.set(c, { r2Op: 1 });
+        background(scene.to(c, { y55: 1 }, 400));
         await c.wait(1000);
-        await c.animateElement(
-          'trip-scene',
-          { state: { carX: 2.5, r2Rev: 2 / 3 } },
-          { durationMs: 2000 }
-        );
-        c.animateElement(
-          'trip-scene',
-          { state: { r2LabOp: 1 } },
-          { durationMs: 500 }
-        ).catch(() => {});
+        await scene.to(c, { carX: 2.5, r2Rev: 2 / 3 }, 2000);
+        background(scene.to(c, { r2LabOp: 1 }, 500));
         await c.wait(150);
-        await c.animateElement(
-          'trip-scene',
-          { state: { brkOp: 1 } },
-          { durationMs: 500 }
-        );
+        await scene.to(c, { brkOp: 1 }, 500);
       },
     },
     {
       stepNumber: 6,
       title: "Let's Use Area to Describe the Problem",
       summary: 'The average speed',
-      initialElements: [
-        makeTripElement({
-          ...STEP5_DONE,
-          stepIdx: 5,
-        }),
-      ],
+      initialElements: [makeTripElement({ ...PART2_DRAWN, stepIdx: 5 })],
       async play(c) {
-        c.animateElement(
-          'trip-scene',
-          { state: { carOp: 0 } },
-          { durationMs: 500 }
-        ).catch(() => {});
-        await c.animateElement(
-          'trip-scene',
-          { state: { avgP: 1 } },
-          { durationMs: 1000 }
-        );
+        background(scene.to(c, { carOp: 0 }, 500));
+        await scene.to(c, { avgP: 1 }, 1000);
       },
     },
     {
       stepNumber: 7,
       title: 'Solve the Problem',
       summary: 'The two areas must be equal',
-      initialElements: [
-        makeTripElement({
-          ...STEP6_DONE,
-          stepIdx: 6,
-        }),
-      ],
+      initialElements: [makeTripElement({ ...AVERAGE_DRAWN, stepIdx: 6 })],
       async play(c) {
         await c.wait(300);
-        c.animateElement(
-          'trip-scene',
-          { state: { hiOp: 1 } },
-          { durationMs: 600 }
-        ).catch(() => {});
+        background(scene.to(c, { hiOp: 1 }, 600));
         await c.wait(1100);
-        c.updateElementImmediate('trip-scene', {
-          state: { bubbleKey: 'equal' },
-        });
-        c.animateElement(
-          'trip-scene',
-          { state: { bubble0: 1 } },
-          { durationMs: 260 }
-        ).catch(() => {});
-        await c.animateElement(
-          'trip-scene',
-          { state: { eqOp: 1 } },
-          { durationMs: 450 }
-        );
+        background(showBubble(c, 'equal'));
+        await scene.to(c, { eqOp: 1 }, 450);
       },
       async exit({ controller }) {
-        await controller.animateElement(
-          'trip-scene',
-          { state: { bubble0: 0, eqOp: 0 } },
-          { durationMs: 220 }
-        );
+        // the bubble, and the two arrows that point from it at the areas
+        await scene.to(controller, { bubble0: 0, eqOp: 0 }, BUBBLE_OUT_MS);
       },
     },
     {
       stepNumber: 8,
       title: 'Solve the Problem',
       summary: 'The deficit is 10 miles',
-      initialElements: [
-        makeTripElement({
-          ...STEP7_DONE,
-          stepIdx: 7,
-        }),
-      ],
+      initialElements: [makeTripElement({ ...AREAS_OUTLINED, stepIdx: 7 })],
       async play(c) {
         await c.wait(300);
-        c.updateElementImmediate('trip-scene', {
-          state: { bubbleKey: 'area' },
-        });
-        c.animateElement(
-          'trip-scene',
-          { state: { bubble0: 1 } },
-          { durationMs: 260 }
-        ).catch(() => {});
+        background(showBubble(c, 'area'));
         await c.wait(1000);
-        await c.animateElement(
-          'trip-scene',
-          { state: { hlOp: 1 } },
-          { durationMs: 500 }
-        );
+        await scene.to(c, { hlOp: 1 }, 500);
       },
       async exit({ controller }) {
-        await controller.animateElement(
-          'trip-scene',
-          { state: { bubble0: 0 } },
-          { durationMs: 220 }
-        );
+        await hideBubble(controller);
       },
     },
     {
       stepNumber: 9,
       title: 'Solve the Problem',
       summary: 'Part 2 takes 2 hours',
-      initialElements: [
-        makeTripElement({
-          ...STEP8_DONE,
-          stepIdx: 8,
-        }),
-      ],
+      initialElements: [makeTripElement({ ...AREAS_LABELLED, stepIdx: 8 })],
       async play(c) {
         await c.wait(300);
-        c.updateElementImmediate('trip-scene', {
-          state: { bubbleKey: 'time2' },
-        });
-        c.animateElement(
-          'trip-scene',
-          { state: { bubble0: 1 } },
-          { durationMs: 260 }
-        ).catch(() => {});
+        background(showBubble(c, 'time2'));
         await c.wait(1500);
-        await c.animateElement(
-          'trip-scene',
-          { state: { lab: 1, x25: 1 } },
-          { durationMs: 500 }
-        );
+        await scene.to(c, { lab: 1, x25: 1 }, 500);
       },
       async exit({ controller }) {
-        await controller.animateElement(
-          'trip-scene',
-          { state: { bubble0: 0 } },
-          { durationMs: 220 }
-        );
+        await hideBubble(controller);
       },
     },
     {
       stepNumber: 10,
       title: 'Solve the Problem',
       summary: 'The answer: 110 miles',
-      initialElements: [
-        makeTripElement({
-          ...STEP9_DONE,
-          stepIdx: 9,
-        }),
-      ],
+      initialElements: [makeTripElement({ ...TIME2_FOUND, stepIdx: 9 })],
       async play(c) {
         await c.wait(300);
-        c.updateElementImmediate('trip-scene', {
-          state: { bubbleKey: 'answer' },
-        });
-        c.animateElement(
-          'trip-scene',
-          { state: { bubble0: 1 } },
-          { durationMs: 260 }
-        ).catch(() => {});
+        background(showBubble(c, 'answer'));
         await c.wait(1200);
-        await c.animateElement(
-          'trip-scene',
-          { state: { ans: 1 } },
-          { durationMs: 500 }
-        );
+        await scene.to(c, { ans: 1 }, 500);
       },
     },
   ],

@@ -4,10 +4,11 @@
 // SticksScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
 
 import {
-  DemoConfig,
-  StepAnimationController,
-  VisualElement,
+  elementControls,
   mountDemo,
+  type DemoConfig,
+  type StepAnimationController,
+  type VisualElement,
 } from '../../framework';
 import {
   BASE,
@@ -16,13 +17,18 @@ import {
   type SticksState,
 } from './SticksScene';
 
+const SCENE = 'sticks-scene';
+const scene = elementControls<SticksState>(SCENE);
+
 /* ================= the choreography ================= */
-const PAUSE = 600;
 
-type BaseKey = keyof typeof BASE;
-const KEYS = Object.keys(BASE) as BaseKey[];
+/** The figure's values at one moment: BASE with some of them changed. */
+type Look = typeof BASE;
+type LookKey = keyof Look;
+const LOOK_KEYS = Object.keys(BASE) as LookKey[];
 
-const PIC: typeof BASE = {
+/** The homework figure as printed: pencil lines, with its marks and the question. */
+const PRINTED: Look = {
   ...BASE,
   draw: 1,
   marks: 1,
@@ -37,39 +43,33 @@ const PIC: typeof BASE = {
   bdl: 0,
   prob: 1,
 };
+/** Both thin sticks back on the figure and labelled. */
+const THIN_STICKS_ON: Look = { ...BASE, sq: 1, thinAB: 1, t1l: 1, thinCD: 1, t2l: 1 };
+/** The thin sticks end to end on the ruler, with the equation they make. */
+const ON_THE_RULER: Look = { ...THIN_STICKS_ON, lay: 1, eqn: 1 };
 
-const T: Record<string | number, typeof BASE> = {
-  1: { ...PIC },
-  2: { ...PIC, prompt: 1, marks: 0, draw: 0, wood: 1, lift: 1 },
+/**
+ * The look each part of the choreography ends on. A part is named after the step that plays it; step 4 plays
+ * two, `4` and then `across`.
+ */
+const LOOKS = {
+  1: PRINTED,
+  2: { ...PRINTED, prompt: 1, marks: 0, draw: 0, wood: 1, lift: 1 },
   3: { ...BASE, bdIn: 0, cross: 0, xdim: 1, bdl: 0 },
   4: { ...BASE, cross: 0, xdim: 1 },
   across: { ...BASE, sq: 1 },
-  5: { ...BASE, sq: 1, thinAB: 1, t1l: 1, thinCD: 1, t2l: 1 },
-  6: {
-    ...BASE,
-    sq: 1,
-    thinAB: 1,
-    t1l: 1,
-    thinCD: 1,
-    t2l: 1,
-    lay: 1,
-    eqn: 1,
-  },
-  7: {
-    ...BASE,
-    sq: 1,
-    thinAB: 1,
-    t1l: 1,
-    thinCD: 1,
-    t2l: 1,
-    lay: 1,
-    eqn: 1,
-    fade: 1,
-    gather: 1,
-  },
-};
+  5: THIN_STICKS_ON,
+  6: ON_THE_RULER,
+  7: { ...ON_THE_RULER, fade: 1, gather: 1 },
+} satisfies Record<string, Look>;
+type Part = keyof typeof LOOKS;
 
-const CHOREO: Record<string | number, Partial<Record<BaseKey, [number, number]>>> = {
+/** When a value starts to change within its part, and for how long: [delay, duration] in ms. */
+type Timing = [delayMs: number, durationMs: number];
+/** For a value that changes in a part without being listed in TIMINGS. */
+const DEFAULT_TIMING: Timing = [0, 600];
+
+const TIMINGS: Partial<Record<Part, Partial<Record<LookKey, Timing>>>> = {
   2: {
     prompt: [0, 700],
     marks: [1300, 600],
@@ -100,9 +100,14 @@ const CHOREO: Record<string | number, Partial<Record<BaseKey, [number, number]>>
   7: { fade: [0, 800], prob: [0, 600], gather: [450, 1100] },
 };
 
-const LINEAR_KEYS = new Set<string>(['away', 'lay', 'pick', 'bdl']);
+/** Values the scene itself turns into staged, eased movements, so they are animated at a steady rate. */
+const LINEAR_KEYS = new Set<LookKey>(['away', 'lay', 'pick', 'bdl']);
 
-const SOLVE_SEQ: [number, keyof typeof SOLVE][] = [
+/** The pause between two parts of one step, in ms. */
+const PAUSE_BETWEEN_PARTS_MS = 600;
+
+/** When each line of the working appears in step 7, in ms from the start of the step. */
+const SOLVE_SEQUENCE: [atMs: number, key: keyof typeof SOLVE][] = [
   [2300, 'sol2'],
   [3400, 'strike'],
   [4300, 'sol3'],
@@ -111,18 +116,15 @@ const SOLVE_SEQ: [number, keyof typeof SOLVE][] = [
   [8300, 'sol6'],
 ];
 
-function makeSticksElement(
-  baseLook: typeof BASE,
-  stepIdx: number
-): VisualElement<SticksState> {
+function makeSticksElement(look: Look, stepIdx: number): VisualElement<SticksState> {
   return {
-    id: 'sticks-scene',
-    type: 'sticks-scene',
+    id: SCENE,
+    type: SCENE,
     x: 0,
     y: 0,
     opacity: 1,
     state: {
-      ...baseLook,
+      ...look,
       ...SOLVE,
       stepIdx,
       pulseCount: 0,
@@ -130,40 +132,35 @@ function makeSticksElement(
   };
 }
 
-async function playParts(
+/** Animates one value of the look to `value`, after `delayMs`. */
+async function animateValue(
   c: StepAnimationController,
-  initialFrom: typeof BASE,
-  parts: (string | number)[]
-) {
-  let from = initialFrom;
-  for (let i = 0; i < parts.length; i++) {
-    const partKey = parts[i];
-    const to = T[partKey];
-    const plan = CHOREO[partKey] || {};
-    const tasks: Promise<void>[] = [];
+  key: LookKey,
+  value: number,
+  [delayMs, durationMs]: Timing
+): Promise<void> {
+  if (delayMs > 0) await c.wait(delayMs);
+  const state: Partial<SticksState> = {};
+  state[key] = value;
+  await scene.to(c, state, durationMs, LINEAR_KEYS.has(key) ? 'linear' : undefined);
+}
 
-    for (const key of KEYS) {
-      if (Math.abs(from[key] - to[key]) < 1e-4) continue;
-      const [delay, dur] = plan[key] || [0, 600];
-      const easing = LINEAR_KEYS.has(key) ? 'linear' : undefined;
-      const targetVal = to[key];
-      tasks.push(
-        (async () => {
-          if (delay > 0) await c.wait(delay);
-          await c.animateElement(
-            'sticks-scene',
-            { state: { [key]: targetVal } as Partial<SticksState> },
-            { durationMs: dur, easing }
-          );
-        })()
-      );
-    }
-
-    await Promise.all(tasks);
+/**
+ * Plays `parts` one after another, starting from the look `start`. Within a part, every value that differs from
+ * the part's look moves to it on its own timing, all at once.
+ */
+async function playParts(c: StepAnimationController, start: Look, parts: Part[]): Promise<void> {
+  let from = start;
+  for (const [i, part] of parts.entries()) {
+    if (i > 0) await c.wait(PAUSE_BETWEEN_PARTS_MS);
+    const to: Look = LOOKS[part];
+    const timings = TIMINGS[part] ?? {};
+    await Promise.all(
+      LOOK_KEYS.filter((key) => Math.abs(from[key] - to[key]) >= 1e-4).map((key) =>
+        animateValue(c, key, to[key], timings[key] ?? DEFAULT_TIMING)
+      )
+    );
     from = to;
-    if (i < parts.length - 1) {
-      await c.wait(PAUSE);
-    }
   }
 }
 
@@ -171,81 +168,78 @@ export const twoSticksDemo: DemoConfig = {
   id: 'two-sticks',
   name: 'Two Perpendicular Sticks',
   renderers: {
-    'sticks-scene': SticksSceneRenderer,
+    [SCENE]: SticksSceneRenderer,
   },
   steps: [
     {
       stepNumber: 1,
       title: 'Problem Description',
       summary: 'The problem',
-      initialElements: [makeSticksElement(T[1], 0)],
+      initialElements: [makeSticksElement(LOOKS[1], 0)],
+      // Nothing moves; a new pulseCount makes the scene pulse the figure's marks.
       async play(c) {
-        const cur =
-          (c.getElements()['sticks-scene']?.state as SticksState | undefined)
-            ?.pulseCount ?? 0;
-        c.updateElementImmediate('sticks-scene', {
-          state: { pulseCount: cur + 1 },
-        });
+        scene.set(c, { pulseCount: (scene.state(c)?.pulseCount ?? 0) + 1 });
       },
     },
     {
       stepNumber: 2,
       title: 'Problem Description',
       summary: 'Think',
-      initialElements: [makeSticksElement(T[1], 1)],
+      initialElements: [makeSticksElement(LOOKS[1], 1)],
       async play(c) {
-        await playParts(c, T[1], [2]);
+        await playParts(c, LOOKS[1], [2]);
       },
     },
     {
       stepNumber: 3,
       title: 'Recreate the Figure',
       summary: 'Label AC',
-      initialElements: [makeSticksElement(T[2], 2)],
+      initialElements: [makeSticksElement(LOOKS[2], 2)],
       async play(c) {
-        await playParts(c, T[2], [3]);
+        await playParts(c, LOOKS[2], [3]);
       },
     },
     {
       stepNumber: 4,
       title: 'Recreate the Figure',
       summary: 'Lay BD across AC',
-      initialElements: [makeSticksElement(T[3], 3)],
+      initialElements: [makeSticksElement(LOOKS[3], 3)],
       async play(c) {
-        await playParts(c, T[3], [4, 'across']);
+        await playParts(c, LOOKS[3], [4, 'across']);
       },
     },
     {
       stepNumber: 5,
       title: 'Recreate the Figure',
       summary: 'Label AB and CD',
-      initialElements: [makeSticksElement(T.across, 4)],
+      initialElements: [makeSticksElement(LOOKS.across, 4)],
       async play(c) {
-        await playParts(c, T.across, [5]);
+        await playParts(c, LOOKS.across, [5]);
       },
     },
     {
       stepNumber: 6,
       title: 'Recreate the Figure',
       summary: 'Lay them on the ruler',
-      initialElements: [makeSticksElement(T[5], 5)],
+      initialElements: [makeSticksElement(LOOKS[5], 5)],
       async play(c) {
-        await playParts(c, T[5], [6]);
+        await playParts(c, LOOKS[5], [6]);
       },
     },
     {
       stepNumber: 7,
       title: 'Solve the Equation',
       summary: 'Solve',
-      initialElements: [makeSticksElement(T[6], 6)],
+      initialElements: [makeSticksElement(LOOKS[6], 6)],
       async play(c) {
-        const solvePromises = SOLVE_SEQ.map(async ([delay, key]) => {
-          await c.wait(delay);
-          c.updateElementImmediate('sticks-scene', {
-            state: { [key]: 1 } as Partial<SticksState>,
-          });
+        // The equation flies up into the working while the working's lines appear on their own clock.
+        const working = SOLVE_SEQUENCE.map(async ([atMs, key]) => {
+          await c.wait(atMs);
+          const state: Partial<SticksState> = {};
+          state[key] = 1;
+          scene.set(c, state);
         });
-        await Promise.all([playParts(c, T[6], [7]), ...solvePromises]);
+        await Promise.all([playParts(c, LOOKS[6], [7]), ...working]);
       },
     },
   ],

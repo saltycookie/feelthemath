@@ -17,11 +17,28 @@
 // MathDemoPlayer calls watchBox(), so every demo does this; a demo page loads its script with blocking="render", so
 // that this is ready before the page's first frame.
 
+interface ViewTransition {
+  finished: Promise<void>;
+  ready: Promise<void>;
+  updateCallbackDone: Promise<void>;
+  skipTransition(): void;
+}
+
+interface PageTransitionEventLike extends Event {
+  readonly viewTransition?: ViewTransition | null;
+}
+
+interface BoxMeasurement {
+  r: DOMRect;
+  sunk: number;
+  pass: number;
+}
+
 let watching = false, laidNo = 0;
-let arriving = null;
+let arriving: Promise<void> | null = null;
 const root = document.documentElement;
 
-export function waitForBoxArrival() {
+export function waitForBoxArrival(): Promise<void> | null {
   return arriving;
 }
 
@@ -31,39 +48,47 @@ export function waitForBoxArrival() {
 //         walls' tops, --box-wall, and then their inner sides), and a little more along the longer one, as in
 //         perspective
 //   pass  when, in its rise, the paper passes the tops of the walls (see passing())
-// lid.js works out the same on the front page, for the closing.
-function measure() {
-  const deck = document.querySelector('.deck'), r = deck?.getBoundingClientRect();
+// lid.ts works out the same on the front page, for the closing.
+function measure(): BoxMeasurement | null {
+  const deck = document.querySelector('.deck');
+  const r = deck?.getBoundingClientRect();
   if (!r || !r.width || !r.height) return null;
-  const cs = getComputedStyle(root), px = name => parseFloat(cs.getPropertyValue(name)) || 0;
+  const cs = getComputedStyle(root);
+  const px = (name: string) => parseFloat(cs.getPropertyValue(name)) || 0;
   const peek = px('--lift-peek'), wall = px('--box-wall'), inset = Math.max(px('--box-inset'), wall + 1);
   const s = Math.min(r.width, r.height);
+  const sunk = Math.max(.5, (s - 2 * inset) / s);
   return {
     r,
-    sunk: Math.max(.5, (s - 2 * inset) / s),
-    pass: passing(r, Math.max(.5, (s - 2 * inset) / s), wall, peek, cs.getPropertyValue('--box-ease')),
+    sunk,
+    pass: passing(r, sunk, wall, peek, cs.getPropertyValue('--box-ease')),
   };
 }
+
 // When the rising paper passes the tops of the walls, as a fraction of its rise: the paper covers all but --lift-peek
 // of the walls (--box-wall thick) when raised, so it is level with their tops when it is just small enough to fit
 // between them, across and down. The rise is one movement eased by --box-ease, a cubic-bezier() that must
 // not overshoot; this finds the time at which it has covered that much of the way.
-function passing(r, sunk, wall, peek, ease) {
+function passing(r: DOMRect, sunk: number, wall: number, peek: number, ease: string): number {
   const fit = Math.max((r.width - 2 * wall) / (r.width - 2 * peek), (r.height - 2 * wall) / (r.height - 2 * peek));
   const way = Math.min(1, Math.max(0, (fit - sunk) / (1 - sunk)));
-  const m = /cubic-bezier\(([^)]*)\)/.exec(ease), [x1, y1, x2, y2] = m ? m[1].split(',').map(Number) : [.4, 0, .2, 1];
-  const at = (a, b, u) => 3 * a * u * (1 - u) ** 2 + 3 * b * u * u * (1 - u) + u ** 3;
+  const m = /cubic-bezier\(([^)]*)\)/.exec(ease);
+  const [x1, y1, x2, y2] = m ? m[1].split(',').map(Number) : [.4, 0, .2, 1];
+  const at = (a: number, b: number, u: number) => 3 * a * u * (1 - u) ** 2 + 3 * b * u * u * (1 - u) + u ** 3;
   let lo = 0, hi = 1;
-  for (let i = 0; i < 40; i++) { const u = (lo + hi) / 2; if (at(y1, y2, u) < way) lo = u; else hi = u; }
+  for (let i = 0; i < 40; i++) {
+    const u = (lo + hi) / 2;
+    if (at(y1, y2, u) < way) lo = u; else hi = u;
+  }
   return at(x1, x2, (lo + hi) / 2);
 }
 
 // Lay the box's pieces over the paper. Returns their number, or 0 when the page has no box.
-function lay(m) {
+function lay(m: BoxMeasurement | null): number {
   lift();
   if (!m) return 0;
   const { r, sunk } = m;
-  const piece = cls => {
+  const piece = (cls: string) => {
     const p = document.createElement('div');
     p.className = 'box-piece ' + cls;
     p.inert = true;
@@ -83,37 +108,39 @@ function lay(m) {
   document.body.append(inside, piece('box-shade'), piece('box-walls'));
   return ++laidNo;
 }
+
 // The page that draws the transition says how small the paper is down in the box, and when it passes the walls' tops.
-function sink(m) {
+function sink(m: BoxMeasurement): void {
   root.style.setProperty('--box-sunk', String(m.sunk));
   root.style.setProperty('--box-pass', m.pass.toFixed(4));
 }
+
 // Take the pieces away (only those laid as number n, when n is given: later ones may have replaced them).
-function lift(n) {
+function lift(n?: number): void {
   if (n !== undefined && n !== laidNo) return;
   document.querySelectorAll('.box-piece').forEach(p => p.remove());
 }
 
-export function watchBox() {
+export function watchBox(): void {
   if (watching) return;
   watching = true;
   // Going back to the front page: the paper sinks into the box, whose pieces must be in this page's pictures.
   // They are taken away afterwards, as this page may be kept and shown again by the browser's Back button.
-  addEventListener('pageswap', e => {
+  addEventListener('pageswap', ((e: PageTransitionEventLike) => {
     if (!e.viewTransition) return;
     const n = lay(measure());
     if (n) e.viewTransition.finished.finally(() => lift(n));
-  });
+  }) as EventListener);
   // Arriving from the front page (or shown again from the back-forward cache): the paper rises from the box.
-  addEventListener('pagereveal', e => {
+  addEventListener('pagereveal', ((e: PageTransitionEventLike) => {
     lift();
     if (!e.viewTransition) return;
     arriving = e.viewTransition.finished.catch(() => {}).then(() => { arriving = null; });
     const m = measure(), n = lay(m);
-    if (!n) return;
+    if (!n || !m) return;
     sink(m);
     e.viewTransition.finished.finally(() => lift(n));
-  });
+  }) as EventListener);
 }
 
 if (typeof window !== 'undefined') {

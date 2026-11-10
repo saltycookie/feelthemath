@@ -10,7 +10,7 @@ import {
 } from './types';
 import { createCanonicalElementsMap, runDefaultExitAnimation } from './exitAnimation';
 import { parseStepHash, useHashStepRouter } from './useHashStepRouter';
-import { waitForBoxArrival } from './box.js';
+import { waitForBoxArrival } from './box';
 
 export type StepLifecyclePhase = 'idle' | 'playing' | 'exiting';
 

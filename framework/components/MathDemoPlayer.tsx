@@ -3,7 +3,7 @@ import { DemoConfig } from '../types';
 import { useStepEngine } from '../useStepEngine';
 import { DemoCanvas } from './DemoCanvas';
 import { NavigationPanel } from './NavigationPanel';
-import { watchBox } from '../box.js';
+import { watchBox } from '../box';
 
 if (typeof window !== 'undefined') {
   watchBox();

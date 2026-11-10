@@ -91,7 +91,7 @@ function copyStaticPagesAssets(): Plugin {
 
       // 2. Post-process dist/demos/*/index.html:
       //    - Place <link rel="stylesheet"> tags (theme.css first, then demo css) BEFORE <script type="module">
-      //    - Add blocking="render" to <script type="module"> so the React tree and box.js are ready
+      //    - Add blocking="render" to <script type="module"> so the React tree and box.ts are ready
       //      before the browser fires pagereveal and captures the cross-document view transition snapshot.
       const demoSlugs = ['dannys-walk', 'qiangs-trip', 'two-sticks', 'template'];
       for (const slug of demoSlugs) {

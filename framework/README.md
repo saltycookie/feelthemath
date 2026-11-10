@@ -18,14 +18,14 @@ exitAnimation.ts               canonical state cloning and default 250ms exit an
 useMeasure.ts                  reads sizes from the page for a renderer to draw from (see "Drawing a scene" below)
 math.ts                        clamp, lerp and easing curves
 paths.ts                       path data for SVG drawings (arrowPath)
-components/MathDemoPlayer.tsx  top-level player component wiring useStepEngine, DemoCanvas, NavigationPanel, and box.js
+components/MathDemoPlayer.tsx  top-level player component wiring useStepEngine, DemoCanvas, NavigationPanel, and box.ts
 components/DemoCanvas.tsx      renders TitleBar and .stage with VisualElement wrappers
 components/TitleBar.tsx        top title bar with the "All demos" home link and centered step title
 components/NavigationPanel.tsx bottom navigation bar with Back, step dots, Replay, and Next / Finish
 components/Bubble.tsx          callout bubbles that point at things (Bubble, and placeBubble to work out where they go)
 components/Chip.tsx            a small label marking a known value on a chart's axis
 lid.js                         the front page's lid, opened going into a demo and closed coming back
-box.js                         the demo's side of it: the paper sinking into the box and rising from it
+box.ts                         the demo's side of it: the paper sinking into the box and rising from it
 ```
 
 ## How a demo works

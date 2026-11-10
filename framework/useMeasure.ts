@@ -1,5 +1,11 @@
 import { DependencyList, RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+/** A measured width and height in px, in the shape `placeBubble` takes. */
+export interface Size {
+  w: number;
+  h: number;
+}
+
 /**
  * Reads sizes from the page and keeps them in state, for renderers that draw from measured sizes: how big the paper
  * is, how wide a line of text came out, how tall a bubble is.

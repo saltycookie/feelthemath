@@ -15,9 +15,9 @@
   /* Demo-specific styles: layout for the stage problem text and canvas area */
   .stage, .fw-visual-element { align-items: center; gap: 16px; }
   .box { position: relative; flex: 1; min-height: 0; align-self: stretch; }
-  #pic { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .pic { position: absolute; inset: 0; width: 100%; height: 100%; }
   .area { fill: var(--blue-fill); stroke: var(--blue); stroke-width: 2; }
-  .big { font: 700 28px var(--font-hand); text-anchor: middle; }
+  .big { font: 700 28px var(--font-hand); text-anchor: middle; dominant-baseline: central; }
 </style>
 <script type="module" src="./demo.tsx"></script>
 </head>

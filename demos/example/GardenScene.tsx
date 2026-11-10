@@ -1,127 +1,137 @@
-// The example demo's scene: its state interface and the renderer component that draws it.
-// The interactive steps and animations that manipulate this state are defined in demo.tsx.
+// The example demo's scene: its state, and the renderer that draws it.
+// The steps that animate the state are in demo.tsx.
 //
-// A renderer draws the visual scene as JSX derived from the element's current state.
-// Any measurements required from the DOM (such as container dimensions or rendered bubble sizes)
-// are measured via useMeasure, ensuring accurate responsive layouts before painting.
+// A renderer draws its scene as JSX worked out from the element's state and from sizes read off the page
+// with useMeasure. Nothing is drawn from a size until that size has been measured.
 
 import { useRef } from 'react';
 import {
   Bubble,
-  ElementRendererComponent,
-  clamp,
   placeBubble,
   useMeasure,
+  type ElementRendererComponent,
+  type Size,
 } from '../../framework';
 
+/* ================= the garden (lengths in metres) ================= */
+const LENGTH_M = 3;
+const WIDTH_M = 2;
+/** Clear space kept on each side of the garden, so the bubble has somewhere to sit. */
+const MARGIN_M = 1;
+
+/* ================= the formula bubble (px) ================= */
+const BUBBLE_MAX_WIDTH = 360;
+/** Room left between the widest bubble and the drawing's edges, both sides together. */
+const BUBBLE_SIDE_ROOM = 24;
+
 /**
- * State representing visual properties of the garden scene at any point in time.
- * Step controllers animate these values between keyframes.
+ * What the garden scene looks like at one moment. The steps animate these values.
+ * Opacities run from 0 (hidden) to 1 (fully visible).
  */
 export interface GardenState {
-  /** Opacity of the garden rectangle outline and background (0 = hidden, 1 = fully visible). */
+  /** The garden rectangle's outline and fill. */
   rectangleOpacity: number;
-  /** Horizontal growth progress of the garden rectangle (0 = width 0, 1 = full width 3 m). */
+  /** How much of its length the rectangle has grown to: 0 is none, 1 is all of it. */
   growthProgress: number;
-  /** Opacity of the formula callout bubble (0 = hidden, 1 = fully visible). */
+  /** The formula bubble at the garden's corner. */
   bubbleOpacity: number;
-  /** Opacity of the final answer text inside the garden (0 = hidden, 1 = fully visible). */
+  /** The answer written inside the garden. */
   answerOpacity: number;
+}
+
+/** Where the full-grown garden sits in a drawing area of `box`, in px: centred, with MARGIN_M around it. */
+function layoutGarden(box: Size): { x: number; y: number; width: number; height: number } {
+  const pxPerMetre = Math.min(
+    box.w / (LENGTH_M + 2 * MARGIN_M),
+    box.h / (WIDTH_M + 2 * MARGIN_M)
+  );
+  const width = LENGTH_M * pxPerMetre;
+  const height = WIDTH_M * pxPerMetre;
+  return { x: (box.w - width) / 2, y: (box.h - height) / 2, width, height };
 }
 
 export const GardenRenderer: ElementRendererComponent<GardenState> = ({ element }) => {
   const { rectangleOpacity, growthProgress, bubbleOpacity, answerOpacity } = element.state;
 
-  // DOM references used to measure responsive dimensions
-  const drawingContainerRef = useRef<HTMLDivElement | null>(null);
-  const bubbleElementRef = useRef<HTMLDivElement | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
 
-  // 1. Measure the container dimensions available for drawing below the problem description.
-  const containerSize = useMeasure(
-    drawingContainerRef,
+  /* ---------- measure ---------- */
+  // The drawing area under the problem text. null until it has a size.
+  const box = useMeasure<Size | null>(
+    boxRef,
     () => {
-      const boundingBox = drawingContainerRef.current!.getBoundingClientRect();
-      return { width: boundingBox.width, height: boundingBox.height };
+      const rect = boxRef.current?.getBoundingClientRect();
+      return rect?.width && rect.height ? { w: rect.width, h: rect.height } : undefined;
     },
-    { width: 0, height: 0 }
+    null
   );
-  const containerWidth = containerSize.width;
-  const containerHeight = containerSize.height;
 
-  // 2. Measure the formula bubble at its allowed maximum width (up to 360px with padding).
-  const bubbleMaxWidth = containerWidth ? Math.min(360, containerWidth - 24) : 360;
-  const bubbleSize = useMeasure(
-    bubbleElementRef,
-    () => ({
-      width: bubbleElementRef.current!.offsetWidth,
-      height: bubbleElementRef.current!.offsetHeight,
-    }),
-    { width: 0, height: 0 },
+  // The bubble, as wide as its words unless the drawing area is narrower than that.
+  const bubbleMaxWidth = box ? Math.min(BUBBLE_MAX_WIDTH, box.w - BUBBLE_SIDE_ROOM) : BUBBLE_MAX_WIDTH;
+  const bubbleSize = useMeasure<Size | null>(
+    bubbleRef,
+    () => {
+      const bubble = bubbleRef.current;
+      return bubble?.offsetWidth ? { w: bubble.offsetWidth, h: bubble.offsetHeight } : undefined;
+    },
+    null,
     [bubbleMaxWidth]
   );
 
-  // 3. Coordinate calculations:
-  // The garden is 3 m wide by 2 m tall. Determine pixels per meter (grid unit)
-  // such that a 5-unit wide by 4-unit high bounding box fits inside the container with margins.
-  const pixelsPerMeter =
-    containerWidth > 0 && containerHeight > 0
-      ? Math.min(containerWidth / 5, containerHeight / 4)
-      : 0;
+  /* ---------- draw ---------- */
+  const garden = box && layoutGarden(box);
+  // An easing that overshoots must not ask for a negative width.
+  const growth = Math.max(0, growthProgress);
 
-  const gardenWidth = 3 * pixelsPerMeter;
-  const gardenHeight = 2 * pixelsPerMeter;
-
-  // Center the 3 m × 2 m garden rectangle horizontally and vertically within the container
-  const gardenOriginX = (containerWidth - gardenWidth) / 2;
-  const gardenOriginY = (containerHeight - gardenHeight) / 2;
-
-  // Anchor the formula callout bubble to the right of the garden's top-right corner
-  const bubblePlacement = placeBubble(
-    [gardenOriginX + gardenWidth, gardenOriginY, 'right'],
-    { w: bubbleSize.width || 96, h: bubbleSize.height || 38 },
-    { x: 0, y: 0, w: containerWidth, h: containerHeight }
-  );
+  // The bubble sits to the right of the garden's top-right corner, kept inside the drawing area.
+  const bubblePlacement =
+    box && garden && bubbleSize
+      ? placeBubble([garden.x + garden.width, garden.y, 'right'], bubbleSize, { x: 0, y: 0, ...box })
+      : null;
 
   return (
     <>
       <p className="problem">
-        A garden is <b className="c-blue">3 m</b> long and{' '}
-        <b className="c-blue">2 m</b> wide. What is its area?
+        A garden is <b className="c-blue">{LENGTH_M} m</b> long and{' '}
+        <b className="c-blue">{WIDTH_M} m</b> wide. What is its area?
       </p>
-      <div className="box" ref={drawingContainerRef}>
-        <svg id="pic" viewBox={containerWidth && containerHeight ? `0 0 ${containerWidth} ${containerHeight}` : undefined}>
-          {pixelsPerMeter > 0 && (
+      <div className="box" ref={boxRef}>
+        {/* No viewBox: the svg fills the box, so its units are the box's px. */}
+        <svg className="pic">
+          {garden && (
             <>
-              {/* Garden boundary rectangle, growing horizontally from 0 to full width */}
               <rect
                 className="area"
-                x={gardenOriginX}
-                y={gardenOriginY}
-                width={Math.max(0, gardenWidth * growthProgress)}
-                height={Math.max(0, gardenHeight)}
-                opacity={clamp(rectangleOpacity, 0, 1)}
+                x={garden.x}
+                y={garden.y}
+                width={garden.width * growth}
+                height={garden.height}
+                opacity={rectangleOpacity}
               />
-              {/* Final area calculation label centered within the garden */}
-              <text
-                className="big c-ink"
-                x={gardenOriginX + gardenWidth / 2}
-                y={gardenOriginY + gardenHeight / 2 + 10}
-                opacity={clamp(answerOpacity, 0, 1)}
-              >
-                6 m²
-              </text>
+              {/* Left out while hidden, so the answer is not on the page before its step. */}
+              {answerOpacity > 0 && (
+                <text
+                  className="big c-ink"
+                  x={garden.x + garden.width / 2}
+                  y={garden.y + garden.height / 2}
+                  opacity={answerOpacity}
+                >
+                  {LENGTH_M * WIDTH_M} m²
+                </text>
+              )}
             </>
           )}
         </svg>
-        {/* Floating formula callout bubble */}
+        {/* Always on the page so that it can be measured; unseen until it has been placed. */}
         <Bubble
-          ref={bubbleElementRef}
-          opacity={bubbleOpacity}
+          ref={bubbleRef}
+          opacity={bubblePlacement ? bubbleOpacity : 0}
           placement={bubblePlacement}
           maxWidth={bubbleMaxWidth}
         >
-          <b className="c-blue">3</b>
-          <u>m</u> × <b className="c-blue">2</b>
+          <b className="c-blue">{LENGTH_M}</b>
+          <u>m</u> × <b className="c-blue">{WIDTH_M}</b>
           <u>m</u>
         </Bubble>
       </div>

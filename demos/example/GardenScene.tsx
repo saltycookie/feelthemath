@@ -93,8 +93,9 @@ export const GardenRenderer: ElementRendererComponent<GardenState> = ({ element 
   return (
     <>
       <p className="problem">
-        A garden is <b className="c-blue">{LENGTH_M} m</b> long and{' '}
-        <b className="c-blue">{WIDTH_M} m</b> wide. What is its area?
+        {/* Each length as one string: split into two text nodes, "3" and " m" are spaced a hair differently. */}
+        A garden is <b className="c-blue">{`${LENGTH_M} m`}</b> long and{' '}
+        <b className="c-blue">{`${WIDTH_M} m`}</b> wide. What is its area?
       </p>
       <div className="box" ref={boxRef}>
         {/* No viewBox: the svg fills the box, so its units are the box's px. */}
@@ -117,7 +118,7 @@ export const GardenRenderer: ElementRendererComponent<GardenState> = ({ element 
                   y={garden.y + garden.height / 2}
                   opacity={answerOpacity}
                 >
-                  {LENGTH_M * WIDTH_M} m²
+                  {`${LENGTH_M * WIDTH_M} m²`}
                 </text>
               )}
             </>

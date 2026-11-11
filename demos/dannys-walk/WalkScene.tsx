@@ -1,13 +1,15 @@
 // Danny's Walk: the scene. Its state, and the renderer that draws it; the steps that change the state are in
 // walk.tsx.
 
-import React, { ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { ReactNode, useLayoutEffect, useRef } from 'react';
 import {
-  ElementRendererComponent,
   clamp,
-  easeOut,
+  clamp01,
   lerp,
+  textAt,
   useMeasure,
+  useTween,
+  type ElementRendererComponent,
 } from '../../framework';
 
 /* ---------- the places, in metres ---------- */
@@ -180,7 +182,7 @@ export const BASE_STATE: WalkState = {
   answerRing: 0,
 };
 
-const fadeIn = (t: number, from = 0.6) => clamp((t - from) / (1 - from), 0, 1);
+const fadeIn = (t: number, from = 0.6) => clamp01((t - from) / (1 - from));
 
 function makeView(t: number, k: number, ox: number, oy: number) {
   return {
@@ -231,9 +233,8 @@ type View = ReturnType<typeof makeView>;
 
 const SIDE = 16; // the words under the paper keep this far from the stage's sides
 
-/* attributes for the drawing's marks */
+/** A straight line's path from p to q, or no path while `on` is false. */
 const pathD = (on: boolean, p: XY, q: XY) => (on ? 'M' + p + 'L' + q : '');
-const textAt = (x: number, y: number, op: number) => ({ x, y, opacity: clamp(op, 0, 1) });
 
 /** The working of step 6: AB = √(120² + 50²) = … = 130 m. `s` gives each of its five pieces' styles. */
 function Working({ s, ring }: { s?: (i: number) => React.CSSProperties; ring?: ReactNode }) {
@@ -465,23 +466,16 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
 
   /* ---- interact: the switch folds and unfolds the paper (steps 3-4) ---- */
 
-  const flipRaf = useRef(0);
-  useEffect(() => () => window.cancelAnimationFrame(flipRaf.current), []);
+  const tween = useTween();
+  /** Folds (false) or unfolds (true) the paper from wherever it is, taking at least 400 ms. */
   function flip(on: boolean) {
     if (!S.controlsOn) return;
-    window.cancelAnimationFrame(flipRaf.current);
     const fromUnf = S.unfold;
     const toUnf = on ? 1 : 0;
-    const dur = Math.max(400, UNFOLD_MS * Math.abs(toUnf - fromUnf));
-    const t0 = performance.now();
     updateState({ switchOpen: on });
-    const tick = (now: number) => {
-      const u = Math.min(1, (now - t0) / dur);
-      const eased = u >= 1 ? 1 : easeOut(u);
-      updateState({ unfold: lerp(fromUnf, toUnf, eased), switchOpen: on });
-      if (u < 1) flipRaf.current = window.requestAnimationFrame(tick);
-    };
-    flipRaf.current = window.requestAnimationFrame(tick);
+    tween(Math.max(400, UNFOLD_MS * Math.abs(toUnf - fromUnf)), (t) =>
+      updateState({ unfold: lerp(fromUnf, toUnf, t), switchOpen: on })
+    );
   }
 
   /* ---- draw ---- */
@@ -503,7 +497,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     cx: p[0],
     cy: p[1],
     r: fs * 0.34 * (0.4 + 0.6 * op),
-    opacity: clamp(op, 0, 1),
+    opacity: clamp01(op),
   });
   const labelAt = (map: Map2, x: number, y: number, dx: number, dy: number, op: number) => {
     const [px, py] = map(x + (dx * fs) / v.k, y + (dy * fs) / v.k);
@@ -540,8 +534,8 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     const bc = Math.hypot(B.x - p.x, B.y - p.y),
       ca = Math.hypot(A.x - p.x, A.y - p.y),
       d = drawn[i] * (bc + ca);
-    const t1 = clamp(d / bc, 0, 1),
-      t2 = clamp((d - bc) / ca, 0, 1);
+    const t1 = clamp01(d / bc),
+      t2 = clamp01((d - bc) / ca);
     return {
       B: pathD(d > 0, b, front(lerp(B.x, p.x, t1), lerp(B.y, p.y, t1))),
       A: pathD(t2 > 0, cs[i], back(lerp(p.x, A.x, t2), lerp(p.y, A.y, t2))),
@@ -619,14 +613,14 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     return (
       <>
         <path className="dim" d={pathD(S.homeMeasure > 0, a, map(A.x, A.y * (1 - S.homeMeasure)))} />
-        <path className="sq" d={cornerD(map, A.x, 0, [1, 0], [0, 1])} opacity={clamp(fadeIn(S.homeMeasure), 0, 1)} />
+        <path className="sq" d={cornerD(map, A.x, 0, [1, 0], [0, 1])} opacity={clamp01(fadeIn(S.homeMeasure))} />
         {walks.map((w, i) => (
           <path
             key={i}
             ref={imprint ? undefined : walkARefs[i]}
             className={imprint ? 'walk' : 'walk w' + (i + 1)}
             d={imprint ? w.imprintA : w.A}
-            opacity={clamp(keep[i], 0, 1)}
+            opacity={clamp01(keep[i])}
           />
         ))}
         <circle className="pt" {...pointAt(a, S.homeShown)} />
@@ -651,34 +645,24 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     });
   });
 
-  const im = clamp(S.unfold / 0.6, 0, 1);
+  const im = clamp01(S.unfold / 0.6);
   const hy = lerp(lerp(hintY, hintY5, F * (1 - t)), mathY, U);
   const under = (op: number): React.CSSProperties => ({
     width: SW - 2 * SIDE + 'px',
     left: SIDE + 'px',
-    opacity: String(clamp(op, 0, 1)),
+    opacity: String(clamp01(op)),
     transform: 'translateY(' + (hy + (1 - op) * 10) + 'px)',
   });
   const piece = (i: number): React.CSSProperties => {
     const o = [S.working1, S.working2, S.working3, S.working4, S.working5][i - 1];
-    return { opacity: String(clamp(o, 0, 1)), transform: 'translateY(' + (1 - o) * 8 + 'px)' };
+    return { opacity: String(clamp01(o)), transform: 'translateY(' + (1 - o) * 8 + 'px)' };
   };
   const mask = { x: String(-SW), y: String(-SH), width: String(3 * SW), height: String(3 * SH) };
 
   return (
     <div
       ref={stageRef}
-      style={{
-        position: 'relative',
-        flex: 1,
-        minHeight: 0,
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 'inherit',
-      }}
+      className="fw-scene walk-root"
     >
       <p ref={probRef} className="problem" aria-hidden={S.stepIdx >= FOLD ? 'true' : 'false'} style={{ opacity: String(S.problemShown) }}>
         Danny's home is <b>20 meters</b> north of a <b className="c-blue">straight river</b> that flows from west to
@@ -690,7 +674,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
       <p
         ref={askRef}
         className="ask"
-        style={{ opacity: String(clamp(S.questionShown, 0, 1)), transform: 'translateY(' + (1 - S.questionShown) * 10 + 'px)' }}
+        style={{ opacity: String(clamp01(S.questionShown)), transform: 'translateY(' + (1 - S.questionShown) * 10 + 'px)' }}
       >
         How short can <i>BC</i> + <i>CA</i> be?
       </p>
@@ -703,23 +687,23 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
         viewBox={stage ? '0 0 ' + SW + ' ' + SH : undefined}
         style={stage ? ({ '--fs': fs + 'px' } as React.CSSProperties) : undefined}
       >
-        <path className="sheet" d={sheetD(back)} opacity={clamp(S.paperShown, 0, 1)} />
-        <g opacity={clamp(1 - 0.45 * S.paperShown * clamp(0.5 + cf, 0, 1), 0, 1)}>{home(back, false)}</g>
+        <path className="sheet" d={sheetD(back)} opacity={clamp01(S.paperShown)} />
+        <g opacity={clamp01(1 - 0.45 * S.paperShown * clamp01(0.5 + cf))}>{home(back, false)}</g>
         <defs>
           <mask id="imprint" maskUnits="userSpaceOnUse" {...mask}>
             <rect fill="#fff" {...mask} />
-            <g className="imprint" opacity={clamp(S.paperShown * im * im * (3 - 2 * im), 0, 1)}>
+            <g className="imprint" opacity={clamp01(S.paperShown * im * im * (3 - 2 * im))}>
               {home(front, true)}
             </g>
           </mask>
         </defs>
 
         <g>
-          <path className="sheet" mask="url(#imprint)" d={sheetD(front)} opacity={clamp(S.paperShown, 0, 1)} />
+          <path className="sheet" mask="url(#imprint)" d={sheetD(front)} opacity={clamp01(S.paperShown)} />
           <path className="dim" d={pathD(S.playgroundMeasure > 0, b, front(B.x, B.y * (1 - S.playgroundMeasure)))} />
-          <path className="sq" d={cornerD(front, B.x, 0, [-1, 0], [0, 1])} opacity={clamp(fadeIn(S.playgroundMeasure), 0, 1)} />
+          <path className="sq" d={cornerD(front, B.x, 0, [-1, 0], [0, 1])} opacity={clamp01(fadeIn(S.playgroundMeasure))} />
           {walks.map((w, i) => (
-            <path key={i} className={'walk w' + (i + 1)} d={w.B} opacity={clamp(keep[i], 0, 1)} />
+            <path key={i} className={'walk w' + (i + 1)} d={w.B} opacity={clamp01(keep[i])} />
           ))}
           <circle className="pt" {...pointAt(b, S.playgroundShown)} />
           <text className="lbl" {...nB.letter}>B</text>
@@ -734,14 +718,14 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
         >
           river
         </text>
-        <circle className="pt c" {...pointAt(cs[0], S.cShown)} opacity={clamp(S.cShown * (1 - S.cAsC1), 0, 1)} />
+        <circle className="pt c" {...pointAt(cs[0], S.cShown)} opacity={clamp01(S.cShown * (1 - S.cAsC1))} />
         <text className="lbl c" {...textAt(cs[0][0], cs[0][1] + fs * 1.15, S.cShown * (1 - S.cAsC1))}>C</text>
         {cs.map((q, i) => (
           <circle
             key={i}
             className={'pt w' + (i + 1)}
             {...pointAt(q, i ? shown[i] : S.cShown * keep[0])}
-            opacity={clamp(shown[i], 0, 1)}
+            opacity={clamp01(shown[i])}
           />
         ))}
         {cs.map((q, i) => (
@@ -755,16 +739,16 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
         <path
           className="ext"
           d={'M' + front(A.x, -om) + 'L' + front(A.x, -dm - om) + 'M' + front(B.x, -om) + 'L' + front(B.x, -dm - om)}
-          opacity={clamp(clamp(S.eastMeasure * 5, 0, 1) * gone, 0, 1)}
+          opacity={clamp01(clamp01(S.eastMeasure * 5) * gone)}
         />
-        <path className="dim" d={dimE} opacity={clamp(gone, 0, 1)} />
+        <path className="dim" d={dimE} opacity={clamp01(gone)} />
         <text ref={tERef} className="len" {...textAt(lp[0], lp[1], fadeIn(S.eastMeasure) * gone)}>
           120 m
         </text>
 
         <path className="leg" d={legs} />
-        <path className="sq" d={cornerD(front, D.x, D.y, [-1, 0], [0, 1])} opacity={clamp(S.dShown, 0, 1)} />
-        <circle className="pt" {...pointAt(dPt, S.dShown)} opacity={S.triangleLegs > 0 ? clamp(S.dShown, 0, 1) : 0} />
+        <path className="sq" d={cornerD(front, D.x, D.y, [-1, 0], [0, 1])} opacity={clamp01(S.dShown)} />
+        <circle className="pt" {...pointAt(dPt, S.dShown)} opacity={S.triangleLegs > 0 ? clamp01(S.dShown) : 0} />
         <text className="lbl" {...labelAt(front, D.x, D.y, 0.85, -0.95, S.dShown)}>D</text>
         <text className="len" {...textAt(bdx, bdy, S.legLengthsShown)} transform={'rotate(-90 ' + bdx + ' ' + bdy + ')'}>
           50 m

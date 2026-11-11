@@ -373,6 +373,7 @@ body:has(> .deck)::after{content:"";position:fixed;z-index:-1;inset:var(--around
 .deck{display:flex;flex-direction:column;padding:0 clamp(12px, 3vw, 32px) 12px}
 .stage{position:relative;flex:1;min-height:0;min-width:0;display:flex;flex-direction:column}
 .fw-visual-element{position:absolute;inset:0;display:flex;flex-direction:column;pointer-events:none}
+.fw-scene{position:relative;flex:1;min-height:0;width:100%}                                /* a scene's root: fills the stage */
 :where(.fw-visual-element) > *{pointer-events:auto}
 .fw-visual-element[data-inactive="true"] *{pointer-events:none!important}
 

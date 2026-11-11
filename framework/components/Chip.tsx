@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { clamp } from '../math';
+import { clamp01 } from '../math';
 import { useMeasure } from '../useMeasure';
 
 export type ChipColour = 'blue' | 'orange' | 'pink' | 'ink';
@@ -26,7 +26,7 @@ export function Chip({ colour, cx, cy, text, opacity, minWidth }: ChipProps) {
   );
   const w = Math.max(minWidth || 14 + 8 * text.length, textWidth + 14);
   return (
-    <g className={'chip ' + colour} opacity={clamp(opacity, 0, 1)}>
+    <g className={'chip ' + colour} opacity={clamp01(opacity)}>
       <rect height={22} x={cx - w / 2} y={cy - 11} width={w} />
       <text ref={textRef} x={cx} y={cy + 4.8}>
         {text}

@@ -131,7 +131,8 @@ python3 tools/icons.py
 
 ## One-file copies
 
-To email a demo or open it with no server, pack it into a single HTML file:
+To email a demo or open it with no server, pack it into a single HTML file. It bundles the demo with esbuild, which
+comes with Vite, so run `npm install` first:
 
 ```sh
 python3 tools/single_file.py demos/qiangs-trip      # writes dist/qiangs-trip.html

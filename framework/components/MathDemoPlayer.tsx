@@ -11,7 +11,19 @@ if (typeof window !== 'undefined') {
 
 export interface MathDemoPlayerProps {
   demo: DemoConfig;
+  /** Where "All demos" and Finish go. Default: the page's stepdeck-home setting (below), else the front page. */
   homeHref?: string;
+}
+
+/**
+ * A page can say where its home link goes with `<meta name="stepdeck-home" content="URL">`. A demo packed into one
+ * file by tools/single_file.py has no front page beside it, so the tool sets this to the live site.
+ */
+function homeFromPage(): string {
+  const meta = typeof document !== 'undefined'
+    ? document.querySelector<HTMLMetaElement>('meta[name="stepdeck-home"]')
+    : null;
+  return meta?.content || '../../';
 }
 
 /**
@@ -21,7 +33,7 @@ export interface MathDemoPlayerProps {
  */
 export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
   demo,
-  homeHref = '../../',
+  homeHref = homeFromPage(),
 }) => {
   const {
     currentStepIndex,

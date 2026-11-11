@@ -17,32 +17,59 @@ const FIGX = 8.7;
 const TM = 0.13,
   TT = 0.05; // half thickness of the main sticks and the thin sticks
 const TXT_TOP = 0.45; // where the question sits at the top of the mat
-// The figure's state. Each step's picture (sticks.tsx) is this with some of the values changed.
+/**
+ * The figure's state. Each look in sticks.tsx is this with some of the values changed. Every value runs from 0
+ * (not shown, or not begun) to 1 (shown, or done).
+ */
 export const BASE = {
-  draw: 0,
-  marks: 0,
-  lift: 1,
-  away: 1,
-  wood: 1,
-  bdOut: 1,
-  bdIn: 1,
-  pick: 1,
-  xdim: 0,
-  ylbl: 1,
-  zlbl: 1,
-  bdl: 1,
-  cross: 1,
-  sq: 0,
-  thinAB: 0,
-  t1l: 0,
-  thinCD: 0,
-  t2l: 0,
-  lay: 0,
-  eqn: 0,
-  fade: 0,
-  gather: 0,
+  /** The printed figure's letters A, B, C, D and O. The sticks' own letters show as this goes to 0. */
+  printedLetters: 0,
+  /** The printed figure's equal-length ticks and its right-angle mark. */
+  printedMarks: 0,
+  /** The four sides: 0 pencil lines, 1 thin sticks. */
+  sideWood: 1,
+  /** The sides lifted off the figure, one after another, onto the pile in the corner. */
+  sidesToPile: 1,
+  /** AC and BD: 0 pencil lines, 1 wooden sticks. */
+  mainWood: 1,
+  /** BD taken from the figure to the pile. */
+  bdToPile: 1,
+  /** BD taken from the pile and laid under AC. */
+  bdFromPile: 1,
+  /** The pointer that runs along AC and picks the point O. */
+  pickO: 1,
+  /** The brackets that mark the whole of AC, and then of BD, as x. */
+  xBrackets: 0,
+  /** y, written beside AO. */
+  acYLabel: 1,
+  /** x − y, written beside OC. */
+  acXMinusYLabel: 1,
+  /** BD's names, its mark at O, and its x, y and x − y, one after another. */
+  bdLabels: 1,
+  /** BD turned across AC at O: 0 lying under it, 1 at a right angle to it. */
+  crossed: 1,
+  /** The right-angle marks at O. */
+  rightAngle: 0,
+  /** AB taken from the pile and laid on the figure. */
+  abFromPile: 0,
+  /** Its length, √2 · y. */
+  abLabel: 0,
+  /** CD taken from the pile and laid on the figure. */
+  cdFromPile: 0,
+  /** Its length, √2 · (x − y). */
+  cdLabel: 0,
+  /** AB, then CD, laid end to end on the ruler. */
+  onRuler: 0,
+  /** The "+", the "= 10" and the reading line that make the equation on the ruler. */
+  equation: 0,
+  /** The grid, the ruler and the sticks faded out, to leave the paper to the working. */
+  figureGone: 0,
+  /** The equation's terms flown up into the first row of the working. */
+  termsToWorking: 0,
+  /** The prompt above the ruler: how would you build this shape using sticks? */
   prompt: 0,
-  prob: 0,
+  /** The question at the top of the mat. */
+  problem: 0,
 };
 
 const SIDE_START: Record<'AB' | 'BC' | 'CD' | 'DA', number> = {
@@ -52,7 +79,8 @@ const SIDE_START: Record<'AB' | 'BC' | 'CD' | 'DA', number> = {
   DA: 0.16,
 };
 
-export const SOLVE = { sol2: 0, strike: 0, sol3: 0, sol4: 0, sol5: 0, sol6: 0 };
+/** The working of step 7: rows 2 to 6 shown, and the terms that cancel in row 2 struck out. Each is 0 or 1. */
+export const SOLVE = { row2: 0, strike: 0, row3: 0, row4: 0, row5: 0, row6: 0 };
 
 const ALT = [
   'The homework figure on a mat, with the question written above it. AC and BD cross at O at a right angle, AO equals BO and OC equals OD.',
@@ -469,8 +497,8 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
     Z = ZL;
   const left = FIGX - X / 2,
     top = FIGY - X / 2;
-  const c = P.cross,
-    live = 1 - P.fade;
+  const c = P.crossed,
+    live = 1 - P.figureGone;
   const Oc = { x: left + Y, y: top + Y };
   const gap = 1.3 * k;
   const Oac = lerp2({ x: left + Y, y: FIGY - gap }, Oc, c);
@@ -480,7 +508,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
     Dc = { x: left + Y, y: top + X };
 
   // BD: taken from the pile, laid under AC, then turned across it
-  const placed = P.bdOut >= 0.999 && P.bdIn >= 0.999;
+  const placed = P.bdToPile >= 0.999 && P.bdFromPile >= 0.999;
   let Obd: Pt, aBD: number, liftBD: number;
   if (placed) {
     Obd = lerp2({ x: left + Y, y: FIGY + gap }, Oc, c);
@@ -489,11 +517,11 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
   } else {
     const pileBD = pileSeg('BD', Bc, Dc);
     let seg: [Pt, Pt], t: number;
-    if (P.bdOut < 0.999) {
-      t = P.bdOut;
+    if (P.bdToPile < 0.999) {
+      t = P.bdToPile;
       seg = t > 0 ? rigid(Bc, Dc, pileBD[0], pileBD[1], t) : [Bc, Dc];
     } else {
-      t = P.bdIn;
+      t = P.bdFromPile;
       seg =
         t > 0
           ? rigid(pileBD[0], pileBD[1], { x: left, y: FIGY + gap }, { x: left + X, y: FIGY + gap }, t)
@@ -504,10 +532,10 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
     aBD = (Math.atan2(d.y, d.x) * 180) / Math.PI;
     liftBD = airborne(t);
   }
-  const tickO = clamp((P.pick - 0.8) / 0.2);
-  const bl = P.bdl,
+  const tickO = clamp((P.pickO - 0.8) / 0.2);
+  const bl = P.bdLabels,
     on = placed ? 1 : 0;
-  const nameBD = P.bdOut < 0.999 ? 1 - clamp(P.bdOut * 5) : clamp(bl / 0.2) * on;
+  const nameBD = P.bdToPile < 0.999 ? 1 - clamp(P.bdToPile * 5) : clamp(bl / 0.2) * on;
   const tickBD = clamp((bl - 0.2) / 0.15) * on;
   const dA = { x: 1, y: 0 },
     dB = dirDeg(aBD),
@@ -535,57 +563,57 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
   for (const key of ['AB', 'BC', 'CD', 'DA'] as const) {
     const f = figT[key],
       pile = (pileT[key] = pileSeg(key, f[0], f[1]));
-    const a = (aT[key] = ease(clamp((P.away - SIDE_START[key]) / 0.4)));
+    const a = (aT[key] = ease(clamp((P.sidesToPile - SIDE_START[key]) / 0.4)));
     segT[key] = a > 0 ? rigid(f[0], f[1], pile[0], pile[1], a) : f;
     riseT[key] = airborne(a);
   }
   const ab = SQ2 * Y,
     cd = SQ2 * Z;
-  const tAB = ease(clamp(P.lay / 0.6)),
-    tCD = ease(clamp((P.lay - 0.4) / 0.6));
+  const tAB = ease(clamp(P.onRuler / 0.6)),
+    tCD = ease(clamp((P.onRuler - 0.4) / 0.6));
   const Q0 = { x: RUL.x0, y: RY },
     Q1 = { x: RUL.x0 + ab, y: RY },
     Q2 = { x: RUL.x0 + ab + cd, y: RY };
   if (tAB > 0) {
     segT.AB = rigid(A, B, Q0, Q1, tAB);
     riseT.AB = airborne(tAB);
-  } else if (P.thinAB > 0) {
-    segT.AB = rigid(pileT.AB[0], pileT.AB[1], A, B, P.thinAB);
-    riseT.AB = airborne(P.thinAB);
+  } else if (P.abFromPile > 0) {
+    segT.AB = rigid(pileT.AB[0], pileT.AB[1], A, B, P.abFromPile);
+    riseT.AB = airborne(P.abFromPile);
   }
   if (tCD > 0) {
     segT.CD = rigid(C, D, Q1, Q2, tCD);
     riseT.CD = airborne(tCD);
-  } else if (P.thinCD > 0) {
-    segT.CD = rigid(pileT.CD[0], pileT.CD[1], C, D, P.thinCD);
-    riseT.CD = airborne(P.thinCD);
+  } else if (P.cdFromPile > 0) {
+    segT.CD = rigid(pileT.CD[0], pileT.CD[1], C, D, P.cdFromPile);
+    riseT.CD = airborne(P.cdFromPile);
   }
   // the stick being moved goes on top
   const sticks: [string, number, ReactNode][] = [
-    ['AC', 0, <Stick O={Oac} ang={0} lift={4 * c * (1 - c)} live={live} tick={tickO} wood={P.wood} />],
+    ['AC', 0, <Stick O={Oac} ang={0} lift={4 * c * (1 - c)} live={live} tick={tickO} wood={P.mainWood} />],
     [
       'BD',
-      P.bdOut >= 0.999 && P.bdIn > 0 ? 16 : P.bdOut > 0 ? 14 : 1,
-      <Stick O={Obd} ang={aBD} lift={liftBD} live={live} tick={tickBD} wood={P.wood} />,
+      P.bdToPile >= 0.999 && P.bdFromPile > 0 ? 16 : P.bdToPile > 0 ? 14 : 1,
+      <Stick O={Obd} ang={aBD} lift={liftBD} live={live} tick={tickBD} wood={P.mainWood} />,
     ],
-    ['AB', tAB > 0 ? 21 : P.thinAB > 0 ? 19 : aT.AB > 0 ? 12 : 2, <Thin seg={segT.AB} stk={P.lift} rise={riseT.AB} alpha={live} />],
-    ['BC', aT.BC > 0 ? 10 : 4, <Thin seg={segT.BC} stk={P.lift} rise={riseT.BC} alpha={live} />],
-    ['CD', tCD > 0 ? 22 : P.thinCD > 0 ? 20 : aT.CD > 0 ? 13 : 3, <Thin seg={segT.CD} stk={P.lift} rise={riseT.CD} alpha={live} />],
-    ['DA', aT.DA > 0 ? 11 : 5, <Thin seg={segT.DA} stk={P.lift} rise={riseT.DA} alpha={live} />],
+    ['AB', tAB > 0 ? 21 : P.abFromPile > 0 ? 19 : aT.AB > 0 ? 12 : 2, <Thin seg={segT.AB} stk={P.sideWood} rise={riseT.AB} alpha={live} />],
+    ['BC', aT.BC > 0 ? 10 : 4, <Thin seg={segT.BC} stk={P.sideWood} rise={riseT.BC} alpha={live} />],
+    ['CD', tCD > 0 ? 22 : P.cdFromPile > 0 ? 20 : aT.CD > 0 ? 13 : 3, <Thin seg={segT.CD} stk={P.sideWood} rise={riseT.CD} alpha={live} />],
+    ['DA', aT.DA > 0 ? 11 : 5, <Thin seg={segT.DA} stk={P.sideWood} rise={riseT.DA} alpha={live} />],
   ];
   const stacked = sticks.map((s, i) => [s, i] as const).sort((p, q) => p[0][1] - q[0][1]);
 
   // letters on the sticks
-  const pl = (1 - P.draw) * live;
+  const pl = (1 - P.printedLetters) * live;
 
   // the point O being picked on AC (step 3)
-  const pk = P.pick;
+  const pk = P.pickO;
   const pxk = pk < 0.5 ? lerp(0.35, 1.4 * Y, ease(pk / 0.5)) : lerp(1.4 * Y, Y, ease(clamp((pk - 0.5) / 0.3)));
   const tip = { x: A.x + pxk, y: Oac.y - TM - 0.07 };
 
   // y, x − y and x beside the main sticks
-  const my = P.ylbl,
-    mz = P.zlbl,
+  const my = P.acYLabel,
+    mz = P.acXMinusYLabel,
     cl = TM + 0.09;
   const bxl = clamp((bl - 0.4) / 0.2) * on,
     byl = clamp((bl - 0.6) / 0.2) * on,
@@ -596,13 +624,13 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
     sideYB = c < 0.5 ? nBneg : nB;
   const alongYA =
     c < 0.5 ? Y / 2 : Math.min(Y - SZ.yA.w / 2 - 0.05, Math.max(Y / 2, 0.46 * k + 0.25 * k + SZ.yA.w / 2 + 0.35));
-  const xa = P.xdim * (1 - c) * live;
+  const xa = P.xBrackets * (1 - c) * live;
   const ya = Oac.y - (cl + SZ.yA.h + 0.14),
     yb = Obd.y + (cl + SZ.yB.h + 0.14);
   const sq = Math.min(0.5, Y * 0.25, Z * 0.25);
 
   // the equation on the ruler, which flies up into the working (steps 6-7)
-  const g = P.gather,
+  const g = P.termsToWorking,
     swap = g >= 0.999;
   const G = (p: Pt, key: string) => (TGT[key] ? lerp2(p, TGT[key], g) : p);
   const rowY = RY - (SZ.t1.h / 2 + TT + 0.1);
@@ -628,13 +656,13 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
     zB: at(add(add(Obd, dB, Z / 2), nBneg, reach(SZ.zB, nBneg) + cl), bzl * live),
     xA: at({ x: left + X / 2, y: ya - 0.08 - SZ.xA.h / 2 }, xa),
     xB: at({ x: left + X / 2, y: yb + 0.08 + SZ.xB.h / 2 }, xa * bxl),
-    t1: at(G(besideSeg(tAB > 0 ? segT.AB : [A, B], SZ.t1), 't1'), P.t1l * hide),
-    plus: at(G(pPlus, 'plus'), P.eqn * hide),
-    t2: at(G(besideSeg(tCD > 0 ? segT.CD : [C, D], SZ.t2), 't2'), P.t2l * hide),
-    eq: at(G(pEq, 'eq'), P.eqn * hide),
-    ten: at(G(pTen, 'ten'), P.eqn * hide),
+    t1: at(G(besideSeg(tAB > 0 ? segT.AB : [A, B], SZ.t1), 't1'), P.abLabel * hide),
+    plus: at(G(pPlus, 'plus'), P.equation * hide),
+    t2: at(G(besideSeg(tCD > 0 ? segT.CD : [C, D], SZ.t2), 't2'), P.cdLabel * hide),
+    eq: at(G(pEq, 'eq'), P.equation * hide),
+    ten: at(G(pTen, 'ten'), P.equation * hide),
   };
-  const rowsOn = [swap, P.sol2 > 0.5, P.sol3 > 0.5, P.sol4 > 0.5, P.sol5 > 0.5, P.sol6 > 0.5];
+  const rowsOn = [swap, P.row2 > 0.5, P.row3 > 0.5, P.row4 > 0.5, P.row5 > 0.5, P.row6 > 0.5];
 
   // the mat's centimetre grid and the ruler
   let g1 = '',
@@ -692,7 +720,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
           {Array.from({ length: 16 }, (_, n) => (
             <text
               key={n}
-              className={'ruler-num' + (n === 10 && P.eqn * live > 0.5 ? ' hot' : '')}
+              className={'ruler-num' + (n === 10 && P.equation * live > 0.5 ? ' hot' : '')}
               {...xyAt({ x: RUL.x0 + n, y: RUL.top + 0.74 })}
             >
               {String(n)}
@@ -703,7 +731,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
           </text>
         </g>
 
-        <g className={pulse ? 'pulse' : undefined} style={seen(P.marks)}>
+        <g className={pulse ? 'pulse' : undefined} style={seen(P.printedMarks)}>
           <path
             className="tick tick-y"
             d={`M${u(mAO.x)} ${u(mAO.y - t)}V${u(mAO.y + t)}M${u(mBO.x - t)} ${u(mBO.y)}H${u(mBO.x + t)}`}
@@ -717,7 +745,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
           />
           <path className="sqr" d={`M${u(Oc.x)} ${u(Oc.y - sMark)}H${u(Oc.x + sMark)}V${u(Oc.y)}`} />
         </g>
-        <g style={seen(P.draw)}>
+        <g style={seen(P.printedLetters)}>
           <text className="lbl print" {...xyAt({ x: Ac.x - 0.6 * k, y: Ac.y })}>A</text>
           <text className="lbl print" {...xyAt({ x: Bc.x, y: Bc.y - 0.6 * k })}>B</text>
           <text className="lbl print" {...xyAt({ x: Cc.x + 0.6 * k, y: Cc.y })}>C</text>
@@ -725,7 +753,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
           <text className="lbl print" {...xyAt({ x: Oc.x - 0.45 * k, y: Oc.y + 0.5 * k })}>O</text>
         </g>
 
-        <g style={seen(P.sq * c * live)}>
+        <g style={seen(P.rightAngle * c * live)}>
           <path className="sqr" d={`M${u(Oc.x - sq)} ${u(Oc.y)}V${u(Oc.y - sq)}H${u(Oc.x)}`} />
           <path className="sqr" d={`M${u(Oc.x + sq)} ${u(Oc.y)}V${u(Oc.y + sq)}H${u(Oc.x)}`} />
         </g>
@@ -763,7 +791,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
         <text
           className="lbl"
           {...xyAt(add(Oac, lerp2({ x: 0, y: 0.56 * k }, { x: -0.46 * k, y: 0.52 * k }, c), 1))}
-          style={seen(pl * Math.max(P.wood * (1 - clamp(P.bdOut * 2)), tickO))}
+          style={seen(pl * Math.max(P.mainWood * (1 - clamp(P.bdToPile * 2)), tickO))}
         >
           O
         </text>
@@ -773,7 +801,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
         <line
           className="read"
           {...lineAt({ x: RUL.x0 + 10, y: RY - 0.42 }, { x: RUL.x0 + 10, y: RUL.top + 0.56 })}
-          style={seen(P.eqn * live)}
+          style={seen(P.equation * live)}
         />
       </svg>
 
@@ -781,7 +809,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
         <p ref={promptRef} className="ptxt bold prompt" style={atTop(promptTop + 0.25 * (1 - P.prompt), P.prompt)}>
           Imagine: how would you build this shape using sticks?
         </p>
-        <p ref={probRef} className="ptxt" style={atTop(TXT_TOP, P.prob)}>
+        <p ref={probRef} className="ptxt" style={atTop(TXT_TOP, P.problem)}>
           In the figure, <i>AB</i> + <i>CD</i>
           {' = 10 cm. What is the length of '}
           <i>AC</i>?

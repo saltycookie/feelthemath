@@ -48,90 +48,136 @@ const ALT = [
     'right triangle ABD whose long side is the straight walk. BD is 50 meters (30 + 20) and AD is 120 meters.',
 ];
 
+/**
+ * What the walk scene looks like at one moment. The steps (walk.tsx) animate these values; the reader changes
+ * `unfold` with the switch. Unless it says otherwise, a number runs from 0 (hidden, or not begun) to 1 (shown, or
+ * done).
+ */
 export interface WalkState {
+  /** The step being shown, counted from 0. */
   stepIdx: number;
-  river: number;
-  a: number;
-  aDim: number;
-  b: number;
-  bRiver: number;
-  bEast: number;
-  c: number;
-  walk: number;
-  ask: number;
-  txt: number;
-  view: number;
-  paper: number;
-  unf: number;
-  sw: number;
-  hint3: number;
+  /** The river, drawn from west to east. */
+  riverProgress: number;
+  /** Home, A: its point and its name. */
+  homeShown: number;
+  /** The 20 m line from home to the river, drawn from home, then its length. */
+  homeMeasure: number;
+  /** The playground, B: its point and its name. */
+  playgroundShown: number;
+  /** The 30 m line from the playground to the river, then its length. */
+  playgroundMeasure: number;
+  /** The 120 m measure under the river, drawn eastwards from home's side, then its length. */
+  eastMeasure: number;
+  /** The point C on the river bank. */
+  cShown: number;
+  /** The walk from B to C and on to A, drawn from 0 to 1. */
+  walk1: number;
+  /** The question under the figure: how short can BC + CA be? */
+  questionShown: number;
+  /** The problem's text above the figure. */
+  problemShown: number;
+  /** The camera: 0 looks straight at the paper, 1 from a little to the side, to show the fold. */
+  sideView: number;
+  /** The sheet of paper the figure is on. */
+  paperShown: number;
+  /** The paper: 0 folded along the river, 1 unfolded flat. */
+  unfold: number;
+  /** The fold / unfold switch. */
+  switchShown: number;
+  /** The hint under the paper in step 3: fold and unfold Danny's world yourself. */
+  hintFoldIt: number;
+  /** Which way the switch points: true is "unfold". */
   switchOpen: boolean;
+  /** Whether the reader can use the switch. */
   controlsOn: boolean;
-  sub: number;
-  c2: number;
-  c3: number;
-  c4: number;
-  w2: number;
-  w3: number;
-  w4: number;
-  lab4: number;
-  hint4: number;
-  focus: number;
-  hint5: number;
-  flat: number;
-  rise: number;
-  tri: number;
-  dpt: number;
-  swap: number;
-  m1: number;
-  m2: number;
-  m3: number;
-  m4: number;
-  m5: number;
-  ring: number;
+  /** 0 writes the point as "C", 1 as "C₁". */
+  cAsC1: number;
+  /** The point C₂. */
+  c2Shown: number;
+  /** The point C₃, where the straight walk crosses the river. */
+  c3Shown: number;
+  /** The point C₄. */
+  c4Shown: number;
+  /** The walk through C₂, drawn from 0 to 1. */
+  walk2: number;
+  /** The walk through C₃. */
+  walk3: number;
+  /** The walk through C₄. */
+  walk4: number;
+  /** Slides the 120 m label along its measure, to where none of the four walks crosses it once unfolded. */
+  measureLabelAside: number;
+  /** The hint in step 4: which path is the shortest? Unfold to find out. */
+  hintUnfoldToCompare: number;
+  /** Fades out every point on the bank and every walk except C₃'s. */
+  onlyC3: number;
+  /** The hint in step 5: the walk through C₃ is the shortest because it is a straight line. */
+  hintStraightLine: number;
+  /** With the camera straight on: 0 frames the figure as in step 2, 1 the whole unfolded paper. */
+  framingUnfolded: number;
+  /** 1 moves the unfolded paper up, to leave room for the working under it (step 6). */
+  framingRaised: number;
+  /** The legs of the right triangle ABD, drawn from A and from B towards D. */
+  triangleLegs: number;
+  /** The point D and the right-angle mark at it. */
+  dShown: number;
+  /** Swaps the lengths: the 120 m measure under the river goes, and "50 m" and "120 m" appear on the legs. */
+  legLengthsShown: number;
+  /** The working under the paper, the first of its five pieces. */
+  working1: number;
+  /** Its second piece. */
+  working2: number;
+  /** Its third piece. */
+  working3: number;
+  /** Its fourth piece. */
+  working4: number;
+  /** Its last piece: the answer. */
+  working5: number;
+  /** The hand-drawn ring round the answer, drawing itself from 0 to 1. */
+  answerRing: number;
 }
 
+/** The state before anything is drawn: step 1. Each step begins as this with some of the values changed. */
 export const BASE_STATE: WalkState = {
   stepIdx: 0,
-  river: 0,
-  a: 0,
-  aDim: 0,
-  b: 0,
-  bRiver: 0,
-  bEast: 0,
-  c: 0,
-  walk: 0,
-  ask: 0,
-  txt: 1,
-  view: 0,
-  paper: 0,
-  unf: 0,
-  sw: 0,
-  hint3: 0,
+  riverProgress: 0,
+  homeShown: 0,
+  homeMeasure: 0,
+  playgroundShown: 0,
+  playgroundMeasure: 0,
+  eastMeasure: 0,
+  cShown: 0,
+  walk1: 0,
+  questionShown: 0,
+  problemShown: 1,
+  sideView: 0,
+  paperShown: 0,
+  unfold: 0,
+  switchShown: 0,
+  hintFoldIt: 0,
   switchOpen: false,
   controlsOn: false,
-  sub: 0,
-  c2: 0,
-  c3: 0,
-  c4: 0,
-  w2: 0,
-  w3: 0,
-  w4: 0,
-  lab4: 0,
-  hint4: 0,
-  focus: 0,
-  hint5: 0,
-  flat: 0,
-  rise: 0,
-  tri: 0,
-  dpt: 0,
-  swap: 0,
-  m1: 0,
-  m2: 0,
-  m3: 0,
-  m4: 0,
-  m5: 0,
-  ring: 0,
+  cAsC1: 0,
+  c2Shown: 0,
+  c3Shown: 0,
+  c4Shown: 0,
+  walk2: 0,
+  walk3: 0,
+  walk4: 0,
+  measureLabelAside: 0,
+  hintUnfoldToCompare: 0,
+  onlyC3: 0,
+  hintStraightLine: 0,
+  framingUnfolded: 0,
+  framingRaised: 0,
+  triangleLegs: 0,
+  dShown: 0,
+  legLengthsShown: 0,
+  working1: 0,
+  working2: 0,
+  working3: 0,
+  working4: 0,
+  working5: 0,
+  answerRing: 0,
 };
 
 const fadeIn = (t: number, from = 0.6) => clamp((t - from) / (1 - from), 0, 1);
@@ -424,7 +470,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
   function flip(on: boolean) {
     if (!S.controlsOn) return;
     window.cancelAnimationFrame(flipRaf.current);
-    const fromUnf = S.unf;
+    const fromUnf = S.unfold;
     const toUnf = on ? 1 : 0;
     const dur = Math.max(400, UNFOLD_MS * Math.abs(toUnf - fromUnf));
     const t0 = performance.now();
@@ -432,7 +478,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     const tick = (now: number) => {
       const u = Math.min(1, (now - t0) / dur);
       const eased = u >= 1 ? 1 : easeOut(u);
-      updateState({ unf: lerp(fromUnf, toUnf, eased), switchOpen: on });
+      updateState({ unfold: lerp(fromUnf, toUnf, eased), switchOpen: on });
       if (u < 1) flipRaf.current = window.requestAnimationFrame(tick);
     };
     flipRaf.current = window.requestAnimationFrame(tick);
@@ -441,12 +487,12 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
   /* ---- draw ---- */
 
   // the camera: flat on (step 2), turned to see the fold (steps 3-5), flat again for the triangle (step 6)
-  const t = S.view,
-    F = S.flat,
-    U = S.rise;
+  const t = S.sideView,
+    F = S.framingUnfolded,
+    U = S.framingRaised;
   const flat = (key: 'k' | 'ox' | 'oy') => lerp(lerp(V2[key], V5[key], F), V6[key], U);
   const v: View = makeView(t, lerp(flat('k'), V3.k, t), lerp(flat('ox'), V3.ox, t), lerp(flat('oy'), V3.oy, t));
-  const phi = Math.PI * S.unf,
+  const phi = Math.PI * S.unfold,
     cf = Math.cos(phi),
     sf = Math.sin(phi);
   const front: Map2 = (x, y) => proj(v, x, y);
@@ -479,17 +525,17 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
   });
 
   // the river, then home (on the back half) and the playground (on the front half)
-  const xa = lerp(RIVER[0], PAPER.x0, S.paper),
-    xb = lerp(RIVER[1], PAPER.x1, S.paper),
+  const xa = lerp(RIVER[0], PAPER.x0, S.paperShown),
+    xb = lerp(RIVER[1], PAPER.x1, S.paperShown),
     end = front(xb, 0);
   const b = front(B.x, B.y);
-  const nB = names(front, B, S.b);
+  const nB = names(front, B, S.playgroundShown);
 
   // C and the walks through it
-  const keep = CS.map((_, i) => (i === 2 ? 1 : 1 - S.focus));
+  const keep = CS.map((_, i) => (i === 2 ? 1 : 1 - S.onlyC3));
   const cs = CS.map((p) => front(p.x, p.y));
-  const shown = [S.c * S.sub, S.c2, S.c3, S.c4].map((o, i) => o * keep[i]);
-  const drawn = [S.walk, S.w2, S.w3, S.w4];
+  const shown = [S.cShown * S.cAsC1, S.c2Shown, S.c3Shown, S.c4Shown].map((o, i) => o * keep[i]);
+  const drawn = [S.walk1, S.walk2, S.walk3, S.walk4];
   const walks = CS.map((p, i) => {
     const bc = Math.hypot(B.x - p.x, B.y - p.y),
       ca = Math.hypot(A.x - p.x, A.y - p.y),
@@ -518,7 +564,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     len = Math.sqrt(len2);
   const along = (q: XY) => ((q[0] - p0[0]) * (p1[0] - p0[0]) + (q[1] - p0[1]) * (p1[1] - p0[1])) / len2;
   const P = (f: number): XY => [lerp(p0[0], p1[0], f), lerp(p0[1], p1[1], f)];
-  const gone = 1 - S.swap;
+  const gone = 1 - S.legLengthsShown;
   const half = gapW / 2 / len,
     room2 = half + (fs * 0.25) / len,
     fmid = along(front((A.x + B.x) / 2, -dm));
@@ -543,10 +589,10 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
   };
   const fNow = clearOf(u1 > 0 ? [[cs[0], back(lerp(C.x, A.x, u1), lerp(C.y, A.y, u1))]] : []);
   const homeOpen = front(A.x, -A.y);
-  const fl = lerp(fNow, clearOf(cs.map((q): [XY, XY] => [q, homeOpen])), S.lab4);
+  const fl = lerp(fNow, clearOf(cs.map((q): [XY, XY] => [q, homeOpen])), S.measureLabelAside);
   let dimE = '';
-  if (S.bEast > 0) {
-    const tx = lerp(A.x, B.x, S.bEast),
+  if (S.eastMeasure > 0) {
+    const tx = lerp(A.x, B.x, S.eastMeasure),
       ft = along(front(tx, -dm));
     const head = (x: number, dir: number) =>
       'M' + front(x - dir * hm, -dm + 0.55 * hm) + 'L' + front(x, -dm) + 'L' + front(x - dir * hm, -dm - 0.55 * hm);
@@ -560,20 +606,20 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
   const r = (fs * 0.34) / v.k,
     dPt = front(D.x, D.y);
   const legs =
-    S.tri > 0
-      ? 'M' + front(A.x + r, D.y) + 'L' + front(lerp(A.x + r, D.x, S.tri), D.y) +
-        'M' + front(B.x, B.y - r) + 'L' + front(B.x, lerp(B.y - r, D.y, S.tri))
+    S.triangleLegs > 0
+      ? 'M' + front(A.x + r, D.y) + 'L' + front(lerp(A.x + r, D.x, S.triangleLegs), D.y) +
+        'M' + front(B.x, B.y - r) + 'L' + front(B.x, lerp(B.y - r, D.y, S.triangleLegs))
       : '';
   const [bdx, bdy] = front(D.x - (fs * 1.25) / v.k, 0);
 
   // home's marks: drawn on the back half, and again (black, in a mask) as the see-through marks on the front half
   const home = (map: Map2, imprint: boolean) => {
     const a = map(A.x, A.y);
-    const n = names(map, A, S.a);
+    const n = names(map, A, S.homeShown);
     return (
       <>
-        <path className="dim" d={pathD(S.aDim > 0, a, map(A.x, A.y * (1 - S.aDim)))} />
-        <path className="sq" d={cornerD(map, A.x, 0, [1, 0], [0, 1])} opacity={clamp(fadeIn(S.aDim), 0, 1)} />
+        <path className="dim" d={pathD(S.homeMeasure > 0, a, map(A.x, A.y * (1 - S.homeMeasure)))} />
+        <path className="sq" d={cornerD(map, A.x, 0, [1, 0], [0, 1])} opacity={clamp(fadeIn(S.homeMeasure), 0, 1)} />
         {walks.map((w, i) => (
           <path
             key={i}
@@ -583,10 +629,10 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
             opacity={clamp(keep[i], 0, 1)}
           />
         ))}
-        <circle className="pt" {...pointAt(a, S.a)} />
+        <circle className="pt" {...pointAt(a, S.homeShown)} />
         <text className="lbl" {...n.letter}>A</text>
         <text className="cap" style={capAnchor} {...n.caption}>home</text>
-        <text className="len" {...labelAt(map, A.x, A.y / 2, -1.75, 0, fadeIn(S.aDim))}>20 m</text>
+        <text className="len" {...labelAt(map, A.x, A.y / 2, -1.75, 0, fadeIn(S.homeMeasure))}>20 m</text>
       </>
     );
   };
@@ -605,7 +651,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     });
   });
 
-  const im = clamp(S.unf / 0.6, 0, 1);
+  const im = clamp(S.unfold / 0.6, 0, 1);
   const hy = lerp(lerp(hintY, hintY5, F * (1 - t)), mathY, U);
   const under = (op: number): React.CSSProperties => ({
     width: SW - 2 * SIDE + 'px',
@@ -614,7 +660,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     transform: 'translateY(' + (hy + (1 - op) * 10) + 'px)',
   });
   const piece = (i: number): React.CSSProperties => {
-    const o = [S.m1, S.m2, S.m3, S.m4, S.m5][i - 1];
+    const o = [S.working1, S.working2, S.working3, S.working4, S.working5][i - 1];
     return { opacity: String(clamp(o, 0, 1)), transform: 'translateY(' + (1 - o) * 8 + 'px)' };
   };
   const mask = { x: String(-SW), y: String(-SH), width: String(3 * SW), height: String(3 * SH) };
@@ -634,7 +680,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
         gap: 'inherit',
       }}
     >
-      <p ref={probRef} className="problem" aria-hidden={S.stepIdx >= FOLD ? 'true' : 'false'} style={{ opacity: String(S.txt) }}>
+      <p ref={probRef} className="problem" aria-hidden={S.stepIdx >= FOLD ? 'true' : 'false'} style={{ opacity: String(S.problemShown) }}>
         Danny's home is <b>20 meters</b> north of a <b className="c-blue">straight river</b> that flows from west to
         east. A playground is <b>120 meters</b> east of his home and <b>30 meters</b> north of the river. After
         playing at the playground, Danny wants to walk to the river bank to wash up before going home. What is the
@@ -644,7 +690,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
       <p
         ref={askRef}
         className="ask"
-        style={{ opacity: String(clamp(S.ask, 0, 1)), transform: 'translateY(' + (1 - S.ask) * 10 + 'px)' }}
+        style={{ opacity: String(clamp(S.questionShown, 0, 1)), transform: 'translateY(' + (1 - S.questionShown) * 10 + 'px)' }}
       >
         How short can <i>BC</i> + <i>CA</i> be?
       </p>
@@ -657,44 +703,44 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
         viewBox={stage ? '0 0 ' + SW + ' ' + SH : undefined}
         style={stage ? ({ '--fs': fs + 'px' } as React.CSSProperties) : undefined}
       >
-        <path className="sheet" d={sheetD(back)} opacity={clamp(S.paper, 0, 1)} />
-        <g opacity={clamp(1 - 0.45 * S.paper * clamp(0.5 + cf, 0, 1), 0, 1)}>{home(back, false)}</g>
+        <path className="sheet" d={sheetD(back)} opacity={clamp(S.paperShown, 0, 1)} />
+        <g opacity={clamp(1 - 0.45 * S.paperShown * clamp(0.5 + cf, 0, 1), 0, 1)}>{home(back, false)}</g>
         <defs>
           <mask id="imprint" maskUnits="userSpaceOnUse" {...mask}>
             <rect fill="#fff" {...mask} />
-            <g className="imprint" opacity={clamp(S.paper * im * im * (3 - 2 * im), 0, 1)}>
+            <g className="imprint" opacity={clamp(S.paperShown * im * im * (3 - 2 * im), 0, 1)}>
               {home(front, true)}
             </g>
           </mask>
         </defs>
 
         <g>
-          <path className="sheet" mask="url(#imprint)" d={sheetD(front)} opacity={clamp(S.paper, 0, 1)} />
-          <path className="dim" d={pathD(S.bRiver > 0, b, front(B.x, B.y * (1 - S.bRiver)))} />
-          <path className="sq" d={cornerD(front, B.x, 0, [-1, 0], [0, 1])} opacity={clamp(fadeIn(S.bRiver), 0, 1)} />
+          <path className="sheet" mask="url(#imprint)" d={sheetD(front)} opacity={clamp(S.paperShown, 0, 1)} />
+          <path className="dim" d={pathD(S.playgroundMeasure > 0, b, front(B.x, B.y * (1 - S.playgroundMeasure)))} />
+          <path className="sq" d={cornerD(front, B.x, 0, [-1, 0], [0, 1])} opacity={clamp(fadeIn(S.playgroundMeasure), 0, 1)} />
           {walks.map((w, i) => (
             <path key={i} className={'walk w' + (i + 1)} d={w.B} opacity={clamp(keep[i], 0, 1)} />
           ))}
-          <circle className="pt" {...pointAt(b, S.b)} />
+          <circle className="pt" {...pointAt(b, S.playgroundShown)} />
           <text className="lbl" {...nB.letter}>B</text>
           <text className="cap" style={capAnchor} {...nB.caption}>playground</text>
-          <text className="len" {...labelAt(front, B.x, B.y / 2, 1.75, 0, fadeIn(S.bRiver))}>30 m</text>
+          <text className="len" {...labelAt(front, B.x, B.y / 2, 1.75, 0, fadeIn(S.playgroundMeasure))}>30 m</text>
         </g>
 
-        <path className="river" d={pathD(S.river > 0, front(xa, 0), front(lerp(xa, xb, S.river), 0))} />
+        <path className="river" d={pathD(S.riverProgress > 0, front(xa, 0), front(lerp(xa, xb, S.riverProgress), 0))} />
         <text
           className="cap river-cap"
-          {...textAt(Math.max(end[0] - fs * 1.9 + 3, (front(B.x, 0)[0] + end[0]) / 2), end[1] + fs * 1.05, fadeIn(S.river, 0.7))}
+          {...textAt(Math.max(end[0] - fs * 1.9 + 3, (front(B.x, 0)[0] + end[0]) / 2), end[1] + fs * 1.05, fadeIn(S.riverProgress, 0.7))}
         >
           river
         </text>
-        <circle className="pt c" {...pointAt(cs[0], S.c)} opacity={clamp(S.c * (1 - S.sub), 0, 1)} />
-        <text className="lbl c" {...textAt(cs[0][0], cs[0][1] + fs * 1.15, S.c * (1 - S.sub))}>C</text>
+        <circle className="pt c" {...pointAt(cs[0], S.cShown)} opacity={clamp(S.cShown * (1 - S.cAsC1), 0, 1)} />
+        <text className="lbl c" {...textAt(cs[0][0], cs[0][1] + fs * 1.15, S.cShown * (1 - S.cAsC1))}>C</text>
         {cs.map((q, i) => (
           <circle
             key={i}
             className={'pt w' + (i + 1)}
-            {...pointAt(q, i ? shown[i] : S.c * keep[0])}
+            {...pointAt(q, i ? shown[i] : S.cShown * keep[0])}
             opacity={clamp(shown[i], 0, 1)}
           />
         ))}
@@ -709,25 +755,25 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
         <path
           className="ext"
           d={'M' + front(A.x, -om) + 'L' + front(A.x, -dm - om) + 'M' + front(B.x, -om) + 'L' + front(B.x, -dm - om)}
-          opacity={clamp(clamp(S.bEast * 5, 0, 1) * gone, 0, 1)}
+          opacity={clamp(clamp(S.eastMeasure * 5, 0, 1) * gone, 0, 1)}
         />
         <path className="dim" d={dimE} opacity={clamp(gone, 0, 1)} />
-        <text ref={tERef} className="len" {...textAt(lp[0], lp[1], fadeIn(S.bEast) * gone)}>
+        <text ref={tERef} className="len" {...textAt(lp[0], lp[1], fadeIn(S.eastMeasure) * gone)}>
           120 m
         </text>
 
         <path className="leg" d={legs} />
-        <path className="sq" d={cornerD(front, D.x, D.y, [-1, 0], [0, 1])} opacity={clamp(S.dpt, 0, 1)} />
-        <circle className="pt" {...pointAt(dPt, S.dpt)} opacity={S.tri > 0 ? clamp(S.dpt, 0, 1) : 0} />
-        <text className="lbl" {...labelAt(front, D.x, D.y, 0.85, -0.95, S.dpt)}>D</text>
-        <text className="len" {...textAt(bdx, bdy, S.swap)} transform={'rotate(-90 ' + bdx + ' ' + bdy + ')'}>
+        <path className="sq" d={cornerD(front, D.x, D.y, [-1, 0], [0, 1])} opacity={clamp(S.dShown, 0, 1)} />
+        <circle className="pt" {...pointAt(dPt, S.dShown)} opacity={S.triangleLegs > 0 ? clamp(S.dShown, 0, 1) : 0} />
+        <text className="lbl" {...labelAt(front, D.x, D.y, 0.85, -0.95, S.dShown)}>D</text>
+        <text className="len" {...textAt(bdx, bdy, S.legLengthsShown)} transform={'rotate(-90 ' + bdx + ' ' + bdy + ')'}>
           50 m
         </text>
-        <text className="len" {...labelAt(front, (A.x + D.x) / 2, D.y, 0, -1, S.swap)}>120 m</text>
+        <text className="len" {...labelAt(front, (A.x + D.x) / 2, D.y, 0, -1, S.legLengthsShown)}>120 m</text>
       </svg>
 
       {HINTS.map((h, i) => (
-        <p key={i} ref={hintRefs[i]} className="hint" style={stage ? under([S.hint3, S.hint4, S.hint5][i]) : undefined}>
+        <p key={i} ref={hintRefs[i]} className="hint" style={stage ? under([S.hintFoldIt, S.hintUnfoldToCompare, S.hintStraightLine][i]) : undefined}>
           {h}
         </p>
       ))}
@@ -745,12 +791,12 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
               className="ring"
               aria-hidden="true"
               viewBox={ringBox ? '0 0 ' + ringBox.w + ' ' + ringBox.h : undefined}
-              style={{ opacity: S.ring > 0 ? '1' : '0' }}
+              style={{ opacity: S.answerRing > 0 ? '1' : '0' }}
             >
               <path
                 ref={ringPathRef}
                 d={ringD}
-                style={{ strokeDasharray: String(ringLen), strokeDashoffset: String(ringLen * (1 - S.ring)) }}
+                style={{ strokeDasharray: String(ringLen), strokeDashoffset: String(ringLen * (1 - S.answerRing)) }}
               />
             </svg>
           }
@@ -766,7 +812,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
         className={'switcher' + (S.controlsOn ? ' on' : '')}
         style={{
           transform: stage ? 'translate(' + ((fx + W + SW) / 2 - swW / 2) + 'px,' + sy + 'px)' : undefined,
-          opacity: String(S.sw),
+          opacity: String(S.switchShown),
         }}
       >
         <button

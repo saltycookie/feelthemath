@@ -19,6 +19,19 @@ export function formatStepHash(stepIndex: number): string {
 }
 
 /**
+ * Puts `hash` in the address without adding a history entry. Where the page may not change its address (a sandboxed
+ * frame with no origin of its own, as when a packed demo is previewed as `srcdoc`, throws a SecurityError), the step
+ * is simply not shown in the address: the demo still works, and only #step-N links and reloads lose their place.
+ */
+function writeHash(hash: string): void {
+  try {
+    window.history.replaceState(null, '', hash);
+  } catch {
+    // no address to keep the step in
+  }
+}
+
+/**
  * Synchronizes the current step index with the browser URL hash (`#step-1`, `#step-2`, ...).
  * Uses `history.replaceState` when updating the step hash so browser Back returns to the home page.
  */
@@ -42,7 +55,7 @@ export function useHashStepRouter(
     if (typeof window === 'undefined') return;
     const parsed = parseStepHash(window.location.hash, totalSteps);
     if (parsed === null) {
-      window.history.replaceState(null, '', formatStepHash(stepIndexRef.current));
+      writeHash(formatStepHash(stepIndexRef.current));
     }
   }, [totalSteps]);
 
@@ -75,7 +88,7 @@ export function useHashStepRouter(
       if (typeof window !== 'undefined') {
         const targetHash = formatStepHash(clamped);
         if (window.location.hash !== targetHash) {
-          window.history.replaceState(null, '', targetHash);
+          writeHash(targetHash);
         }
       }
     },

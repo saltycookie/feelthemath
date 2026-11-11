@@ -5,15 +5,16 @@
 // This file has the steps (the DemoConfig) and puts the demo on the page.
 
 import {
+  elementControls,
   mountDemo,
   type DemoConfig,
-  type StepAnimationController,
   type VisualElement,
 } from '../../framework';
 import { GardenRenderer, type GardenState } from './GardenScene';
 
 /** The scene's one visual element: both its id and the renderer type it is registered under. */
 const GARDEN = 'garden';
+const scene = elementControls<GardenState>(GARDEN);
 
 /** How long each animation takes, in ms. */
 const GROW_MS = 1500;
@@ -42,15 +43,6 @@ function garden(overrides: Partial<GardenState> = {}): VisualElement<GardenState
   };
 }
 
-/** Animates the garden's state. Checked against GardenState, so a mistyped key does not compile. */
-function animateGarden(
-  controller: StepAnimationController,
-  state: Partial<GardenState>,
-  durationMs: number
-): Promise<void> {
-  return controller.animateElement<GardenState>(GARDEN, { state }, { durationMs });
-}
-
 export const exampleDemo: DemoConfig = {
   id: 'example',
   name: 'Example',
@@ -71,14 +63,14 @@ export const exampleDemo: DemoConfig = {
       initialElements: [garden({ rectangleOpacity: 1 })],
       // play() runs once initialElements are drawn, and again on Replay. Next waits for it to finish.
       async play(controller) {
-        await animateGarden(controller, { growthProgress: 1 }, GROW_MS);
-        await animateGarden(controller, { bubbleOpacity: 1 }, BUBBLE_IN_MS);
+        await scene.to(controller, { growthProgress: 1 }, GROW_MS);
+        await scene.to(controller, { bubbleOpacity: 1 }, BUBBLE_IN_MS);
       },
       // exit() runs on Next only (Back and the dots skip it), before the next step's initialElements
       // replace this step's. Finish with runDefaultExit() so that elements the next step does not have
       // still fade out.
       async exit({ controller, runDefaultExit }) {
-        await animateGarden(controller, { bubbleOpacity: 0 }, BUBBLE_OUT_MS);
+        await scene.to(controller, { bubbleOpacity: 0 }, BUBBLE_OUT_MS);
         await runDefaultExit();
       },
     },
@@ -88,7 +80,7 @@ export const exampleDemo: DemoConfig = {
       initialElements: [garden({ rectangleOpacity: 1, growthProgress: 1 })],
       async play(controller) {
         await controller.wait(ANSWER_PAUSE_MS);
-        await animateGarden(controller, { answerOpacity: 1 }, ANSWER_IN_MS);
+        await scene.to(controller, { answerOpacity: 1 }, ANSWER_IN_MS);
       },
     },
   ],

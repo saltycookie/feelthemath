@@ -6,54 +6,46 @@
     python3 tools/single_file.py demos/qiangs-trip --fragment     (no <html>/<head>/<body> wrapper)
     python3 tools/single_file.py demos/qiangs-trip --home URL     (where the home link goes; default: the live site)
 
-It inlines local stylesheets (and the pictures they use, such as the wooden desk) and bundles the page's JavaScript
-modules into one script.
-Web fonts still load from Google Fonts, and the site icon from the live site. Only the plain import/export forms used in this
-repository are understood:  import { a, b as c } from './x.js';  export function / const / let / class.
-GitHub Pages does not need this: it serves the separate files as they are.
+It inlines local stylesheets (and the pictures they use, such as the wooden desk), and bundles the page's TypeScript,
+React included, into one script with esbuild. esbuild comes with Vite, so run `npm install` first.
+Web fonts still load from Google Fonts, and the site icon from the live site.
+GitHub Pages does not need this: it serves the build that Vite makes.
 """
-import argparse, base64, mimetypes, os, re, sys
+import argparse, base64, mimetypes, os, re, subprocess, sys
 
 SITE = 'https://feelthemath.app/'   # the home link of a packed file goes here
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # the repository, which the site serves
 
+PRELOAD_RE = re.compile(r'<link\s+[^>]*rel="preload"[^>]*href="(?!https?:)[^"]+"[^>]*>\s*')   # inlined below
 LINK_RE = re.compile(r'<link\s+[^>]*rel="stylesheet"[^>]*href="(?!https?:)([^"]+)"[^>]*>\s*')
 SCRIPT_RE = re.compile(r'<script\s+type="module"\s+src="([^"]+)"[^>]*>\s*</script>[ \t]*(?:<!--.*?-->)?\s*')   # with its comment
-IMPORT_RE = re.compile(r'^\s*import\s*\{([^}]*)\}\s*from\s*[\'"]([^\'"]+)[\'"]\s*;?\s*$', re.M)
-EXPORT_RE = re.compile(r'^export\s+(?:async\s+)?(function\*?|const|let|var|class)\s+([A-Za-z_$][\w$]*)', re.M)
 CSS_URL_RE = re.compile(r'url\(\s*([\'"]?)(?!data:|https?:|#|%23)([^\'")]+)\1\s*\)')
 ICON_RE = re.compile(r'(<link\s+[^>]*rel="(?:icon|apple-touch-icon)"[^>]*href=")(?!https?:)([^"]+)(")')
 
 
+# Run by node from the repository, so that require('esbuild') finds the copy Vite installed.
+ESBUILD = """
+require('esbuild').build({
+  entryPoints: [process.argv[1]], bundle: true, write: false, format: 'iife', minify: true,
+  jsx: 'automatic', charset: 'utf8', logLevel: 'error',
+  define: { 'process.env.NODE_ENV': '"production"' },   // React's production build
+}).then((r) => process.stdout.write(r.outputFiles[0].text), () => process.exit(1));
+"""
+
+
 def bundle(entry):
-    order, seen = [], set()
-
-    def visit(path):
-        path = os.path.normpath(path)
-        if path in seen:
-            return
-        seen.add(path)
-        src = open(path, encoding='utf-8').read()
-        for _, spec in IMPORT_RE.findall(src):
-            visit(os.path.join(os.path.dirname(path), spec))
-        order.append((path, src))
-
-    visit(entry)
-    names = {p: '__m%d' % i for i, (p, _) in enumerate(order)}
-    out = []
-    for path, src in order:
-        def imp(m):
-            dep = os.path.normpath(os.path.join(os.path.dirname(path), m.group(2)))
-            parts = [s.strip() for s in m.group(1).split(',') if s.strip()]
-            fields = [re.sub(r'^(\w+)\s+as\s+(\w+)$', r'\1: \2', s) for s in parts]
-            return 'const { %s } = %s;' % (', '.join(fields), names[dep])
-        body = IMPORT_RE.sub(imp, src)
-        exported = [m.group(2) for m in EXPORT_RE.finditer(body)]
-        body = re.sub(r'^export\s+', '', body, flags=re.M)
-        rel = os.path.relpath(path)
-        out.append('/* ---- %s ---- */\nconst %s = (() => {\n"use strict";\n%s\nreturn { %s };\n})();'
-                   % (rel, names[path], body, ', '.join(exported)))
-    return '\n'.join(out)
+    """The page's entry module and everything it imports, React included, as one classic script."""
+    try:
+        done = subprocess.run(['node', '-e', ESBUILD, os.path.abspath(entry)], cwd=ROOT,
+                              capture_output=True, text=True, encoding='utf-8')
+    except FileNotFoundError:
+        sys.exit('single_file.py: node is needed to bundle the JavaScript')
+    if done.returncode:
+        if "Cannot find module 'esbuild'" in done.stderr:
+            sys.exit('single_file.py: esbuild is missing; run `npm install` (it comes with Vite)')
+        sys.exit('single_file.py: bundling %s failed:\n%s' % (entry, done.stderr.strip()))
+    # A "</script" inside the code (in a string) would end the <script> element early.
+    return done.stdout.replace('</script', '<\\/script')
 
 
 def pack(demo_dir, fragment=False, home=SITE):
@@ -83,6 +75,7 @@ def pack(demo_dir, fragment=False, home=SITE):
         scripts.append(bundle(os.path.join(demo_dir, m.group(1))))
         return ''
 
+    html = PRELOAD_RE.sub('', html)
     html = LINK_RE.sub(css, html)
     html = SCRIPT_RE.sub(js, html)
     tail = '<script>\n%s\n</script>\n' % '\n'.join(scripts) if scripts else ''
@@ -104,7 +97,8 @@ def main():
     a = ap.parse_args()
     out = a.out or os.path.join('dist', os.path.basename(os.path.normpath(a.demo)) + '.html')
     os.makedirs(os.path.dirname(out) or '.', exist_ok=True)
-    open(out, 'w', encoding='utf-8').write(pack(a.demo, a.fragment, a.home))
+    html = pack(a.demo, a.fragment, a.home)   # before opening `out`, so that a failure leaves no empty file
+    open(out, 'w', encoding='utf-8').write(html)
     print('wrote', out)
 
 

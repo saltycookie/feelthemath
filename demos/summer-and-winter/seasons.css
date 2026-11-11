@@ -1,0 +1,75 @@
+/* Summer and Winter: styles for this demo only. Colours, font, navigation, the box and the paper come from framework/theme.css.
+   Colour code: orange = the Sun and its light, and summer; blue = the Earth, and winter; pink = you;
+   ink = the Earth's axis, the ground, and the months. */
+
+.sw-root{-webkit-user-select:none;user-select:none}
+
+/* step 1: the question, in the middle of the paper */
+.sw-ask{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.sw-ask .problem{font-size:clamp(25px, min(5vw, 9vh), 46px);text-align:center;text-wrap:balance}
+.sw-ask .problem span{display:inline-block}                          /* a line never ends in the middle of a sentence */
+
+/* the figure, drawn over the whole stage (sizes in px; --fs is the label size worked out by SeasonsScene.tsx) */
+#sw-fig{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;touch-action:none;
+  pointer-events:none}                                              /* only the sheet that follows the pointer takes them (.cap-hit) */
+#sw-fig .orbit{fill:none;stroke:var(--ink-faint);stroke-width:1.6;stroke-dasharray:1}   /* drawn from June: the dash is moved along */
+#sw-fig .distance{stroke:var(--ink-dim);stroke-width:1.6;stroke-dasharray:5 5;stroke-linecap:round}
+
+/* the Sun */
+#sw-fig .sun{fill:color-mix(in srgb, var(--orange) 30%, var(--paper));stroke:var(--orange);stroke-width:2.5}
+#sw-fig .sun-rays{stroke:var(--orange);stroke-width:2.5;stroke-linecap:round}
+
+/* the Earth: a wash of blue on a disc of paper, so that nothing shows through it */
+#sw-fig .earth-paper{fill:var(--paper)}
+#sw-fig .earth{fill:var(--blue);stroke:var(--blue);stroke-width:2}
+#sw-fig .night{fill:var(--ink);fill-opacity:.24}
+#sw-fig .equator{fill:none;stroke:var(--blue-ink);stroke-width:1.4;stroke-opacity:.7}
+#sw-fig .axis{stroke:var(--ink);stroke-width:2.6;stroke-linecap:round}
+#sw-fig .axis.inside{stroke-opacity:.28;stroke-linecap:butt}        /* the part of the axis inside the globe */
+#sw-fig .upright{stroke:var(--ink-dim);stroke-width:1.5;stroke-dasharray:4 5}
+#sw-fig .print{fill:none;stroke:var(--ink);stroke-opacity:.3;stroke-width:1.6;stroke-linecap:round}
+#sw-fig .zoom, #sw-fig .zoom *{vector-effect:non-scaling-stroke}                   /* zooming makes things bigger, not their lines thicker */
+
+/* you, the ground you stand on, and the sunlight that reaches you */
+#sw-fig .you{fill:var(--pink);stroke:var(--paper);stroke-width:2.5}
+#sw-fig .floor{fill:none;stroke:var(--ink);stroke-width:2.2;stroke-linecap:round}
+/* Sunlight fades out towards where it comes from. Each ray, and the beam over the ground, is painted with a gradient
+   of its own, which SeasonsScene.tsx aims along it and names in the mark's stroke or fill; these are its two ends. */
+#sw-fig .ray{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+#sw-fig .ray.thin{stroke-width:2.2}                                 /* the four rays of the beam */
+#sw-fig .ray-from{stop-color:var(--orange);stop-opacity:0}
+#sw-fig .ray-to{stop-color:var(--orange);stop-opacity:1}
+#sw-fig .beam-from{stop-color:var(--orange);stop-opacity:0}
+#sw-fig .beam-to{stop-color:var(--orange);stop-opacity:.2}
+
+/* step 7: the ground */
+#sw-fig .lit{fill:var(--orange)}
+#sw-fig .squares{fill:none;stroke:var(--ink-dim);stroke-width:1.4}
+#sw-fig .track{fill:none;stroke:var(--ink-dim);stroke-width:1.4;stroke-dasharray:4 5}
+
+/* words */
+#sw-fig text{font-family:var(--font-hand);text-anchor:middle;dominant-baseline:central;
+  paint-order:stroke;stroke:var(--halo);stroke-width:5px;stroke-linejoin:round}
+#sw-fig .cap{font-weight:400;font-size:var(--fs, 16px);fill:var(--muted)}
+#sw-fig .month{font-weight:700;font-size:var(--fs, 16px);fill:var(--ink)}
+#sw-fig .you-word{font-weight:700;font-size:var(--fs, 16px);fill:var(--pink-ink)}
+#sw-fig .count{font-weight:700;font-size:calc(var(--fs, 16px) * 1.3);fill:var(--orange-ink)}
+#sw-fig .season{font-weight:700;font-size:calc(var(--fs, 16px) * 1.7);stroke-width:6px}
+#sw-fig .season.summer{fill:var(--orange-ink)}
+#sw-fig .season.winter{fill:var(--blue-ink)}
+
+/* the hints under the figure (SeasonsScene.tsx places them) */
+.hint{position:absolute;left:0;top:0;margin:0;color:var(--orange-ink);text-align:center;text-wrap:balance;opacity:0;pointer-events:none;
+  font:700 clamp(17px, min(max(20px, 2.7vw), 4vh), 29px)/1.3 var(--font-hand);will-change:transform, opacity}
+
+/* what can be dragged: a ring that pulses round it, and the sheet over the stage that follows the pointer */
+#sw-fig .handle{outline:none}
+#sw-fig .ring{fill:none;stroke:var(--orange);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:sw-ring 1.6s ease-out infinite}
+#sw-fig .ring.earth-ring{stroke:var(--blue)}
+#sw-fig .focus{fill:none;stroke:var(--ink);stroke-width:2;opacity:0}
+#sw-fig .handle:focus-visible .focus{opacity:1}
+@keyframes sw-ring{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.45);opacity:0}}
+#sw-fig .cap-hit{fill:transparent}
+#sw-fig .cap-hit.near{cursor:grab} #sw-fig .cap-hit.drag{cursor:grabbing}      /* only over the Earth, or the Sun */
+
+@media (prefers-reduced-motion: reduce){ #sw-fig .ring{animation:none} }

@@ -3,8 +3,13 @@
 
 import React, { Fragment, ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  ElementRendererComponent,
+  clamp,
+  clamp01,
+  easeInOut,
+  lerp,
   useMeasure,
+  type ElementRendererComponent,
+  type Size,
 } from '../../framework';
 
 /* ================= the setup (lengths in cm) ================= */
@@ -104,8 +109,6 @@ interface Pt {
   y: number;
 }
 const u = (v: number) => (v * U).toFixed(2);
-const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const lerp2 = (p: Pt, q: Pt, t: number): Pt => ({
   x: lerp(p.x, q.x, t),
   y: lerp(p.y, q.y, t),
@@ -120,8 +123,6 @@ const dirDeg = (a: number): Pt => ({
   x: Math.cos((a * Math.PI) / 180),
   y: Math.sin((a * Math.PI) / 180),
 });
-const ease = (t: number) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 /* attributes and styles from the drawing's numbers (lengths in cm, drawn at U units per cm) */
 const fade = (v: number) => (v <= 0.001 ? '0' : Math.min(1, v).toFixed(3));
@@ -147,7 +148,7 @@ function trimSeg(p: Pt, q: Pt): [Pt, Pt] {
   const d = { x: (q.x - p.x) / len, y: (q.y - p.y) / len };
   return [add(p, d, CAP), add(q, d, -CAP)];
 }
-const airborne = (t: number) => clamp(Math.sin(Math.PI * clamp(t)) * 3);
+const airborne = (t: number) => clamp01(Math.sin(Math.PI * clamp01(t)) * 3);
 
 function rigid(P1: Pt, P2: Pt, Q1: Pt, Q2: Pt, t: number): [Pt, Pt] {
   const m0 = mid(P1, P2),
@@ -182,9 +183,9 @@ function pileSeg(key: keyof typeof PILE, fp: Pt, fq: Pt): [Pt, Pt] {
   return Math.abs(d) > 90 ? [q, p] : [p, q];
 }
 
-const reach = (sz: { w: number; h: number }, n: Pt) =>
+const reach = (sz: Size, n: Pt) =>
   (sz.w / 2) * Math.abs(n.x) + (sz.h / 2) * Math.abs(n.y);
-function besideSeg(seg: [Pt, Pt], sz: { w: number; h: number }) {
+function besideSeg(seg: [Pt, Pt], sz: Size) {
   const [p, q] = seg,
     a = Math.atan2(q.y - p.y, q.x - p.x);
   const n = { x: Math.sin(a), y: -Math.cos(a) };
@@ -356,8 +357,6 @@ function SolveRows({ on, struck, bx }: { on?: boolean[]; struck?: boolean; bx?: 
   );
 }
 
-type Size = { w: number; h: number };
-
 export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ element }) => {
   const P = element.state;
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -475,7 +474,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
   );
 
   const shell = (inner: ReactNode) => (
-    <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="fw-scene sticks-root">
       <h1 className="sr-only">Two Perpendicular Sticks</h1>
       <div ref={boxRef} className="benchbox">
         {inner}
@@ -532,11 +531,11 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
     aBD = (Math.atan2(d.y, d.x) * 180) / Math.PI;
     liftBD = airborne(t);
   }
-  const tickO = clamp((P.pickO - 0.8) / 0.2);
+  const tickO = clamp01((P.pickO - 0.8) / 0.2);
   const bl = P.bdLabels,
     on = placed ? 1 : 0;
-  const nameBD = P.bdToPile < 0.999 ? 1 - clamp(P.bdToPile * 5) : clamp(bl / 0.2) * on;
-  const tickBD = clamp((bl - 0.2) / 0.15) * on;
+  const nameBD = P.bdToPile < 0.999 ? 1 - clamp01(P.bdToPile * 5) : clamp01(bl / 0.2) * on;
+  const tickBD = clamp01((bl - 0.2) / 0.15) * on;
   const dA = { x: 1, y: 0 },
     dB = dirDeg(aBD),
     nB = { x: dB.y, y: -dB.x },
@@ -563,14 +562,14 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
   for (const key of ['AB', 'BC', 'CD', 'DA'] as const) {
     const f = figT[key],
       pile = (pileT[key] = pileSeg(key, f[0], f[1]));
-    const a = (aT[key] = ease(clamp((P.sidesToPile - SIDE_START[key]) / 0.4)));
+    const a = (aT[key] = easeInOut(clamp01((P.sidesToPile - SIDE_START[key]) / 0.4)));
     segT[key] = a > 0 ? rigid(f[0], f[1], pile[0], pile[1], a) : f;
     riseT[key] = airborne(a);
   }
   const ab = SQ2 * Y,
     cd = SQ2 * Z;
-  const tAB = ease(clamp(P.onRuler / 0.6)),
-    tCD = ease(clamp((P.onRuler - 0.4) / 0.6));
+  const tAB = easeInOut(clamp01(P.onRuler / 0.6)),
+    tCD = easeInOut(clamp01((P.onRuler - 0.4) / 0.6));
   const Q0 = { x: RUL.x0, y: RY },
     Q1 = { x: RUL.x0 + ab, y: RY },
     Q2 = { x: RUL.x0 + ab + cd, y: RY };
@@ -608,17 +607,17 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
 
   // the point O being picked on AC (step 3)
   const pk = P.pickO;
-  const pxk = pk < 0.5 ? lerp(0.35, 1.4 * Y, ease(pk / 0.5)) : lerp(1.4 * Y, Y, ease(clamp((pk - 0.5) / 0.3)));
+  const pxk = pk < 0.5 ? lerp(0.35, 1.4 * Y, easeInOut(pk / 0.5)) : lerp(1.4 * Y, Y, easeInOut(clamp01((pk - 0.5) / 0.3)));
   const tip = { x: A.x + pxk, y: Oac.y - TM - 0.07 };
 
   // y, x − y and x beside the main sticks
   const my = P.acYLabel,
     mz = P.acXMinusYLabel,
     cl = TM + 0.09;
-  const bxl = clamp((bl - 0.4) / 0.2) * on,
-    byl = clamp((bl - 0.6) / 0.2) * on,
-    bzl = clamp((bl - 0.8) / 0.2) * on;
-  const flip = clamp(Math.abs(c - 0.5) * 4);
+  const bxl = clamp01((bl - 0.4) / 0.2) * on,
+    byl = clamp01((bl - 0.6) / 0.2) * on,
+    bzl = clamp01((bl - 0.8) / 0.2) * on;
+  const flip = clamp01(Math.abs(c - 0.5) * 4);
   const up = { x: 0, y: -1 },
     sideYA = c < 0.5 ? up : { x: 0, y: 1 },
     sideYB = c < 0.5 ? nBneg : nB;
@@ -770,18 +769,18 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
           <path
             className="guide"
             d={`M${u(left)} ${u(Oac.y - 0.3)}V${u(Obd.y + 0.3)}M${u(left + X)} ${u(Oac.y - 0.3)}V${u(Obd.y + 0.3)}`}
-            style={seen(clamp((bl - 0.05) / 0.2) * on * (1 - c) * live)}
+            style={seen(clamp01((bl - 0.05) / 0.2) * on * (1 - c) * live)}
           />
         </g>
         <path
           className="guide"
           d={`M${u(Oac.x)} ${u(Oac.y + 0.26)}V${u(Obd.y - 0.26)}`}
-          style={seen(clamp((bl - 0.12) / 0.15) * on * tickO * (1 - c) * 0.9 * live)}
+          style={seen(clamp01((bl - 0.12) / 0.15) * on * tickO * (1 - c) * 0.9 * live)}
         />
         <path
           className="pick"
           d={`M${u(tip.x)} ${u(tip.y)}l${u(-0.17)} ${u(-0.32)}h${u(0.34)}Z`}
-          style={seen(clamp(pk / 0.08) * (1 - clamp((pk - 0.85) / 0.15)) * live)}
+          style={seen(clamp01(pk / 0.08) * (1 - clamp01((pk - 0.85) / 0.15)) * live)}
         />
 
         <text className="lbl" {...xyAt(add(A, dA, -0.6 * k))} style={seen(pl)}>A</text>
@@ -791,7 +790,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
         <text
           className="lbl"
           {...xyAt(add(Oac, lerp2({ x: 0, y: 0.56 * k }, { x: -0.46 * k, y: 0.52 * k }, c), 1))}
-          style={seen(pl * Math.max(P.mainWood * (1 - clamp(P.bdToPile * 2)), tickO))}
+          style={seen(pl * Math.max(P.mainWood * (1 - clamp01(P.bdToPile * 2)), tickO))}
         >
           O
         </text>

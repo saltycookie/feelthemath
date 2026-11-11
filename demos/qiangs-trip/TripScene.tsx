@@ -1,18 +1,21 @@
 // Qiang's Trip: the scene. Its state, and the renderer that draws it; the steps that change the state are
 // in trip.tsx.
 
-import React, { Fragment, ReactNode, useEffect, useRef, useState } from 'react';
+import React, { Fragment, ReactNode, useRef, useState } from 'react';
 import {
   Bubble,
-  BubbleAnchor,
   Chip,
-  ElementRendererComponent,
   arrowPath,
   clamp,
-  easeOut as stdEaseOut,
+  clamp01,
   lerp,
   placeBubble,
+  rectAt,
+  textAt,
   useMeasure,
+  useTween,
+  type BubbleAnchor,
+  type ElementRendererComponent,
 } from '../../framework';
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
@@ -21,6 +24,8 @@ const XM = 3.5,
   YM = 65;
 const XDRAG = 3,
   YDRAG = 55;
+/** How long the point takes to glide to where the reader put it, in ms. */
+const POINT_GLIDE_MS = 140;
 export const START = { x: 1.5, y: 40 };
 export const PART1 = { x: 0.5, y: 30 };
 const EXPLORE = 2; // 0-based index of step 3
@@ -212,19 +217,10 @@ export const BASE_STATE: TripState = {
   bubbleOpacity: 0,
 };
 
-/* attributes for a rect and a text placed from the drawing's numbers (opacity clamped to 0–1) */
-const rectAt = (x: number, y: number, w: number, h: number, op = 1) => ({
-  x,
-  y,
-  width: Math.max(0, w),
-  height: Math.max(0, h),
-  opacity: clamp(op, 0, 1),
-});
-const textAt = (x: number, y: number, op = 1) => ({ x, y, opacity: clamp(op, 0, 1) });
 
 /** Steps 1-2: the problem, and the trip drawn as a road as `road` goes from 0 to 1. */
 function Road({ road }: { road: number }) {
-  const at = (key: string) => clamp((road * ROAD_MS - ROAD[key][0]) / ROAD[key][1], 0, 1);
+  const at = (key: string) => clamp01((road * ROAD_MS - ROAD[key][0]) / ROAD[key][1]);
   const d1 = driving(at('drive1')),
     d2 = driving(at('drive2'));
   return (
@@ -273,7 +269,7 @@ function Road({ road }: { road: number }) {
       {ROAD_LABELS.map(({ key, cls, x, y, text }) => {
         const p = roadEaseOut(at(key));
         return (
-          <g key={key} opacity={clamp(p, 0, 1)} transform={'translate(0 ' + 8 * (1 - p) + ')'}>
+          <g key={key} opacity={clamp01(p)} transform={'translate(0 ' + 8 * (1 - p) + ')'}>
             {key === 'whole' && <path className="brace" d="M40 184 v12 H760 v-12" />}
             <text className={'rt ' + cls} x={x} y={y}>
               {text}
@@ -338,24 +334,17 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
   const dragRef = useRef(false);
   const [dragging, setDragging] = useState(false);
   const [near, setNear] = useState(false);
-  const tweenRafRef = useRef(0);
-  useEffect(() => () => window.cancelAnimationFrame(tweenRafRef.current), []);
+  const tween = useTween();
 
+  /** Puts the point at (x, y) on the grid: it glides there from where it is drawn. */
   function animatePointTo(x: number, y: number) {
     if (x === S.pickedX && y === S.pickedY) return;
-    window.cancelAnimationFrame(tweenRafRef.current);
     const fromX = S.pointX,
       fromY = S.pointY;
-    const t0 = performance.now();
-    const dur = 140;
     updateState({ pickedX: x, pickedY: y });
-    const tick = (now: number) => {
-      const uVal = Math.min(1, (now - t0) / dur);
-      const eased = uVal >= 1 ? 1 : stdEaseOut(uVal);
-      updateState({ pointX: lerp(fromX, x, eased), pointY: lerp(fromY, y, eased), pickedX: x, pickedY: y });
-      if (uVal < 1) tweenRafRef.current = window.requestAnimationFrame(tick);
-    };
-    tweenRafRef.current = window.requestAnimationFrame(tick);
+    tween(POINT_GLIDE_MS, (t) =>
+      updateState({ pointX: lerp(fromX, x, t), pointY: lerp(fromY, y, t), pickedX: x, pickedY: y })
+    );
   }
 
   function onPoint(e: React.PointerEvent) {
@@ -488,7 +477,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
     time2: [px(1.5), py(58) + 3, 'above'],
     answer: [px(1.5), py(27) + 16, 'below'],
   };
-  const bubbleOp = clamp(S.bubbleOpacity || 0, 0, 1);
+  const bubbleOp = clamp01(S.bubbleOpacity || 0);
   const anchor = anchors[S.bubbleKey];
   const placed =
     anchor && bubbleOp >= 0.001 ? placeBubble(anchor, bubble, { x: M.l, y: M.t, w: pw, h: ph }) : null;
@@ -514,10 +503,10 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
     chart = 2 * S.chartView - 1;
 
   return (
-    <div style={{ position: 'relative', flex: 1, minHeight: 0, width: '100%' }}>
+    <div className="fw-scene">
       <div
         className="layer intro"
-        style={{ opacity: clamp(intro, 0, 1), visibility: intro > 0 ? undefined : 'hidden' }}
+        style={{ opacity: clamp01(intro), visibility: intro > 0 ? undefined : 'hidden' }}
       >
         <p className="problem">
           {'Qiang drives '}
@@ -536,7 +525,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
       <div
         ref={boxRef}
         className="layer"
-        style={{ opacity: clamp(chart, 0, 1), visibility: chart > 0 ? undefined : 'hidden' }}
+        style={{ opacity: clamp01(chart), visibility: chart > 0 ? undefined : 'hidden' }}
       >
         <svg
           ref={svgRef}
@@ -563,7 +552,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
             <line className="axis" x1={M.l} x2={M.l} y1={M.t} y2={M.t + ph} />
             <line className="axis" x1={M.l} x2={M.l + pw} y1={M.t + ph} y2={M.t + ph} />
           </g>
-          <g opacity={clamp(S.timeTicksOpacity, 0, 1)}>
+          <g opacity={clamp01(S.timeTicksOpacity)}>
             {times.map((t) => (
               <text key={t} className="tick" x={px(t)} y={py(0) + 19} textAnchor="middle">
                 {t < XM - 1e-9 ? fmt(t) : null}
@@ -573,12 +562,12 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
 
           <rect className="rc r1" {...rectAt(x0, ry, w1, h1, S.part1Opacity)} />
           <rect className="rc r2" {...rectAt(a, t55, bx - a, y0 - t55, S.part2Opacity)} />
-          <line className="avg" x1={x0} x2={x0 + S.averageProgress * (bx - x0)} y1={ay} y2={ay} opacity={clamp(S.averageProgress * 5, 0, 1)} />
-          <polyline className="brk" points={brkPoints} opacity={clamp(S.time2BraceOpacity, 0, 1)} />
+          <line className="avg" x1={x0} x2={x0 + S.averageProgress * (bx - x0)} y1={ay} y2={ay} opacity={clamp01(S.averageProgress * 5)} />
+          <polyline className="brk" points={brkPoints} opacity={clamp01(S.time2BraceOpacity)} />
           <rect className="hi" {...rectAt(x0 + ins, dT + ins, dW - 2 * ins, dB - dT - 2 * ins, S.areasOutlineOpacity)} />
           <rect className="hi" {...rectAt(a + ins, t55 + ins, bx - a - 2 * ins, t50 - t55 - 2 * ins, S.areasOutlineOpacity)} />
-          <path className="eqa" d={eqA} opacity={eqOn ? clamp(S.equalArrowsOpacity, 0, 1) : 0} />
-          <path className="eqa" d={eqB} opacity={eqOn ? clamp(S.equalArrowsOpacity, 0, 1) : 0} />
+          <path className="eqa" d={eqA} opacity={eqOn ? clamp01(S.equalArrowsOpacity) : 0} />
+          <path className="eqa" d={eqB} opacity={eqOn ? clamp01(S.equalArrowsOpacity) : 0} />
 
           <text
             className="tx c-ink"
@@ -648,9 +637,9 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
           <Chip colour="orange" cx={px(2.5)} cy={y0 + 17} text="2.5" opacity={S.endTimeChipOpacity} />
           <Chip colour="blue" cx={M.l - 4 - yW / 2} cy={ry} text={yTxt} opacity={S.speedChipOpacity * S.part1Opacity} minWidth={yW} />
           <Chip colour="orange" cx={M.l - 19} cy={py(55)} text="55" opacity={S.speed2ChipOpacity} minWidth={30} />
-          <Chip colour="ink" cx={M.l - 19} cy={py(50)} text="50" opacity={clamp(S.averageProgress * 3, 0, 1)} minWidth={30} />
+          <Chip colour="ink" cx={M.l - 19} cy={py(50)} text="50" opacity={clamp01(S.averageProgress * 3)} minWidth={30} />
 
-          <g opacity={clamp(S.carOpacity, 0, 1)} transform={'translate(' + px(S.carX) + ' ' + y0 + ') scale(1.2)'}>
+          <g opacity={clamp01(S.carOpacity)} transform={'translate(' + px(S.carX) + ' ' + y0 + ') scale(1.2)'}>
             <rect className="tcb" x={-15} y={-14} width={30} height={8} rx={3} />
             <path className="tcb" d="M-7 -14 L-3.5 -21 H5 L9.5 -14 Z" />
             <circle className="tcw" cx={-7.5} cy={-4} r={4} />
@@ -664,7 +653,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
             aria-label="Point: speed and time. Arrow keys move it."
             aria-valuetext={S.pickedY + ' mph, ' + S.pickedX + ' hours, ' + fmt(S.pickedX * S.pickedY) + ' miles'}
             transform={'translate(' + rx + ' ' + ry + ')'}
-            opacity={clamp(S.handleOpacity, 0, 1)}
+            opacity={clamp01(S.handleOpacity)}
             onKeyDown={onHandleKey}
           >
             <circle className="hring" r={hr + 8} style={{ display: S.handleRing > 0.05 ? undefined : 'none' }} />
@@ -673,7 +662,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
             <path
               className="hicon"
               d="M-5 0H5M0-5V5M-2-3L0-5L2-3M-2 3L0 5L2 3M-3-2L-5 0L-3 2M3-2L5 0L3 2"
-              opacity={clamp((S.handleRadius - 6) / 5, 0, 1)}
+              opacity={clamp01((S.handleRadius - 6) / 5)}
             />
           </g>
           <rect
@@ -702,7 +691,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
           style={{
             maxWidth: pw ? pw - 16 : undefined,
             transform: 'translate(' + fx + 'px,' + fy + 'px)',
-            opacity: clamp(S.formulaOpacity, 0, 1),
+            opacity: clamp01(S.formulaOpacity),
           }}
         >
           <span className="w">distance = speed × time =</span>{' '}

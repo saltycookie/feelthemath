@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { clamp } from '../math';
+import { clamp, clamp01 } from '../math';
 
 /**
  * Callout bubbles: small ink-outlined boxes that sit beside the thing they explain, with a tail pointing at it
@@ -90,7 +90,7 @@ export const Bubble = forwardRef<HTMLDivElement, BubbleProps>(function Bubble(
   ref
 ) {
   const style: React.CSSProperties & { '--tp'?: string } = {
-    opacity: clamp(opacity, 0, 1),
+    opacity: clamp01(opacity),
     maxWidth,
   };
   if (placement) {

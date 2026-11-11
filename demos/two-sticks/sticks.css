@@ -2,6 +2,7 @@
    Colour code: blue = y, orange = x − y, pink = what to look at (the picked point, the 10 cm reading, crossings-out).
    The sticks and the ruler are real objects, so they keep their own colours (below). */
 
+.sticks-root{display:flex;flex-direction:column}                              /* the scene: the title, then the bench box */
 .benchbox{position:relative;flex:1;min-height:0}
 .bench{
   position:absolute;left:0;top:0;-webkit-user-select:none;user-select:none;

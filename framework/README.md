@@ -17,7 +17,9 @@ useHashStepRouter.ts           #step-X URL hash parser and synchronization hook
 exitAnimation.ts               canonical state cloning and default 250ms exit animation
 elementControls.ts             shorthand for a step file: typed to / set / state for one element, and background()
 useMeasure.ts                  reads sizes from the page for a renderer to draw from (see "Drawing a scene" below)
-math.ts                        clamp, lerp and easing curves
+useTween.ts                    moves a value over a few frames in answer to the reader (a switch, a dragged point)
+math.ts                        clamp, clamp01, lerp and easing curves
+svg.ts                         textAt and rectAt: attributes for SVG marks placed from a drawing's numbers
 paths.ts                       path data for SVG drawings (arrowPath)
 mount.tsx                      mountDemo: renders a demo's MathDemoPlayer into the page's #deck element
 components/MathDemoPlayer.tsx  top-level player component wiring useStepEngine, DemoCanvas, NavigationPanel, and box.ts
@@ -121,9 +123,11 @@ DOM by hand. Its code falls into three parts:
    - To learn how big something would be without a limit on it (the working's natural width), draw an unseen copy of
      it (`visibility: hidden`, `aria-hidden`) and measure that. Two Sticks and Danny's Walk do this.
 2. **Draw.** Plain calculations from the state and the measurements, then JSX. Shared pieces: `<Bubble>` with
-   `placeBubble`, `<Chip>`, `arrowPath`, and `clamp`, `lerp` and the easing curves.
+   `placeBubble`, `<Chip>`, `arrowPath`, `textAt` and `rectAt`, and `clamp`, `clamp01`, `lerp` and the easing curves.
+   Give the scene's root element the class `fw-scene`, which makes it fill the stage.
 3. **Interact.** Pointer and key handling as JSX event handlers (`onPointerDown`, `onKeyDown`, `onClick`), which change
-   the element's state with `updateState`.
+   the element's state with `updateState`. To move a value over a few frames in answer to the reader, rather than at
+   once, use `useTween`.
 
 Reaching into the DOM from an effect is kept for the rare thing React does not express: Danny's Walk sets the phase of
 its marching dashes that way, so that tiny changes do not restart them.

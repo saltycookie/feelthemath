@@ -1,5 +1,6 @@
 import React from 'react';
 import { ElementRendererRegistry, ElementsMap } from '../types';
+import { resolveRendererEntry } from '../stepTimeline';
 import { TitleBar } from './TitleBar';
 
 export interface DemoCanvasProps {
@@ -36,10 +37,11 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
 
       <div className="stage" role="region" aria-label={title}>
         {elementList.map((el) => {
-          const Renderer = renderers[el.type];
-          if (!Renderer) {
+          const entry = renderers[el.type];
+          if (!entry) {
             return null;
           }
+          const Renderer = resolveRendererEntry(entry).renderer;
 
           const duration = el.transitionDurationMs ?? 0;
           const easing = el.transitionEasing ?? 'cubic-bezier(0.22, 1, 0.36, 1)';

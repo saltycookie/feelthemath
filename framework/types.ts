@@ -110,23 +110,7 @@ export interface StepExitContext {
 }
 
 /**
- * Entry delta for adding, resetting, or patching a VisualElement when entering a step.
- */
-export interface ElementEntryDelta<TState = Record<string, any>> {
-  /** Renderer type registered in `DemoConfig.renderers` (defaults to the element's `id`) */
-  type?: string;
-  /** Reset this element back to its renderer's `defaultState` before applying `set` */
-  reset?: boolean;
-  x?: number;
-  y?: number;
-  opacity?: number;
-  scale?: number;
-  set?: Partial<TState>;
-  unset?: (keyof TState)[];
-}
-
-/**
- * Per-element patch inside a `StepCue`.
+ * Per-element patch inside a `StepCue` (`play` or `exit`).
  */
 export interface ElementCuePatch<TState = Record<string, any>> {
   x?: number;
@@ -146,13 +130,20 @@ type SingleStateOf<TElements extends Record<string, any>> =
       : never
     : never;
 
+type IsSingleElement<TElements extends Record<string, any>> =
+  string extends keyof TElements
+    ? true
+    : [SingleStateOf<TElements>] extends [never]
+      ? false
+      : true;
+
 type CueDurationArg<TElements extends Record<string, any>> =
   [SingleStateOf<TElements>] extends [never] ? ElementsMap : SingleStateOf<TElements>;
 
 /**
  * Declarative animation cue used in a step's `play` or `exit` timeline.
- * All cues in a step are folded synchronously to compute the step's end state
- * so the next step can inherit from it automatically.
+ * All cues in a step are folded synchronously onto global element state so subsequent
+ * steps inherit the latest values automatically.
  */
 export interface StepCue<TElements extends Record<string, any> = Record<string, any>> {
   /** Wait `wait` ms before starting this cue */
@@ -163,10 +154,6 @@ export interface StepCue<TElements extends Record<string, any> = Record<string, 
   easing?: string;
   /** Run child cues or sequences concurrently and wait for the longest branch */
   parallel?: StepTimeline<TElements>[];
-  /** Add new visual elements (fades in over `ms`) */
-  add?: { [K in keyof TElements]?: ElementEntryDelta<TElements[K]> };
-  /** Fade out over `ms` (default 250ms) and remove elements */
-  remove?: (keyof TElements & string)[];
   /** Animate x/y/opacity/scale/state across one or more elements */
   elements?: { [K in keyof TElements]?: ElementCuePatch<TElements[K]> };
   /** Single-element shorthand: properties to set on the sole registered element */
@@ -181,10 +168,21 @@ export type StepTimeline<TElements extends Record<string, any> = Record<string, 
   | StepCue<TElements>
   | StepCue<TElements>[];
 
+type StepElementsDeclaration<TElements extends Record<string, any>> =
+  IsSingleElement<TElements> extends true
+    ? {
+        /** Visual elements involved in this step (optional when only one element is registered) */
+        elements?: (keyof TElements & string)[];
+      }
+    : {
+        /** Visual elements involved in this step */
+        elements: (keyof TElements & string)[];
+      };
+
 /**
  * Definition of a single step in a Math Demo.
  */
-export interface StepConfig<TElements extends Record<string, any> = Record<string, any>> {
+export type StepConfig<TElements extends Record<string, any> = Record<string, any>> = {
   /** 1-based step number (defaults to index + 1; used for #step-X URL hash) */
   stepNumber?: number;
   /** Title displayed in the top-center of the canvas */
@@ -192,43 +190,25 @@ export interface StepConfig<TElements extends Record<string, any> = Record<strin
   /** Short description for accessibility / developer inspector */
   summary?: string;
   /**
-   * Explicit beginning elements for this step.
-   * When omitted, `initialElements` is resolved automatically by inheriting the previous step's
-   * end state (after `play` and `exit`) and applying `reset` / `remove` / `elements` / `set` / `unset`.
-   */
-  initialElements?: VisualElement<any>[];
-  /** Clear all elements inherited from the previous step (or reset the sole element when combined with `set`/`unset`) */
-  reset?: boolean;
-  /** Elements to remove when entering this step (dimmed out automatically by default exit on `Next`) */
-  remove?: (keyof TElements & string)[];
-  /** Add or patch elements when entering this step */
-  elements?: { [K in keyof TElements]?: ElementEntryDelta<TElements[K]> };
-  /** Single-element shorthand: properties to set when entering this step */
-  set?: [SingleStateOf<TElements>] extends [never] ? never : Partial<SingleStateOf<TElements>>;
-  /** Single-element shorthand: properties to revert to `defaultState` when entering this step */
-  unset?: [SingleStateOf<TElements>] extends [never]
-    ? never
-    : (keyof SingleStateOf<TElements>)[];
-  /**
    * Optional "play" animation that kicks in after the step's initial elements are rendered.
-   * Accepts declarative `StepCue`s (folded into end-state inheritance) or an async function.
+   * Accepts declarative `StepCue`s (folded into global VE state) or an async function.
    */
   play?: StepTimeline<TElements> | ((controller: StepAnimationController) => Promise<void>);
   /**
    * Optional "exit" animation executed when clicking "Next" to transition to step N+1.
-   * Accepts declarative `StepCue`s (folded into end-state inheritance) or a custom async handler.
+   * Accepts declarative `StepCue`s (folded into global VE state) or a custom async handler.
    */
   exit?: StepTimeline<TElements> | ((context: StepExitContext) => Promise<void>);
-}
+} & StepElementsDeclaration<TElements>;
 
 /**
  * A resolved step where `stepNumber` and `initialElements` are always populated.
  */
-export interface ResolvedStepConfig<TElements extends Record<string, any> = Record<string, any>>
-  extends StepConfig<TElements> {
-  stepNumber: number;
-  initialElements: VisualElement<any>[];
-}
+export type ResolvedStepConfig<TElements extends Record<string, any> = Record<string, any>> =
+  StepConfig<TElements> & {
+    stepNumber: number;
+    initialElements: VisualElement<any>[];
+  };
 
 /**
  * Props passed to a registered VisualElement renderer component.
@@ -253,7 +233,27 @@ export type ElementRendererComponent<TState = any> = React.ComponentType<
   interpolateState?: StateInterpolator<TState>;
 };
 
-export type ElementRendererRegistry = Record<string, ElementRendererComponent<any>>;
+/**
+ * Renderer declaration under `DemoConfig.renderers`, including optional global
+ * initial `x`, `y`, `opacity`, and `scale` for that visual element.
+ */
+export interface ElementRendererConfig<TState = any> {
+  renderer: ElementRendererComponent<TState>;
+  x?: number;
+  y?: number;
+  opacity?: number;
+  scale?: number;
+}
+
+export type ElementRendererEntry<TState = any> =
+  | ElementRendererComponent<TState>
+  | ElementRendererConfig<TState>;
+
+export type ElementRendererRegistry<
+  TElements extends Record<string, any> = Record<string, any>,
+> = {
+  [K in keyof TElements]: ElementRendererEntry<TElements[K]>;
+};
 
 export type StateInterpolatorRegistry = Record<string, StateInterpolator<any>>;
 
@@ -265,7 +265,7 @@ export interface DemoConfig<TElements extends Record<string, any> = Record<strin
   name: string;
   subtitle?: string;
   steps: StepConfig<TElements>[];
-  renderers: ElementRendererRegistry;
+  renderers: ElementRendererRegistry<TElements>;
   /**
    * Optional map of custom state interpolators per element `type`.
    * (Can also be attached directly to a renderer component as `Renderer.interpolateState`.)

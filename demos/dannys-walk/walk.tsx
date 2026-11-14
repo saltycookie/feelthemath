@@ -16,7 +16,7 @@ export const dannysWalkDemo: DemoConfig<{ 'walk-scene': WalkState }> = {
     {
       title: 'Problem Description',
       summary: 'The problem',
-      elements: { 'walk-scene': { set: { problemShown: 1 } } },
+      elements: ['walk-scene'],
     },
     {
       title: 'Problem Description',
@@ -37,7 +37,7 @@ export const dannysWalkDemo: DemoConfig<{ 'walk-scene': WalkState }> = {
       title: 'Imagine Danny Living on a Folded Paper',
       summary: 'The folded paper',
       play: [
-        { ms: 1200, unset: ['problemShown', 'questionShown'], set: { paperShown: 1 } },
+        { ms: 1200, unset: ['questionShown'], set: { problemShown: 0, paperShown: 1 } },
         { wait: 400, ms: 1700, set: { sideView: 1 } },
         { wait: 700, set: { switchOpen: true } },
         { ms: 3000, set: { unfold: 1 } },

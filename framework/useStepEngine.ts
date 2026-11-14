@@ -9,7 +9,7 @@ import {
   VisualElementPatch,
 } from './types';
 import { createCanonicalElementsMap, runDefaultExitAnimation } from './exitAnimation';
-import { resolveDemoSteps, runStepTimeline } from './stepTimeline';
+import { resolveDemoSteps, resolveRendererEntry, runStepTimeline } from './stepTimeline';
 import { parseStepHash, useHashStepRouter } from './useHashStepRouter';
 import { waitForBoxArrival } from './box';
 
@@ -132,9 +132,11 @@ export function useStepEngine(demo: DemoConfig<any>) {
    */
   const getInterpolatorForType = useCallback(
     (type: string): StateInterpolator<any> => {
+      const entry = demo.renderers[type];
+      const renderer = entry ? resolveRendererEntry(entry).renderer : undefined;
       return (
         demo.stateInterpolators?.[type] ??
-        demo.renderers[type]?.interpolateState ??
+        renderer?.interpolateState ??
         defaultStateInterpolator
       );
     },

@@ -23,14 +23,13 @@ export const exampleDemo: DemoConfig<{ garden: GardenState }> = {
   steps: [
     {
       title: 'The question',
-      // Step 1 adds `garden` starting from GardenRenderer.defaultState.
-      // Every later step inherits the previous step's end state automatically.
-      elements: { garden: {} },
+      // Step 1 declares `garden`, initialized from GardenRenderer.defaultState and renderers.
+      elements: ['garden'],
     },
     {
       title: 'Draw the garden',
-      set: { rectangleOpacity: 1 },
       play: [
+        { set: { rectangleOpacity: 1 } },
         { ms: GROW_MS, set: { growthProgress: 1 } },
         { ms: BUBBLE_IN_MS, set: { bubbleOpacity: 1 } },
       ],

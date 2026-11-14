@@ -1,7 +1,8 @@
 import {
   DemoConfig,
   ElementCuePatch,
-  ElementEntryDelta,
+  ElementRendererComponent,
+  ElementRendererEntry,
   ElementsMap,
   ResolvedStepConfig,
   StepAnimationController,
@@ -11,17 +12,36 @@ import {
   VisualElementPatch,
 } from './types';
 
-function cloneElementsMap(map: ElementsMap): ElementsMap {
-  const next: ElementsMap = {};
-  for (const [id, el] of Object.entries(map)) {
-    next[id] = {
-      ...el,
-      scale: el.scale ?? 1,
-      transitionDurationMs: 0,
-      state: structuredClone(el.state),
-    };
+export interface ResolvedRendererEntry<TState = any> {
+  renderer: ElementRendererComponent<TState>;
+  x: number;
+  y: number;
+  opacity: number;
+  scale: number;
+}
+
+export function resolveRendererEntry<TState = any>(
+  entry: ElementRendererEntry<TState>
+): ResolvedRendererEntry<TState> {
+  if (typeof entry === 'function') {
+    return { renderer: entry, x: 0, y: 0, opacity: 1, scale: 1 };
   }
-  return next;
+  return {
+    renderer: entry.renderer,
+    x: entry.x ?? 0,
+    y: entry.y ?? 0,
+    opacity: entry.opacity ?? 1,
+    scale: entry.scale ?? 1,
+  };
+}
+
+function cloneElement(el: VisualElement<any>): VisualElement<any> {
+  return {
+    ...el,
+    scale: el.scale ?? 1,
+    transitionDurationMs: 0,
+    state: structuredClone(el.state),
+  };
 }
 
 function getSoleElementId(demo: DemoConfig<any>): string | undefined {
@@ -30,40 +50,11 @@ function getSoleElementId(demo: DemoConfig<any>): string | undefined {
 }
 
 function makeDefaultStateReader(demo: DemoConfig<any>): (type: string) => Record<string, any> {
-  return (type: string) => structuredClone(demo.renderers[type]?.defaultState ?? {});
-}
-
-function applyEntryDelta(
-  map: ElementsMap,
-  id: string,
-  delta: ElementEntryDelta<any>,
-  getDefaultState: (type: string) => Record<string, any>
-): void {
-  const existing = map[id];
-  const type = delta.type ?? existing?.type ?? id;
-  const defaultState = getDefaultState(type);
-
-  const nextState =
-    !existing || delta.reset ? { ...defaultState } : structuredClone(existing.state);
-
-  if (delta.unset) {
-    for (const key of delta.unset) {
-      nextState[key as string] = structuredClone(defaultState[key as string]);
-    }
-  }
-  if (delta.set) {
-    Object.assign(nextState, structuredClone(delta.set));
-  }
-
-  map[id] = {
-    id,
-    type,
-    x: delta.x !== undefined ? delta.x : existing?.x ?? 0,
-    y: delta.y !== undefined ? delta.y : existing?.y ?? 0,
-    opacity: delta.opacity !== undefined ? delta.opacity : existing?.opacity ?? 1,
-    scale: delta.scale !== undefined ? delta.scale : existing?.scale ?? 1,
-    transitionDurationMs: 0,
-    state: nextState,
+  return (type: string) => {
+    const entry = demo.renderers[type];
+    if (!entry) return {};
+    const { renderer } = resolveRendererEntry(entry);
+    return structuredClone(renderer.defaultState ?? {});
   };
 }
 
@@ -99,121 +90,110 @@ function applyCuePatch(
 }
 
 function foldCue(
-  map: ElementsMap,
+  globalVEs: ElementsMap,
+  activeIds: Set<string>,
   cue: StepCue<any>,
   soleElementId: string | undefined,
   getDefaultState: (type: string) => Record<string, any>
 ): void {
   if (cue.parallel) {
     for (const branch of cue.parallel) {
-      foldTimeline(map, branch, soleElementId, getDefaultState);
+      foldTimeline(globalVEs, activeIds, branch, soleElementId, getDefaultState);
     }
     return;
   }
 
-  if (cue.add) {
-    for (const [id, delta] of Object.entries(cue.add)) {
-      if (delta) {
-        applyEntryDelta(map, id, delta, getDefaultState);
-      }
-    }
-  }
-
-  if (cue.remove) {
-    for (const id of cue.remove) {
-      delete map[id];
-    }
-  }
-
   if (cue.elements) {
     for (const [id, patch] of Object.entries(cue.elements)) {
-      if (patch) {
-        applyCuePatch(map, id, patch, getDefaultState);
+      if (patch && activeIds.has(id)) {
+        applyCuePatch(globalVEs, id, patch, getDefaultState);
       }
     }
   }
 
-  if (soleElementId && (cue.set || cue.unset)) {
-    applyCuePatch(map, soleElementId, { set: cue.set, unset: cue.unset }, getDefaultState);
+  if (soleElementId && activeIds.has(soleElementId) && (cue.set || cue.unset)) {
+    applyCuePatch(
+      globalVEs,
+      soleElementId,
+      { set: cue.set, unset: cue.unset },
+      getDefaultState
+    );
   }
 }
 
 function foldTimeline(
-  map: ElementsMap,
+  globalVEs: ElementsMap,
+  activeIds: Set<string>,
   timeline: StepTimeline<any>,
   soleElementId: string | undefined,
   getDefaultState: (type: string) => Record<string, any>
 ): void {
   const list = Array.isArray(timeline) ? timeline : [timeline];
   for (const cue of list) {
-    foldCue(map, cue, soleElementId, getDefaultState);
+    foldCue(globalVEs, activeIds, cue, soleElementId, getDefaultState);
   }
 }
 
 /**
  * Resolves all steps in a `DemoConfig` synchronously at initialization:
  * - Assigns default `stepNumber` (`index + 1`).
- * - Resolves `initialElements` by inheriting the previous step's end state (after `play` + `exit`)
- *   and applying `reset` / `remove` / `elements` / `set` / `unset` deltas.
+ * - Initializes global visual elements from `demo.renderers` (`x`, `y`, `opacity`, `scale`, `defaultState`).
+ * - Resolves each step's `initialElements` from `step.elements` (or the sole element when omitted)
+ *   and folds declarative `play` / `exit` cues onto the global elements for subsequent steps.
  */
 export function resolveDemoSteps(demo: DemoConfig<any>): ResolvedStepConfig<any>[] {
   const soleElementId = getSoleElementId(demo);
   const getDefaultState = makeDefaultStateReader(demo);
-  let prevEndMap: ElementsMap = {};
+
+  const globalVEs: ElementsMap = {};
+  for (const [id, entry] of Object.entries(demo.renderers)) {
+    const { renderer, x, y, opacity, scale } = resolveRendererEntry(entry);
+    globalVEs[id] = {
+      id,
+      type: id,
+      x,
+      y,
+      opacity,
+      scale,
+      transitionDurationMs: 0,
+      state: structuredClone(renderer.defaultState ?? {}),
+    };
+  }
 
   return demo.steps.map((step, index) => {
-    let initialMap: ElementsMap;
-
-    if (step.initialElements) {
-      initialMap = {};
-      for (const el of step.initialElements) {
-        initialMap[el.id] = {
-          ...el,
-          scale: el.scale ?? 1,
-          transitionDurationMs: 0,
-          state: structuredClone(el.state),
-        };
-      }
+    let activeIdList: string[];
+    if (step.elements !== undefined) {
+      activeIdList = step.elements;
+    } else if (soleElementId) {
+      activeIdList = [soleElementId];
     } else {
-      initialMap = step.reset ? {} : cloneElementsMap(prevEndMap);
+      throw new Error(
+        `Step ${index + 1} ("${step.title}") in multi-element demo "${demo.id}" must declare \`elements\`.`
+      );
+    }
 
-      if (step.remove) {
-        for (const id of step.remove) {
-          delete initialMap[id];
-        }
-      }
-
-      if (step.elements) {
-        for (const [id, delta] of Object.entries(step.elements)) {
-          if (delta) {
-            applyEntryDelta(initialMap, id, delta, getDefaultState);
-          }
-        }
-      }
-
-      if (soleElementId && (step.set || step.unset)) {
-        applyEntryDelta(
-          initialMap,
-          soleElementId,
-          { set: step.set, unset: step.unset },
-          getDefaultState
+    const initialElements: VisualElement<any>[] = activeIdList.map((id) => {
+      const el = globalVEs[id];
+      if (!el) {
+        throw new Error(
+          `Step ${index + 1} ("${step.title}") references unknown element "${id}" not declared in demo.renderers.`
         );
       }
-    }
+      return cloneElement(el);
+    });
 
-    const endMap = cloneElementsMap(initialMap);
+    const activeIds = new Set(activeIdList);
     if (step.play && typeof step.play !== 'function') {
-      foldTimeline(endMap, step.play, soleElementId, getDefaultState);
+      foldTimeline(globalVEs, activeIds, step.play, soleElementId, getDefaultState);
     }
     if (step.exit && typeof step.exit !== 'function') {
-      foldTimeline(endMap, step.exit, soleElementId, getDefaultState);
+      foldTimeline(globalVEs, activeIds, step.exit, soleElementId, getDefaultState);
     }
-    prevEndMap = endMap;
 
     return {
       ...step,
       stepNumber: step.stepNumber ?? index + 1,
-      initialElements: Object.values(initialMap),
+      initialElements,
     };
   });
 }
@@ -289,27 +269,8 @@ export async function runStepTimeline(
 
     const durationMs = resolveMs(cue);
     const easing = cue.easing;
-    const tasks: Promise<void>[] = [];
-
-    if (cue.add) {
-      for (const [id, delta] of Object.entries(cue.add)) {
-        if (!delta) continue;
-        const temp: ElementsMap = {};
-        applyEntryDelta(temp, id, delta, getDefaultState);
-        const element: VisualElement<any> = temp[id];
-        tasks.push(controller.addElement(element, { durationMs, easing }));
-      }
-    }
-
-    if (cue.remove) {
-      for (const id of cue.remove) {
-        tasks.push(
-          controller.removeElement(id, cue.ms === undefined ? undefined : durationMs)
-        );
-      }
-    }
-
     const patches: Record<string, VisualElementPatch<any>> = {};
+
     if (cue.elements) {
       for (const [id, patch] of Object.entries(cue.elements)) {
         if (!patch) continue;
@@ -349,12 +310,8 @@ export async function runStepTimeline(
           controller.updateElementImmediate(id, patch);
         }
       } else {
-        tasks.push(controller.animateElements(patches, { durationMs, easing }));
+        await controller.animateElements(patches, { durationMs, easing });
       }
-    }
-
-    if (tasks.length > 0) {
-      await Promise.all(tasks);
     }
   };
 

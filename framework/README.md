@@ -34,7 +34,7 @@ box.ts                         the demo's side of it: the paper sinking into the
 
 ## How a demo works
 
-A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`. Each renderer attaches its baseline `defaultState` (the off/empty state), and each step inherits the previous step's end state (after `play` and `exit`) with only a delta:
+A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`. Each renderer in `renderers` can declare initial global position/opacity (`{ renderer, x?, y?, opacity?, scale? }`, or a bare renderer component when defaults are `0, 0, 1`) alongside `Renderer.defaultState`. Steps declare which VEs are involved via `elements: ['id', ...]` (optional only in single-element demos), while `play` and `exit` animate them:
 
 ```tsx
 import { mountDemo, type DemoConfig } from '../../framework';
@@ -44,17 +44,17 @@ export const myDemo: DemoConfig<{ garden: GardenState }> = {
   id: 'my-demo',
   name: 'My Demo',
   renderers: {
-    garden: GardenRenderer, // GardenRenderer.defaultState = BASE_STATE
+    garden: GardenRenderer, // or { renderer: GardenRenderer, x: 0, y: 0, opacity: 1 }
   },
   steps: [
     {
       title: 'The question',
-      elements: { garden: {} },
+      elements: ['garden'],
     },
     {
       title: 'Draw the garden',
-      set: { rectOp: 1 },
       play: [
+        { set: { rectOp: 1 } },
         { ms: 1500, set: { grow: 1 } },
         { ms: 260, set: { bubbleOp: 1 } },
       ],
@@ -73,19 +73,17 @@ mountDemo(myDemo);
 
 ### The step language
 
-Every step starts from the previous step's end `ElementsMap` (computed synchronously once at startup by folding `play` and `exit` cues forward):
+Each VE's `x`, `y`, `opacity`, `scale`, and `state` live globally across the demo (initialized from `renderers` and `Renderer.defaultState`), and declarative `play` and `exit` cues fold forward synchronously at startup:
 
-- **Entry deltas on `StepConfig`:**
-  - `elements: { id: { type?, reset?, x?, y?, opacity?, scale?, set?, unset? } }` — add new elements or patch/reset existing ones on entry. (`unset` reverts listed keys back to `Renderer.defaultState`.)
-  - `remove: ['id']` — drop elements on entry (on `Next`, `runDefaultExitAnimation` dims and removes them in `250ms`).
-  - `reset: true` — clear all inherited elements before applying `elements` (or reset the sole element when combined with `set`/`unset`).
-  - **Single-element shorthand:** when `renderers` has a single entry, `set` and `unset` can be written directly on the step or cue without wrapping in `elements: { id: ... }`.
+- **Step declaration (`StepConfig`):**
+  - `elements: ['id', ...]` — declares which VEs from `renderers` appear on this step (optional only when `renderers` has a single VE). Any VE omitted from a later step is faded out (`250ms`) on `Next` by `runDefaultExitAnimation`.
 - **Timeline cues (`play` / `exit`):** a single `StepCue` or an array of sequential `StepCue`s:
   - `wait`: delay in `ms` before starting this cue.
   - `ms`: duration in `ms` (defaults to `0` = immediate), or `(state) => number` when timing depends on live interactive state.
   - `easing`: `'linear'`, `'ease-in'`, `'ease-in-out'`, or default cubic-out.
   - `parallel: [...]`: run child cues or cue arrays concurrently (each with its own `wait`, `ms`, `easing`) and wait for the longest branch.
-  - `add` / `remove` / `elements` (or `set` / `unset` in single-element demos): the state/element changes to animate.
+  - `elements: { id: { x?, y?, opacity?, scale?, set?, unset? } }` — animate any active VE's transform, opacity, or state (`unset` reverts keys back to `Renderer.defaultState`).
+  - **Single-element shorthand:** when `renderers` has a single entry, `set` and `unset` can be written directly on a cue without wrapping in `elements: { id: ... }`.
   - *(For unusual steps that cannot be expressed declaratively, `play` and `exit` also still accept async functions.)*
 
 ### Step lifecycle rules

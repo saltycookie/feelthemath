@@ -24,7 +24,7 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
     {
       title: 'Problem Description',
       summary: 'The problem',
-      elements: { 'trip-scene': {} },
+      elements: ['trip-scene'],
     },
     {
       title: 'Problem Description',
@@ -35,26 +35,30 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
     {
       title: 'Use Area to Represent Distance',
       summary: 'Distance is an area',
-      set: {
-        pointX: START.x,
-        pointY: START.y,
-        pickedX: START.x,
-        pickedY: START.y,
-        draggable: true,
-        timeTicksOpacity: 1,
-      },
-      play: {
-        ms: 500,
-        set: {
-          handleOpacity: 1,
-          handleRing: 1,
-          part1Opacity: 1,
-          part1LabelOpacity: 1,
-          speedChipOpacity: 1,
-          timeChipOpacity: 1,
-          formulaOpacity: 1,
+      play: [
+        {
+          set: {
+            pointX: START.x,
+            pointY: START.y,
+            pickedX: START.x,
+            pickedY: START.y,
+            draggable: true,
+            timeTicksOpacity: 1,
+          },
         },
-      },
+        {
+          ms: 500,
+          set: {
+            handleOpacity: 1,
+            handleRing: 1,
+            part1Opacity: 1,
+            part1LabelOpacity: 1,
+            speedChipOpacity: 1,
+            timeChipOpacity: 1,
+            formulaOpacity: 1,
+          },
+        },
+      ],
       exit: [
         { unset: ['draggable'] },
         {
@@ -75,9 +79,8 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
     {
       title: "Let's Use Area to Describe the Problem",
       summary: 'Part 1: 0.5 hours',
-      set: { pointX: 0, pointY: PART1.y, handleRadius: 5, carX: 0 },
       play: [
-        { set: { part1Opacity: 1 } },
+        { set: { pointX: 0, pointY: PART1.y, handleRadius: 5, carX: 0, part1Opacity: 1 } },
         {
           parallel: [
             { ms: 350, set: { carOpacity: 1 } },

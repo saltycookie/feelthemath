@@ -105,6 +105,10 @@ export type SticksState = typeof BASE &
 const DEFAULT_STATE: SticksState = {
   ...BASE,
   ...SOLVE,
+  printedLetters: 1,
+  printedMarks: 1,
+  problem: 1,
+  crossed: 1,
   pulseCount: 0,
 };
 

@@ -147,7 +147,7 @@ const BASE_STATE: WalkState = {
   cShown: 0,
   walk1: 0,
   questionShown: 0,
-  problemShown: 0,
+  problemShown: 1,
   sideView: 0,
   paperShown: 0,
   unfold: 0,

@@ -3,14 +3,10 @@
 // TripScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
 
 import { mountDemo, type DemoConfig } from '../../framework';
-import {
-  PART1,
-  ROAD_MS,
-  START,
-  TripSceneRenderer,
-  type TripState,
-} from './TripScene';
+import { TripSceneRenderer } from './TripScene';
+import { type TripState } from './TripState';
 
+const ROAD_MS = 6450;
 const BUBBLE_IN_MS = 260;
 const BUBBLE_OUT_MS = 220;
 
@@ -38,10 +34,6 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
         {
           ms: 450,
           set: {
-            pointX: START.x,
-            pointY: START.y,
-            pickedX: START.x,
-            pickedY: START.y,
             draggable: true,
             timeTicksOpacity: 1,
           },
@@ -80,12 +72,12 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
       title: "Let's Use Area to Describe the Problem",
       summary: 'Part 1: 0.5 hours',
       play: [
-        { set: { pointX: 0, pointY: PART1.y, handleRadius: 5, carX: 0, part1Opacity: 1 } },
+        { set: { pointX: 0, pointY: 30, handleRadius: 5, carX: 0, part1Opacity: 1 } },
         {
           parallel: [
             { ms: 350, set: { carOpacity: 1 } },
             { wait: 200, ms: 400, set: { speedChipOpacity: 1 } },
-            { wait: 1100, ms: 1500, set: { carX: PART1.x, pointX: PART1.x } },
+            { wait: 1100, ms: 1500, set: { carX: 0.5, pointX: 0.5 } },
           ],
         },
         {

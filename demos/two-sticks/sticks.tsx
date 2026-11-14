@@ -4,7 +4,8 @@
 // SticksScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
 
 import { mountDemo, type DemoConfig } from '../../framework';
-import { SticksSceneRenderer, type SticksState } from './SticksScene';
+import { SticksSceneRenderer } from './SticksScene';
+import { type SticksState } from './SticksState';
 
 export const twoSticksDemo: DemoConfig<{ 'sticks-scene': SticksState }> = {
   id: 'two-sticks',

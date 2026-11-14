@@ -4,7 +4,10 @@
 // WalkScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
 
 import { mountDemo, type DemoConfig } from '../../framework';
-import { UNFOLD_MS, WalkSceneRenderer, type WalkState } from './WalkScene';
+import { WalkSceneRenderer } from './WalkScene';
+import { type WalkState } from './WalkState';
+
+const UNFOLD_MS = 2600;
 
 export const dannysWalkDemo: DemoConfig<{ 'walk-scene': WalkState }> = {
   id: 'dannys-walk',

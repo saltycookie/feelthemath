@@ -38,7 +38,8 @@ A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which re
 
 ```tsx
 import { mountDemo, type DemoConfig } from '../../framework';
-import { GardenRenderer, type GardenState } from './GardenScene';
+import { GardenRenderer } from './GardenScene';
+import { type GardenState } from './GardenState';
 
 export const myDemo: DemoConfig<{ garden: GardenState }> = {
   id: 'my-demo',
@@ -110,8 +111,7 @@ Each VE's `x`, `y`, `opacity`, `scale`, and `state` live globally across the dem
 
 ## Drawing a scene
 
-Each demo keeps its scene in a file of its own (`TripScene.tsx`, `SticksScene.tsx`, `WalkScene.tsx`, and the example's
-`GardenScene.tsx`): the state and the renderer that draws it. The steps are in the file `index.html` loads.
+Each demo keeps its state type and default state in a `*State.ts` file (`TripState.ts`, `SticksState.ts`, `WalkState.ts`, `GardenState.ts`) and its renderer in a `*Scene.tsx` file (`TripScene.tsx`, `SticksScene.tsx`, `WalkScene.tsx`, `GardenScene.tsx`). The steps and timing config are in the file `index.html` loads.
 
 A renderer draws its scene as JSX, worked out from `element.state` on every render. It does not build or change the
 DOM by hand. Its code falls into three parts:
@@ -143,6 +143,6 @@ its marching dashes that way, so that tiny changes do not restart them.
 
 1. Copy `demos/example` to `demos/<your-demo>`.
 2. Add the new HTML entry to `vite.config.ts` under `build.rollupOptions.input`.
-3. Give it its title in `index.html`'s `<title>`. Write its scene in `GardenScene.tsx` (rename it to fit): the state
-   and the renderer that draws it. Write its steps (the `DemoConfig`) in `demo.tsx`, which `index.html` loads.
+3. Give it its title in `index.html`'s `<title>`. Define its state and default values in `GardenState.ts` and its
+   renderer in `GardenScene.tsx` (rename them to fit). Write its steps (the `DemoConfig`) in `demo.tsx`, which `index.html` loads.
 4. Add a link to it in the site's front page (`index.html`) and in the table of demos in the [top-level README](../README.md).

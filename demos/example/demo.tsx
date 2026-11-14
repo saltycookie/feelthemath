@@ -5,7 +5,8 @@
 // This file has the steps (the DemoConfig) and puts the demo on the page.
 
 import { mountDemo, type DemoConfig } from '../../framework';
-import { GardenRenderer, type GardenState } from './GardenScene';
+import { GardenRenderer } from './GardenScene';
+import { type GardenState } from './GardenState';
 
 /** How long each animation takes, in ms. */
 const GROW_MS = 1500;

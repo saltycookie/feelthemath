@@ -12,6 +12,7 @@ import {
   type ElementRendererComponent,
   type Size,
 } from '../../framework';
+import { DEFAULT_GARDEN_STATE, type GardenState } from './GardenState';
 
 /* ================= the garden (lengths in metres) ================= */
 const LENGTH_M = 3;
@@ -23,28 +24,6 @@ const MARGIN_M = 1;
 const BUBBLE_MAX_WIDTH = 360;
 /** Room left between the widest bubble and the drawing's edges, both sides together. */
 const BUBBLE_SIDE_ROOM = 24;
-
-/**
- * What the garden scene looks like at one moment. The steps animate these values.
- * Opacities run from 0 (hidden) to 1 (fully visible).
- */
-export interface GardenState {
-  /** The garden rectangle's outline and fill. */
-  rectangleOpacity: number;
-  /** How much of its length the rectangle has grown to: 0 is none, 1 is all of it. */
-  growthProgress: number;
-  /** The formula bubble at the garden's corner. */
-  bubbleOpacity: number;
-  /** The answer written inside the garden. */
-  answerOpacity: number;
-}
-
-const BASE_STATE: GardenState = {
-  rectangleOpacity: 0,
-  growthProgress: 0,
-  bubbleOpacity: 0,
-  answerOpacity: 0,
-};
 
 /** Where the full-grown garden sits in a drawing area of `box`, in px: centred, with MARGIN_M around it. */
 function layoutGarden(box: Size): { x: number; y: number; width: number; height: number } {
@@ -147,4 +126,4 @@ export const GardenRenderer: ElementRendererComponent<GardenState> = ({ element 
   );
 };
 
-GardenRenderer.defaultState = BASE_STATE;
+GardenRenderer.defaultState = DEFAULT_GARDEN_STATE;

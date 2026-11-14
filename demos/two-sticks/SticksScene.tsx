@@ -11,6 +11,7 @@ import {
   type ElementRendererComponent,
   type Size,
 } from '../../framework';
+import { DEFAULT_STICKS_STATE, type SticksState } from './SticksState';
 
 /* ================= the setup (lengths in cm) ================= */
 const U = 40; // SVG units per centimetre
@@ -22,60 +23,6 @@ const FIGX = 8.7;
 const TM = 0.13,
   TT = 0.05; // half thickness of the main sticks and the thin sticks
 const TXT_TOP = 0.45; // where the question sits at the top of the mat
-/**
- * The figure's state. Each look in sticks.tsx is this with some of the values changed. Every value runs from 0
- * (not shown, or not begun) to 1 (shown, or done).
- */
-const BASE = {
-  /** The printed figure's letters A, B, C, D and O. The sticks' own letters show as this goes to 0. */
-  printedLetters: 0,
-  /** The printed figure's equal-length ticks and its right-angle mark. */
-  printedMarks: 0,
-  /** The four sides: 0 pencil lines, 1 thin sticks. */
-  sideWood: 0,
-  /** The sides lifted off the figure, one after another, onto the pile in the corner. */
-  sidesToPile: 0,
-  /** AC and BD: 0 pencil lines, 1 wooden sticks. */
-  mainWood: 0,
-  /** BD taken from the figure to the pile. */
-  bdToPile: 0,
-  /** BD taken from the pile and laid under AC. */
-  bdFromPile: 0,
-  /** The pointer that runs along AC and picks the point O. */
-  pickO: 0,
-  /** The brackets that mark the whole of AC, and then of BD, as x. */
-  xBrackets: 0,
-  /** y, written beside AO. */
-  acYLabel: 0,
-  /** x − y, written beside OC. */
-  acXMinusYLabel: 0,
-  /** BD's names, its mark at O, and its x, y and x − y, one after another. */
-  bdLabels: 0,
-  /** BD turned across AC at O: 0 lying under it, 1 at a right angle to it. */
-  crossed: 0,
-  /** The right-angle marks at O. */
-  rightAngle: 0,
-  /** AB taken from the pile and laid on the figure. */
-  abFromPile: 0,
-  /** Its length, √2 · y. */
-  abLabel: 0,
-  /** CD taken from the pile and laid on the figure. */
-  cdFromPile: 0,
-  /** Its length, √2 · (x − y). */
-  cdLabel: 0,
-  /** AB, then CD, laid end to end on the ruler. */
-  onRuler: 0,
-  /** The "+", the "= 10" and the reading line that make the equation on the ruler. */
-  equation: 0,
-  /** The grid, the ruler and the sticks faded out, to leave the paper to the working. */
-  figureGone: 0,
-  /** The equation's terms flown up into the first row of the working. */
-  termsToWorking: 0,
-  /** The prompt above the ruler: how would you build this shape using sticks? */
-  prompt: 0,
-  /** The question at the top of the mat. */
-  problem: 0,
-};
 
 const SIDE_START: Record<'AB' | 'BC' | 'CD' | 'DA', number> = {
   AB: 0.44,
@@ -83,9 +30,6 @@ const SIDE_START: Record<'AB' | 'BC' | 'CD' | 'DA', number> = {
   CD: 0.6,
   DA: 0.16,
 };
-
-/** The working of step 7: rows 2 to 6 shown, and the terms that cancel in row 2 struck out. Each is 0 or 1. */
-const SOLVE = { row2: 0, strike: 0, row3: 0, row4: 0, row5: 0, row6: 0 };
 
 const ALT = [
   'The homework figure on a mat, with the question written above it. AC and BD cross at O at a right angle, AO equals BO and OC equals OD.',
@@ -96,21 +40,6 @@ const ALT = [
   'The two thin sticks are laid end to end on the ruler and reach 10 centimetres: root 2 times y plus root 2 times x minus y equals 10.',
   'The equation moves to the top of the paper and is solved line by line. x equals 10 divided by root 2, which is 5 root 2, so AC is 5 root 2 centimetres.',
 ];
-
-export type SticksState = typeof BASE &
-  typeof SOLVE & {
-    pulseCount: number;
-  };
-
-const DEFAULT_STATE: SticksState = {
-  ...BASE,
-  ...SOLVE,
-  printedLetters: 1,
-  printedMarks: 1,
-  problem: 1,
-  crossed: 1,
-  pulseCount: 0,
-};
 
 /* ================= helpers ================= */
 interface Pt {
@@ -842,4 +771,4 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({
   );
 };
 
-SticksSceneRenderer.defaultState = DEFAULT_STATE;
+SticksSceneRenderer.defaultState = DEFAULT_STICKS_STATE;

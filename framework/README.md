@@ -84,8 +84,7 @@ Every step starts from the previous step's end `ElementsMap` (computed synchrono
   - `wait`: delay in `ms` before starting this cue.
   - `ms`: duration in `ms` (defaults to `0` = immediate), or `(state) => number` when timing depends on live interactive state.
   - `easing`: `'linear'`, `'ease-in'`, `'ease-in-out'`, or default cubic-out.
-  - `fork: true`: start this cue after `wait` without blocking the next cue in the list.
-  - `parallel: [...]`: run child cues concurrently (each with its own `wait`, `ms`, `easing`) and wait for the longest branch.
+  - `parallel: [...]`: run child cues or cue arrays concurrently (each with its own `wait`, `ms`, `easing`) and wait for the longest branch.
   - `add` / `remove` / `elements` (or `set` / `unset` in single-element demos): the state/element changes to animate.
   - *(For unusual steps that cannot be expressed declaratively, `play` and `exit` also still accept async functions.)*
 

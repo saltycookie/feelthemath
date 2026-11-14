@@ -161,10 +161,8 @@ export interface StepCue<TElements extends Record<string, any> = Record<string, 
   ms?: number | ((state: CueDurationArg<TElements>) => number);
   /** Easing name or CSS cubic-bezier (default cubic-out) */
   easing?: string;
-  /** Run without blocking the next cue in the sequence */
-  fork?: boolean;
-  /** Run child cues concurrently and wait for the longest branch */
-  parallel?: StepCue<TElements>[];
+  /** Run child cues or sequences concurrently and wait for the longest branch */
+  parallel?: StepTimeline<TElements>[];
   /** Add new visual elements (fades in over `ms`) */
   add?: { [K in keyof TElements]?: ElementEntryDelta<TElements[K]> };
   /** Fade out over `ms` (default 250ms) and remove elements */

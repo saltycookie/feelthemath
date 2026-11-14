@@ -106,7 +106,7 @@ function foldCue(
 ): void {
   if (cue.parallel) {
     for (const branch of cue.parallel) {
-      foldCue(map, branch, soleElementId, getDefaultState);
+      foldTimeline(map, branch, soleElementId, getDefaultState);
     }
     return;
   }
@@ -251,14 +251,6 @@ function buildVisualElementPatch(
   };
 }
 
-function ignoreAbortError(promise: Promise<void>): void {
-  promise.catch((err: unknown) => {
-    if ((err as { name?: string } | null)?.name !== 'AbortError') {
-      console.error('Error in a forked cue:', err);
-    }
-  });
-}
-
 /**
  * Executes a declarative `StepTimeline` (`StepCue` or `StepCue[]`) against a `StepAnimationController`.
  */
@@ -278,97 +270,93 @@ export async function runStepTimeline(
     return Math.max(0, cue.ms(arg));
   };
 
+  const runTimeline = async (tl: StepTimeline<any>): Promise<void> => {
+    const list = Array.isArray(tl) ? tl : [tl];
+    for (const cue of list) {
+      await runCue(cue);
+    }
+  };
+
   const runCue = async (cue: StepCue<any>): Promise<void> => {
     if (cue.wait && cue.wait > 0) {
       await controller.wait(cue.wait);
     }
 
-    const executeBody = async (): Promise<void> => {
-      if (cue.parallel) {
-        await Promise.all(cue.parallel.map((branch) => runCue(branch)));
-        return;
+    if (cue.parallel) {
+      await Promise.all(cue.parallel.map((branch) => runTimeline(branch)));
+      return;
+    }
+
+    const durationMs = resolveMs(cue);
+    const easing = cue.easing;
+    const tasks: Promise<void>[] = [];
+
+    if (cue.add) {
+      for (const [id, delta] of Object.entries(cue.add)) {
+        if (!delta) continue;
+        const temp: ElementsMap = {};
+        applyEntryDelta(temp, id, delta, getDefaultState);
+        const element: VisualElement<any> = temp[id];
+        tasks.push(controller.addElement(element, { durationMs, easing }));
       }
+    }
 
-      const durationMs = resolveMs(cue);
-      const easing = cue.easing;
-      const tasks: Promise<void>[] = [];
-
-      if (cue.add) {
-        for (const [id, delta] of Object.entries(cue.add)) {
-          if (!delta) continue;
-          const temp: ElementsMap = {};
-          applyEntryDelta(temp, id, delta, getDefaultState);
-          const element: VisualElement<any> = temp[id];
-          tasks.push(controller.addElement(element, { durationMs, easing }));
-        }
-      }
-
-      if (cue.remove) {
-        for (const id of cue.remove) {
-          tasks.push(
-            controller.removeElement(id, cue.ms === undefined ? undefined : durationMs)
-          );
-        }
-      }
-
-      const patches: Record<string, VisualElementPatch<any>> = {};
-      if (cue.elements) {
-        for (const [id, patch] of Object.entries(cue.elements)) {
-          if (!patch) continue;
-          const built = buildVisualElementPatch(id, patch, controller, getDefaultState);
-          if (built) {
-            patches[id] = built;
-          }
-        }
-      }
-
-      if (soleElementId && (cue.set || cue.unset)) {
-        const built = buildVisualElementPatch(
-          soleElementId,
-          { set: cue.set, unset: cue.unset },
-          controller,
-          getDefaultState
+    if (cue.remove) {
+      for (const id of cue.remove) {
+        tasks.push(
+          controller.removeElement(id, cue.ms === undefined ? undefined : durationMs)
         );
+      }
+    }
+
+    const patches: Record<string, VisualElementPatch<any>> = {};
+    if (cue.elements) {
+      for (const [id, patch] of Object.entries(cue.elements)) {
+        if (!patch) continue;
+        const built = buildVisualElementPatch(id, patch, controller, getDefaultState);
         if (built) {
-          const prev = patches[soleElementId];
-          patches[soleElementId] = prev
-            ? {
-                ...prev,
-                ...built,
-                state:
-                  prev.state || built.state
-                    ? { ...(prev.state ?? {}), ...(built.state ?? {}) }
-                    : undefined,
-              }
-            : built;
+          patches[id] = built;
         }
       }
+    }
 
-      const patchEntries = Object.entries(patches);
-      if (patchEntries.length > 0) {
-        if (durationMs <= 0) {
-          for (const [id, patch] of patchEntries) {
-            controller.updateElementImmediate(id, patch);
-          }
-        } else {
-          tasks.push(controller.animateElements(patches, { durationMs, easing }));
+    if (soleElementId && (cue.set || cue.unset)) {
+      const built = buildVisualElementPatch(
+        soleElementId,
+        { set: cue.set, unset: cue.unset },
+        controller,
+        getDefaultState
+      );
+      if (built) {
+        const prev = patches[soleElementId];
+        patches[soleElementId] = prev
+          ? {
+              ...prev,
+              ...built,
+              state:
+                prev.state || built.state
+                  ? { ...(prev.state ?? {}), ...(built.state ?? {}) }
+                  : undefined,
+            }
+          : built;
+      }
+    }
+
+    const patchEntries = Object.entries(patches);
+    if (patchEntries.length > 0) {
+      if (durationMs <= 0) {
+        for (const [id, patch] of patchEntries) {
+          controller.updateElementImmediate(id, patch);
         }
+      } else {
+        tasks.push(controller.animateElements(patches, { durationMs, easing }));
       }
+    }
 
-      if (tasks.length > 0) {
-        await Promise.all(tasks);
-      }
-    };
-
-    if (cue.fork) {
-      ignoreAbortError(executeBody());
-    } else {
-      await executeBody();
+    if (tasks.length > 0) {
+      await Promise.all(tasks);
     }
   };
 
-  const list = Array.isArray(timeline) ? timeline : [timeline];
-  for (const cue of list) {
-    await runCue(cue);
-  }
+  await runTimeline(timeline);
 }

@@ -78,13 +78,24 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
       set: { pointX: 0, pointY: PART1.y, handleRadius: 5, carX: 0 },
       play: [
         { set: { part1Opacity: 1 } },
-        { ms: 350, fork: true, set: { carOpacity: 1 } },
-        { wait: 200, ms: 400, fork: true, set: { speedChipOpacity: 1 } },
-        { wait: 900, ms: 1500, set: { carX: PART1.x, pointX: PART1.x } },
-        { wait: 150, ms: 500, fork: true, set: { part1LabelOpacity: 1 } },
-        { wait: 150, set: { bubbleKey: 'time1' } },
-        { ms: BUBBLE_IN_MS, set: { bubbleOpacity: 1 } },
-        { ms: 400, set: { timeChipOpacity: 1 } },
+        {
+          parallel: [
+            { ms: 350, set: { carOpacity: 1 } },
+            { wait: 200, ms: 400, set: { speedChipOpacity: 1 } },
+            { wait: 1100, ms: 1500, set: { carX: PART1.x, pointX: PART1.x } },
+          ],
+        },
+        {
+          wait: 150,
+          parallel: [
+            { ms: 500, set: { part1LabelOpacity: 1 } },
+            [
+              { wait: 150, set: { bubbleKey: 'time1' } },
+              { ms: BUBBLE_IN_MS, set: { bubbleOpacity: 1 } },
+              { ms: 400, set: { timeChipOpacity: 1 } },
+            ],
+          ],
+        },
       ],
       exit: [
         { ms: BUBBLE_OUT_MS, unset: ['bubbleOpacity'] },
@@ -96,28 +107,42 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
       summary: 'Part 2: unknown time',
       play: [
         { set: { part2Opacity: 1 } },
-        { ms: 400, fork: true, set: { speed2ChipOpacity: 1 } },
-        { wait: 1000, ms: 2000, set: { carX: 2.5, part2Reach: 2 / 3 } },
-        { ms: 500, fork: true, set: { part2LabelOpacity: 1 } },
-        { wait: 150, ms: 500, set: { time2BraceOpacity: 1 } },
+        {
+          parallel: [
+            { ms: 400, set: { speed2ChipOpacity: 1 } },
+            { wait: 1000, ms: 2000, set: { carX: 2.5, part2Reach: 2 / 3 } },
+          ],
+        },
+        {
+          parallel: [
+            { ms: 500, set: { part2LabelOpacity: 1 } },
+            { wait: 150, ms: 500, set: { time2BraceOpacity: 1 } },
+          ],
+        },
       ],
     },
     {
       title: "Let's Use Area to Describe the Problem",
       summary: 'The average speed',
-      play: [
-        { ms: 500, fork: true, unset: ['carOpacity'] },
-        { ms: 1000, set: { averageProgress: 1 } },
-      ],
+      play: {
+        parallel: [
+          { ms: 500, unset: ['carOpacity'] },
+          { ms: 1000, set: { averageProgress: 1 } },
+        ],
+      },
     },
     {
       title: 'Solve the Problem',
       summary: 'The two areas must be equal',
       play: [
-        { wait: 300, ms: 600, fork: true, set: { areasOutlineOpacity: 1 } },
-        { wait: 1100, set: { bubbleKey: 'equal' } },
-        { ms: BUBBLE_IN_MS, fork: true, set: { bubbleOpacity: 1 } },
-        { ms: 450, set: { equalArrowsOpacity: 1 } },
+        { wait: 300, ms: 600, set: { areasOutlineOpacity: 1 } },
+        { wait: 500, set: { bubbleKey: 'equal' } },
+        {
+          parallel: [
+            { ms: BUBBLE_IN_MS, set: { bubbleOpacity: 1 } },
+            { ms: 450, set: { equalArrowsOpacity: 1 } },
+          ],
+        },
       ],
       exit: [
         // the bubble, and the two arrows that point from it at the areas
@@ -130,8 +155,8 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
       summary: 'The deficit is 10 miles',
       play: [
         { wait: 300, set: { bubbleKey: 'area' } },
-        { ms: BUBBLE_IN_MS, fork: true, set: { bubbleOpacity: 1 } },
-        { wait: 1000, ms: 500, set: { areasLabelOpacity: 1 } },
+        { ms: BUBBLE_IN_MS, set: { bubbleOpacity: 1 } },
+        { wait: 1000 - BUBBLE_IN_MS, ms: 500, set: { areasLabelOpacity: 1 } },
       ],
       exit: [
         { ms: BUBBLE_OUT_MS, unset: ['bubbleOpacity'] },
@@ -143,8 +168,8 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
       summary: 'Part 2 takes 2 hours',
       play: [
         { wait: 300, set: { bubbleKey: 'time2' } },
-        { ms: BUBBLE_IN_MS, fork: true, set: { bubbleOpacity: 1 } },
-        { wait: 1500, ms: 500, set: { time2Known: 1, endTimeChipOpacity: 1 } },
+        { ms: BUBBLE_IN_MS, set: { bubbleOpacity: 1 } },
+        { wait: 1500 - BUBBLE_IN_MS, ms: 500, set: { time2Known: 1, endTimeChipOpacity: 1 } },
       ],
       exit: [
         { ms: BUBBLE_OUT_MS, unset: ['bubbleOpacity'] },
@@ -156,8 +181,8 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
       summary: 'The answer: 110 miles',
       play: [
         { wait: 300, set: { bubbleKey: 'answer' } },
-        { ms: BUBBLE_IN_MS, fork: true, set: { bubbleOpacity: 1 } },
-        { wait: 1200, ms: 500, set: { distance2Known: 1 } },
+        { ms: BUBBLE_IN_MS, set: { bubbleOpacity: 1 } },
+        { wait: 1200 - BUBBLE_IN_MS, ms: 500, set: { distance2Known: 1 } },
       ],
     },
   ],

@@ -59,9 +59,15 @@ export const dannysWalkDemo: DemoConfig<{ 'walk-scene': WalkState }> = {
       title: 'Which Path Is the Shortest?',
       summary: 'Four walks',
       play: [
-        { ms: 900, fork: true, set: { measureLabelAside: 1 } },
-        { ms: 600, set: { cAsC1: 1 } },
-        { wait: 200, ms: 450, set: { c2Shown: 1 } },
+        {
+          parallel: [
+            { ms: 900, set: { measureLabelAside: 1 } },
+            [
+              { ms: 600, set: { cAsC1: 1 } },
+              { wait: 200, ms: 450, set: { c2Shown: 1 } },
+            ],
+          ],
+        },
         { wait: 150, ms: 450, set: { c3Shown: 1 } },
         { wait: 150, ms: 450, set: { c4Shown: 1 } },
         { wait: 300, ms: 1500, easing: 'linear', set: { walk2: 1 } },
@@ -93,8 +99,12 @@ export const dannysWalkDemo: DemoConfig<{ 'walk-scene': WalkState }> = {
       title: 'Solve the Problem',
       summary: 'The answer',
       play: [
-        { ms: 500, fork: true, unset: ['hintStraightLine'] },
-        { ms: 1300, set: { framingRaised: 1 } },
+        {
+          parallel: [
+            { ms: 500, unset: ['hintStraightLine'] },
+            { ms: 1300, set: { framingRaised: 1 } },
+          ],
+        },
         { wait: 250, ms: 1400, set: { triangleLegs: 1 } },
         { ms: 450, set: { dShown: 1 } },
         { wait: 300, ms: 900, set: { legLengthsShown: 1 } },

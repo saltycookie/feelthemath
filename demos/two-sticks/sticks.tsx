@@ -26,89 +26,70 @@ export const twoSticksDemo: DemoConfig<{ 'sticks-scene': SticksState }> = {
     {
       title: 'Problem Description',
       summary: 'Think',
-      play: {
-        parallel: [
-          { ms: 700, set: { prompt: 1 } },
-          { wait: 1300, ms: 600, unset: ['printedMarks'] },
-          { wait: 1400, ms: 800, unset: ['printedLetters'] },
-          { wait: 1400, ms: 1500, set: { mainWood: 1 } },
-          { wait: 1400, ms: 1200, set: { sideWood: 1 } },
-        ],
-      },
+      play: [
+        { ms: 700, set: { prompt: 1 } },
+        { wait: 600, ms: 600, fork: true, unset: ['printedMarks'] },
+        { wait: 100, ms: 800, fork: true, unset: ['printedLetters'] },
+        { ms: 1200, fork: true, set: { sideWood: 1 } },
+        { ms: 1500, set: { mainWood: 1 } },
+      ],
     },
     {
       title: 'Recreate the Figure',
       summary: 'Label AC',
-      play: {
-        parallel: [
-          { ms: 700, unset: ['prompt', 'problem'] },
-          { wait: 500, ms: 3200, easing: 'linear', set: { sidesToPile: 1 } },
-          { wait: 3300, ms: 1280, set: { bdToPile: 1 } },
-          { wait: 5600, ms: 600, set: { xBrackets: 1 } },
-          { wait: 6300, ms: 1500, easing: 'linear', set: { pickO: 1 } },
-          { wait: 7900, ms: 600, set: { acYLabel: 1 } },
-          { wait: 8700, ms: 600, set: { acXMinusYLabel: 1 } },
-        ],
-      },
+      play: [
+        { ms: 700, fork: true, unset: ['prompt', 'problem'] },
+        { wait: 500, ms: 3200, easing: 'linear', fork: true, set: { sidesToPile: 1 } },
+        { wait: 2800, ms: 1280, set: { bdToPile: 1 } },
+        { wait: 1020, ms: 600, set: { xBrackets: 1 } },
+        { wait: 100, ms: 1500, easing: 'linear', set: { pickO: 1 } },
+        { wait: 100, ms: 600, set: { acYLabel: 1 } },
+        { wait: 200, ms: 600, set: { acXMinusYLabel: 1 } },
+      ],
     },
     {
       title: 'Recreate the Figure',
       summary: 'Lay BD across AC',
       play: [
-        {
-          parallel: [
-            { wait: 300, ms: 1280, set: { bdFromPile: 1 } },
-            { wait: 1700, ms: 2800, easing: 'linear', set: { bdLabels: 1 } },
-          ],
-        },
-        {
-          wait: 600,
-          parallel: [
-            { ms: 350, unset: ['xBrackets'] },
-            { wait: 200, ms: 1500, set: { crossed: 1 } },
-            { wait: 1550, ms: 400, set: { rightAngle: 1 } },
-          ],
-        },
+        { wait: 300, ms: 1280, set: { bdFromPile: 1 } },
+        { wait: 120, ms: 2800, easing: 'linear', set: { bdLabels: 1 } },
+        { wait: 600, ms: 350, fork: true, unset: ['xBrackets'] },
+        { wait: 200, ms: 1500, fork: true, set: { crossed: 1 } },
+        { wait: 1350, ms: 400, set: { rightAngle: 1 } },
       ],
     },
     {
       title: 'Recreate the Figure',
       summary: 'Label AB and CD',
-      play: {
-        parallel: [
-          { wait: 300, ms: 1300, set: { abFromPile: 1 } },
-          { wait: 1700, ms: 600, set: { abLabel: 1 } },
-          { wait: 2600, ms: 1500, set: { cdFromPile: 1 } },
-          { wait: 4200, ms: 600, set: { cdLabel: 1 } },
-        ],
-      },
+      play: [
+        { wait: 300, ms: 1300, set: { abFromPile: 1 } },
+        { wait: 100, ms: 600, set: { abLabel: 1 } },
+        { wait: 300, ms: 1500, set: { cdFromPile: 1 } },
+        { wait: 100, ms: 600, set: { cdLabel: 1 } },
+      ],
     },
     {
       title: 'Recreate the Figure',
       summary: 'Lay them on the ruler',
-      play: {
-        parallel: [
-          { wait: 200, ms: 1900, easing: 'linear', set: { onRuler: 1 } },
-          { wait: 2250, ms: 600, set: { equation: 1 } },
-        ],
-      },
+      play: [
+        { wait: 200, ms: 1900, easing: 'linear', set: { onRuler: 1 } },
+        { wait: 150, ms: 600, set: { equation: 1 } },
+      ],
     },
     {
       title: 'Solve the Equation',
       summary: 'Solve',
       // The equation flies up into the working while the working's lines appear on their own clock.
-      play: {
-        parallel: [
-          { ms: 800, set: { figureGone: 1 } },
-          { wait: 450, ms: 1100, set: { termsToWorking: 1 } },
-          { wait: 2300, set: { row2: 1 } },
-          { wait: 3400, set: { strike: 1 } },
-          { wait: 4300, set: { row3: 1 } },
-          { wait: 5600, set: { row4: 1 } },
-          { wait: 6900, set: { row5: 1 } },
-          { wait: 8300, set: { row6: 1 } },
-        ],
-      },
+      play: [
+        { ms: 800, fork: true, set: { figureGone: 1 } },
+        { wait: 450, ms: 1100, set: { termsToWorking: 1 } },
+        { wait: 750, set: { row2: 1 } },
+        { wait: 1100, set: { strike: 1 } },
+        { wait: 900, set: { row3: 1 } },
+        { wait: 1300, set: { row4: 1 } },
+        { wait: 1300, set: { row5: 1 } },
+        { wait: 1400, set: { row6: 1 } },
+      ],
     },
   ],
 };

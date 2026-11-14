@@ -39,7 +39,7 @@ export interface GardenState {
   answerOpacity: number;
 }
 
-export const BASE_STATE: GardenState = {
+const BASE_STATE: GardenState = {
   rectangleOpacity: 0,
   growthProgress: 0,
   bubbleOpacity: 0,

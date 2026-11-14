@@ -137,7 +137,7 @@ export interface WalkState {
 }
 
 /** The baseline off-state before anything is drawn. Each step builds on the previous step's end state. */
-export const BASE_STATE: WalkState = {
+const BASE_STATE: WalkState = {
   riverProgress: 0,
   homeShown: 0,
   homeMeasure: 0,

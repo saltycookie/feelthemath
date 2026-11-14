@@ -9,7 +9,3 @@ export const lerp = (a: number, b: number, t: number): number =>
 export const easeOut = (t: number): number => 1 - Math.pow(1 - t, 3);
 export const easeInOut = (t: number): number =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-export const smoothstep = (a: number, b: number, x: number): number => {
-  const u = clamp01((x - a) / (b - a));
-  return u * u * (3 - 2 * u);
-};

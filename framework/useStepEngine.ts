@@ -47,7 +47,7 @@ function applyEasing(t: number, easingName?: string): number {
  * - Linearly interpolates any numeric properties in `targetPatch` from `startState[key]` to `targetPatch[key]`.
  * - Immediately applies non-numeric properties (booleans, strings, objects).
  */
-export const defaultStateInterpolator: StateInterpolator<Record<string, any>> = (
+const defaultStateInterpolator: StateInterpolator<Record<string, any>> = (
   startState,
   targetPatch,
   progress

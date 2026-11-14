@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { clamp01 } from '../math';
 import { useMeasure } from '../useMeasure';
 

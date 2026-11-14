@@ -26,7 +26,7 @@ const TXT_TOP = 0.45; // where the question sits at the top of the mat
  * The figure's state. Each look in sticks.tsx is this with some of the values changed. Every value runs from 0
  * (not shown, or not begun) to 1 (shown, or done).
  */
-export const BASE = {
+const BASE = {
   /** The printed figure's letters A, B, C, D and O. The sticks' own letters show as this goes to 0. */
   printedLetters: 0,
   /** The printed figure's equal-length ticks and its right-angle mark. */
@@ -85,7 +85,7 @@ const SIDE_START: Record<'AB' | 'BC' | 'CD' | 'DA', number> = {
 };
 
 /** The working of step 7: rows 2 to 6 shown, and the terms that cancel in row 2 struck out. Each is 0 or 1. */
-export const SOLVE = { row2: 0, strike: 0, row3: 0, row4: 0, row5: 0, row6: 0 };
+const SOLVE = { row2: 0, strike: 0, row3: 0, row4: 0, row5: 0, row6: 0 };
 
 const ALT = [
   'The homework figure on a mat, with the question written above it. AC and BD cross at O at a right angle, AO equals BO and OC equals OD.',
@@ -102,7 +102,7 @@ export type SticksState = typeof BASE &
     pulseCount: number;
   };
 
-export const DEFAULT_STATE: SticksState = {
+const DEFAULT_STATE: SticksState = {
   ...BASE,
   ...SOLVE,
   pulseCount: 0,

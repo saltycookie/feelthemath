@@ -72,7 +72,7 @@ const ROAD_LABELS: { key: string; cls: string; x: number; y: number; text: strin
   { key: 'whole', cls: 'sm c-ink', x: 400, y: 236, text: '50 mph average' },
 ];
 
-export type BubbleKey = 'none' | 'time1' | 'equal' | 'area' | 'time2' | 'answer';
+type BubbleKey = 'none' | 'time1' | 'equal' | 'area' | 'time2' | 'answer';
 
 /** What the bubble says, and where it sits on the chart. */
 const SAY: Record<BubbleKey, ReactNode> = {
@@ -178,7 +178,7 @@ export interface TripState {
 }
 
 /** The state before anything is drawn: step 1. Each step begins as this with some of the values changed. */
-export const BASE_STATE: TripState = {
+const BASE_STATE: TripState = {
   chartView: 0,
   roadProgress: 0,
   pointX: START.x,

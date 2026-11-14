@@ -37,6 +37,7 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
       summary: 'Distance is an area',
       play: [
         {
+          ms: 450,
           set: {
             pointX: START.x,
             pointY: START.y,

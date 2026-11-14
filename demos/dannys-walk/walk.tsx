@@ -16,7 +16,6 @@ export const dannysWalkDemo: DemoConfig<{ 'walk-scene': WalkState }> = {
     {
       title: 'Problem Description',
       summary: 'The problem',
-      elements: ['walk-scene'],
     },
     {
       title: 'Problem Description',

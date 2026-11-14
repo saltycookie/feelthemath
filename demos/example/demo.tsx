@@ -23,8 +23,6 @@ export const exampleDemo: DemoConfig<{ garden: GardenState }> = {
   steps: [
     {
       title: 'The question',
-      // Step 1 declares `garden`, initialized from GardenRenderer.defaultState and renderers.
-      elements: ['garden'],
     },
     {
       title: 'Draw the garden',

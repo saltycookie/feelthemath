@@ -49,21 +49,20 @@ export const myDemo: DemoConfig<{ garden: GardenState }> = {
   steps: [
     {
       title: 'The question',
-      elements: ['garden'],
     },
     {
       title: 'Draw the garden',
       play: [
-        { set: { rectOp: 1 } },
-        { ms: 1500, set: { grow: 1 } },
-        { ms: 260, set: { bubbleOp: 1 } },
+        { set: { rectangleOpacity: 1 } },
+        { ms: 1500, set: { growthProgress: 1 } },
+        { ms: 260, set: { bubbleOpacity: 1 } },
       ],
-      exit: { ms: 220, unset: ['bubbleOp'] },
+      exit: { ms: 220, unset: ['bubbleOpacity'] },
     },
     {
       title: 'The answer',
-      // Inherits { rectOp: 1, grow: 1, bubbleOp: 0 } from Step 2's exit automatically
-      play: { wait: 300, ms: 600, set: { answerOp: 1 } },
+      // Inherits { rectangleOpacity: 1, growthProgress: 1, bubbleOpacity: 0 } from Step 2's exit automatically
+      play: { wait: 300, ms: 600, set: { answerOpacity: 1 } },
     },
   ],
 };
@@ -76,7 +75,7 @@ mountDemo(myDemo);
 Each VE's `x`, `y`, `opacity`, `scale`, and `state` live globally across the demo (initialized from `renderers` and `Renderer.defaultState`), and declarative `play` and `exit` cues fold forward synchronously at startup:
 
 - **Step declaration (`StepConfig`):**
-  - `elements: ['id', ...]` — declares which VEs from `renderers` appear on this step (optional only when `renderers` has a single VE). Any VE omitted from a later step is faded out (`250ms`) on `Next` by `runDefaultExitAnimation`.
+  - `elements: ['id', ...]` — required on every step when multiple VEs are registered under `renderers`; omitted when there is only one VE (steps automatically use that VE). Any VE omitted from a step is faded out (`250ms`) on `Next` by `runDefaultExitAnimation`.
 - **Timeline cues (`play` / `exit`):** a single `StepCue` or an array of sequential `StepCue`s:
   - `wait`: delay in `ms` before starting this cue.
   - `ms`: duration in `ms` (defaults to `0` = immediate), or `(state) => number` when timing depends on live interactive state.

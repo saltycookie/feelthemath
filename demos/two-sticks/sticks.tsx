@@ -17,7 +17,7 @@ export const twoSticksDemo: DemoConfig<{ 'sticks-scene': SticksState }> = {
       title: 'Problem Description',
       summary: 'The problem',
       elements: {
-        'sticks-scene': { set: { printedLetters: 1, printedMarks: 1, problem: 1 } },
+        'sticks-scene': { set: { printedLetters: 1, printedMarks: 1, problem: 1, crossed: 1 } },
       },
       // Nothing moves; a new pulseCount makes the scene pulse the figure's marks.
       play: { set: { pulseCount: 1 } },
@@ -48,9 +48,10 @@ export const twoSticksDemo: DemoConfig<{ 'sticks-scene': SticksState }> = {
             { ms: 700, unset: ['prompt', 'problem'] },
             { wait: 500, ms: 3200, easing: 'linear', set: { sidesToPile: 1 } },
             { wait: 3300, ms: 1280, set: { bdToPile: 1 } },
+            { wait: 4600, ms: 900, unset: ['crossed'] },
           ],
         },
-        { wait: 1020, ms: 600, set: { xBrackets: 1 } },
+        { wait: 100, ms: 600, set: { xBrackets: 1 } },
         { wait: 100, ms: 1500, easing: 'linear', set: { pickO: 1 } },
         { wait: 100, ms: 600, set: { acYLabel: 1 } },
         { wait: 200, ms: 600, set: { acXMinusYLabel: 1 } },

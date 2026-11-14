@@ -56,8 +56,6 @@ const ALT = [
  * done).
  */
 export interface WalkState {
-  /** The step being shown, counted from 0. */
-  stepIdx: number;
   /** The river, drawn from west to east. */
   riverProgress: number;
   /** Home, A: its point and its name. */
@@ -138,9 +136,8 @@ export interface WalkState {
   answerRing: number;
 }
 
-/** The state before anything is drawn: step 1. Each step begins as this with some of the values changed. */
+/** The baseline off-state before anything is drawn. Each step builds on the previous step's end state. */
 export const BASE_STATE: WalkState = {
-  stepIdx: 0,
   riverProgress: 0,
   homeShown: 0,
   homeMeasure: 0,
@@ -150,7 +147,7 @@ export const BASE_STATE: WalkState = {
   cShown: 0,
   walk1: 0,
   questionShown: 0,
-  problemShown: 1,
+  problemShown: 0,
   sideView: 0,
   paperShown: 0,
   unfold: 0,
@@ -341,7 +338,11 @@ function ringPath(w: number, h: number) {
   return 'M' + pts.join('L');
 }
 
-export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element, updateState }) => {
+export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({
+  element,
+  stepIndex,
+  updateState,
+}) => {
   const S = element.state;
   const stageRef = useRef<HTMLDivElement | null>(null);
   const probRef = useRef<HTMLParagraphElement | null>(null);
@@ -664,7 +665,7 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
       ref={stageRef}
       className="fw-scene walk-root"
     >
-      <p ref={probRef} className="problem" aria-hidden={S.stepIdx >= FOLD ? 'true' : 'false'} style={{ opacity: String(S.problemShown) }}>
+      <p ref={probRef} className="problem" aria-hidden={stepIndex >= FOLD ? 'true' : 'false'} style={{ opacity: String(S.problemShown) }}>
         Danny's home is <b>20 meters</b> north of a <b className="c-blue">straight river</b> that flows from west to
         east. A playground is <b>120 meters</b> east of his home and <b>30 meters</b> north of the river. After
         playing at the playground, Danny wants to walk to the river bank to wash up before going home. What is the
@@ -682,8 +683,8 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
       <svg
         id="fig"
         role="img"
-        aria-label={ALT[S.stepIdx] || ALT[1]}
-        aria-hidden={S.stepIdx === 0 ? 'true' : undefined}
+        aria-label={ALT[stepIndex] || ALT[1]}
+        aria-hidden={stepIndex === 0 ? 'true' : undefined}
         viewBox={stage ? '0 0 ' + SW + ' ' + SH : undefined}
         style={stage ? ({ '--fs': fs + 'px' } as React.CSSProperties) : undefined}
       >
@@ -833,3 +834,5 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({ element
     </div>
   );
 };
+
+WalkSceneRenderer.defaultState = BASE_STATE;

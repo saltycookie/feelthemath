@@ -11,11 +11,11 @@ theme.css                      colours, font, the desk, the box and the paper, n
 wood.webp                      the wooden desk, a picture that tiles without seams (made by tools/wood.py)
 lid-wood.webp                  the front page's lid, stained pine like a treasure chest's (made by tools/wood.py --lid)
 index.ts                       barrel exports for the React framework and math helpers
-types.ts                       TypeScript interfaces (DemoConfig, StepConfig, VisualElement, StepAnimationController, ...)
+types.ts                       TypeScript interfaces (DemoConfig, StepConfig, StepCue, VisualElement, ...)
+stepTimeline.ts                resolves step end-state inheritance and executes declarative StepCue timelines
 useStepEngine.ts               core step lifecycle state machine (initialElements -> play -> idle -> exit)
 useHashStepRouter.ts           #step-X URL hash parser and synchronization hook
 exitAnimation.ts               canonical state cloning and default 250ms exit animation
-elementControls.ts             shorthand for a step file: typed to / set / state for one element, and background()
 useMeasure.ts                  reads sizes from the page for a renderer to draw from (see "Drawing a scene" below)
 useTween.ts                    moves a value over a few frames in answer to the reader (a switch, a dragged point)
 math.ts                        clamp, clamp01, lerp and easing curves
@@ -34,51 +34,60 @@ box.ts                         the demo's side of it: the paper sinking into the
 
 ## How a demo works
 
-A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`:
+A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`. Each renderer attaches its baseline `defaultState` (the off/empty state), and each step inherits the previous step's end state (after `play` and `exit`) with only a delta:
 
 ```tsx
 import { mountDemo, type DemoConfig } from '../../framework';
+import { GardenRenderer, type GardenState } from './GardenScene';
 
-export const myDemo: DemoConfig = {
+export const myDemo: DemoConfig<{ garden: GardenState }> = {
   id: 'my-demo',
   name: 'My Demo',
   renderers: {
-    garden: GardenRenderer,
+    garden: GardenRenderer, // GardenRenderer.defaultState = BASE_STATE
   },
   steps: [
     {
-      stepNumber: 1,
       title: 'The question',
-      initialElements: [
-        { id: 'garden', type: 'garden', x: 0, y: 0, opacity: 1, state: { rectOp: 0, grow: 0, answerOp: 0 } },
-      ],
+      elements: { garden: {} },
     },
     {
-      stepNumber: 2,
       title: 'Draw the garden',
-      initialElements: [
-        { id: 'garden', type: 'garden', x: 0, y: 0, opacity: 1, state: { rectOp: 1, grow: 0, answerOp: 0 } },
+      set: { rectOp: 1 },
+      play: [
+        { ms: 1500, set: { grow: 1 } },
+        { ms: 260, set: { bubbleOp: 1 } },
       ],
-      async play(c) {
-        await c.animateElement('garden', { state: { grow: 1 } }, { durationMs: 1500 });
-      },
+      exit: { ms: 220, unset: ['bubbleOp'] },
     },
     {
-      stepNumber: 3,
       title: 'The answer',
-      initialElements: [
-        { id: 'garden', type: 'garden', x: 0, y: 0, opacity: 1, state: { rectOp: 1, grow: 1, answerOp: 0 } },
-      ],
-      async play(c) {
-        await c.wait(300);
-        await c.animateElement('garden', { state: { answerOp: 1 } }, { durationMs: 600 });
-      },
+      // Inherits { rectOp: 1, grow: 1, bubbleOp: 0 } from Step 2's exit automatically
+      play: { wait: 300, ms: 600, set: { answerOp: 1 } },
     },
   ],
 };
 
 mountDemo(myDemo);
 ```
+
+### The step language
+
+Every step starts from the previous step's end `ElementsMap` (computed synchronously once at startup by folding `play` and `exit` cues forward):
+
+- **Entry deltas on `StepConfig`:**
+  - `elements: { id: { type?, reset?, x?, y?, opacity?, scale?, set?, unset? } }` — add new elements or patch/reset existing ones on entry. (`unset` reverts listed keys back to `Renderer.defaultState`.)
+  - `remove: ['id']` — drop elements on entry (on `Next`, `runDefaultExitAnimation` dims and removes them in `250ms`).
+  - `reset: true` — clear all inherited elements before applying `elements` (or reset the sole element when combined with `set`/`unset`).
+  - **Single-element shorthand:** when `renderers` has a single entry, `set` and `unset` can be written directly on the step or cue without wrapping in `elements: { id: ... }`.
+- **Timeline cues (`play` / `exit`):** a single `StepCue` or an array of sequential `StepCue`s:
+  - `wait`: delay in `ms` before starting this cue.
+  - `ms`: duration in `ms` (defaults to `0` = immediate), or `(state) => number` when timing depends on live interactive state.
+  - `easing`: `'linear'`, `'ease-in'`, `'ease-in-out'`, or default cubic-out.
+  - `fork: true`: start this cue after `wait` without blocking the next cue in the list.
+  - `parallel: [...]`: run child cues concurrently (each with its own `wait`, `ms`, `easing`) and wait for the longest branch.
+  - `add` / `remove` / `elements` (or `set` / `unset` in single-element demos): the state/element changes to animate.
+  - *(For unusual steps that cannot be expressed declaratively, `play` and `exit` also still accept async functions.)*
 
 ### Step lifecycle rules
 
@@ -88,15 +97,15 @@ mountDemo(myDemo);
    - Right: `↺ Replay` button (on the left of `Next`) and `Next →` button (which becomes `Finish` on the final step and returns to `../../`).
    - Each step is synchronized with `#step-X` in the URL hash via `useHashStepRouter`.
 2. **Canvas & Title Area (`DemoCanvas.tsx` & `TitleBar.tsx`)**:
-   - Renders the `.titlebar` with the "All demos" home link on the left and the current step's title centered in the middle, and `.stage` below containing the active `VisualElement`s.
+   - Renders the `.titlebar` with the "All demos" home link on the left and the current step's title centered in the middle, and `.stage` below containing the active `VisualElement`s (passing `stepIndex` into each renderer).
 3. **Initial Visual Elements & `play` Animation**:
-   - Entering a step immediately renders its canonical `initialElements`.
-   - If the step defines `play(controller)`, it runs automatically on entry. While `play` is running, `Next` is disabled.
-   - Clicking `Replay` resets the step to its `initialElements` and replays `play(controller)`. If a step has no `play` function, `Replay` is disabled.
+   - Entering a step immediately renders its resolved canonical `initialElements`.
+   - If the step defines `play`, it runs automatically on entry. While `play` is running, `Next` is disabled.
+   - Clicking `Replay` resets the step to its resolved `initialElements` and replays `play`. If a step has no `play`, `Replay` is disabled.
 4. **`exit` Animation on `Next`**:
-   - Clicking `Next` runs the step's custom `exit(context)` handler if provided, or `runDefaultExitAnimation` (which keeps shared elements at the same `(x, y)` position intact and dims/removes disappearing elements in `250ms`), before advancing to `#step-(X+1)` and entering the next step.
+   - Clicking `Next` runs the step's `exit` cues followed by `runDefaultExitAnimation` (or a custom `exit(context)` handler if provided), which keeps shared elements at the same `(x, y)` position intact and dims/removes disappearing elements in `250ms`, before advancing to `#step-(X+1)` and entering the next step.
 5. **Deterministic Step Entry**:
-   - Every step has a deterministic beginning state (`initialElements`) regardless of whether the user arrives via URL `#step-X`, clicking a navigation dot, clicking `Back`, or clicking `Next`.
+   - Every step has a deterministic beginning state (`initialElements`) resolved synchronously at startup regardless of whether the user arrives via URL `#step-X`, clicking a navigation dot, clicking `Back`, or clicking `Next`.
 
 ### For tools
 

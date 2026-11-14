@@ -3,234 +3,109 @@
 //
 // WalkScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
 
-import {
-  background,
-  elementControls,
-  mountDemo,
-  type DemoConfig,
-  type VisualElement,
-} from '../../framework';
-import {
-  BASE_STATE,
-  UNFOLD_MS,
-  WalkSceneRenderer,
-  type WalkState,
-} from './WalkScene';
+import { mountDemo, type DemoConfig } from '../../framework';
+import { UNFOLD_MS, WalkSceneRenderer, type WalkState } from './WalkScene';
 
-const SCENE = 'walk-scene';
-const scene = elementControls<WalkState>(SCENE);
-
-function makeWalkElement(patch: Partial<WalkState>): VisualElement<WalkState> {
-  return {
-    id: SCENE,
-    type: SCENE,
-    x: 0,
-    y: 0,
-    opacity: 1,
-    state: { ...BASE_STATE, ...patch },
-  };
-}
-
-/* ================= what the paper shows as each step begins ================= */
-// Each builds on the one before it, so a step's beginning is the end of the step before.
-
-/** The whole figure, flat on: the river, home, the playground, C and the walk through it, and the question. */
-const FIGURE_DRAWN: Partial<WalkState> = {
-  riverProgress: 1,
-  homeShown: 1,
-  homeMeasure: 1,
-  playgroundShown: 1,
-  playgroundMeasure: 1,
-  eastMeasure: 1,
-  cShown: 1,
-  walk1: 1,
-  questionShown: 1,
-  problemShown: 1,
-};
-
-/** The figure on a paper folded along the river, seen from the side, with the fold switch showing. */
-const PAPER_FOLDED: Partial<WalkState> = {
-  ...FIGURE_DRAWN,
-  problemShown: 0,
-  questionShown: 0,
-  sideView: 1,
-  paperShown: 1,
-  unfold: 0,
-  switchShown: 1,
-  hintFoldIt: 0,
-  switchOpen: false,
-  controlsOn: false,
-};
-
-/** Four points on the bank and the four walks through them, on the paper unfolded. */
-const FOUR_WALKS_UNFOLDED: Partial<WalkState> = {
-  ...PAPER_FOLDED,
-  cAsC1: 1,
-  c2Shown: 1,
-  c3Shown: 1,
-  c4Shown: 1,
-  walk2: 1,
-  walk3: 1,
-  walk4: 1,
-  measureLabelAside: 1,
-  hintUnfoldToCompare: 1,
-  unfold: 1,
-  switchOpen: true,
-  controlsOn: false,
-};
-
-/** Only the straight walk through C3 left, on the unfolded paper seen flat on; the switch gone. */
-const STRAIGHT_WALK_FLAT: Partial<WalkState> = {
-  ...FOUR_WALKS_UNFOLDED,
-  switchShown: 0,
-  hintUnfoldToCompare: 0,
-  onlyC3: 1,
-  hintStraightLine: 1,
-  framingUnfolded: 1,
-  sideView: 0,
-};
-
-/* ================= the steps ================= */
-
-export const dannysWalkDemo: DemoConfig = {
+export const dannysWalkDemo: DemoConfig<{ 'walk-scene': WalkState }> = {
   id: 'dannys-walk',
   name: "Danny's Walk",
   renderers: {
-    [SCENE]: WalkSceneRenderer,
+    'walk-scene': WalkSceneRenderer,
   },
   steps: [
     {
-      stepNumber: 1,
       title: 'Problem Description',
       summary: 'The problem',
-      initialElements: [makeWalkElement({ stepIdx: 0 })],
+      elements: { 'walk-scene': { set: { problemShown: 1 } } },
     },
     {
-      stepNumber: 2,
       title: 'Problem Description',
       summary: 'The problem as a figure',
-      initialElements: [makeWalkElement({ stepIdx: 1 })],
-      async play(c) {
-        await scene.to(c, { riverProgress: 1 }, 1000);
-        await c.wait(250);
-        await scene.to(c, { homeShown: 1 }, 450);
-        await c.wait(100);
-        await scene.to(c, { homeMeasure: 1 }, 700);
-        await c.wait(400);
-        await scene.to(c, { playgroundShown: 1 }, 450);
-        await c.wait(100);
-        await scene.to(c, { playgroundMeasure: 1 }, 800);
-        await c.wait(150);
-        await scene.to(c, { eastMeasure: 1 }, 1100);
-        await c.wait(400);
-        await scene.to(c, { cShown: 1 }, 450);
-        await c.wait(300);
-        await scene.to(c, { walk1: 1 }, 2600, 'linear');
-        await c.wait(350);
-        await scene.to(c, { questionShown: 1 }, 600);
-      },
+      play: [
+        { ms: 1000, set: { riverProgress: 1 } },
+        { wait: 250, ms: 450, set: { homeShown: 1 } },
+        { wait: 100, ms: 700, set: { homeMeasure: 1 } },
+        { wait: 400, ms: 450, set: { playgroundShown: 1 } },
+        { wait: 100, ms: 800, set: { playgroundMeasure: 1 } },
+        { wait: 150, ms: 1100, set: { eastMeasure: 1 } },
+        { wait: 400, ms: 450, set: { cShown: 1 } },
+        { wait: 300, ms: 2600, easing: 'linear', set: { walk1: 1 } },
+        { wait: 350, ms: 600, set: { questionShown: 1 } },
+      ],
     },
     {
-      stepNumber: 3,
       title: 'Imagine Danny Living on a Folded Paper',
       summary: 'The folded paper',
-      initialElements: [makeWalkElement({ ...FIGURE_DRAWN, stepIdx: 2 })],
-      async play(c) {
-        await scene.to(c, { problemShown: 0, questionShown: 0, paperShown: 1 }, 1200);
-        await c.wait(400);
-        await scene.to(c, { sideView: 1 }, 1700);
-        await c.wait(700);
-        scene.set(c, { switchOpen: true });
-        await scene.to(c, { unfold: 1 }, 3000);
-        await c.wait(400);
-        scene.set(c, { controlsOn: true });
-        await scene.to(c, { switchShown: 1, hintFoldIt: 1 }, 600);
-      },
+      play: [
+        { ms: 1200, unset: ['problemShown', 'questionShown'], set: { paperShown: 1 } },
+        { wait: 400, ms: 1700, set: { sideView: 1 } },
+        { wait: 700, set: { switchOpen: true } },
+        { ms: 3000, set: { unfold: 1 } },
+        { wait: 400, set: { controlsOn: true } },
+        { ms: 600, set: { switchShown: 1, hintFoldIt: 1 } },
+      ],
       // The reader may have left the paper anywhere between folded and unfolded: fold it from there.
-      async exit({ controller }) {
-        const { hintFoldIt, unfold } = scene.state(controller) ?? BASE_STATE;
-        scene.set(controller, { controlsOn: false, switchOpen: false });
-        await Promise.all([
-          scene.to(controller, { hintFoldIt: 0 }, 600 * hintFoldIt),
-          scene.to(controller, { unfold: 0 }, UNFOLD_MS * unfold),
-        ]);
-      },
+      exit: [
+        { unset: ['controlsOn', 'switchOpen'] },
+        {
+          parallel: [
+            { ms: (s) => 600 * s.hintFoldIt, unset: ['hintFoldIt'] },
+            { ms: (s) => UNFOLD_MS * s.unfold, unset: ['unfold'] },
+          ],
+        },
+      ],
     },
     {
-      stepNumber: 4,
       title: 'Which Path Is the Shortest?',
       summary: 'Four walks',
-      initialElements: [makeWalkElement({ ...PAPER_FOLDED, stepIdx: 3 })],
-      async play(c) {
-        background(scene.to(c, { measureLabelAside: 1 }, 900));
-        await scene.to(c, { cAsC1: 1 }, 600);
-        await c.wait(200);
-        await scene.to(c, { c2Shown: 1 }, 450);
-        await c.wait(150);
-        await scene.to(c, { c3Shown: 1 }, 450);
-        await c.wait(150);
-        await scene.to(c, { c4Shown: 1 }, 450);
-        await c.wait(300);
-        await scene.to(c, { walk2: 1 }, 1500, 'linear');
-        await c.wait(200);
-        await scene.to(c, { walk3: 1 }, 1500, 'linear');
-        await c.wait(200);
-        await scene.to(c, { walk4: 1 }, 1500, 'linear');
-        await c.wait(400);
-        await scene.to(c, { hintUnfoldToCompare: 1 }, 600);
-        scene.set(c, { controlsOn: true });
-      },
+      play: [
+        { ms: 900, fork: true, set: { measureLabelAside: 1 } },
+        { ms: 600, set: { cAsC1: 1 } },
+        { wait: 200, ms: 450, set: { c2Shown: 1 } },
+        { wait: 150, ms: 450, set: { c3Shown: 1 } },
+        { wait: 150, ms: 450, set: { c4Shown: 1 } },
+        { wait: 300, ms: 1500, easing: 'linear', set: { walk2: 1 } },
+        { wait: 200, ms: 1500, easing: 'linear', set: { walk3: 1 } },
+        { wait: 200, ms: 1500, easing: 'linear', set: { walk4: 1 } },
+        { wait: 400, ms: 600, set: { hintUnfoldToCompare: 1 } },
+        { set: { controlsOn: true } },
+      ],
       // Unfold the paper from wherever the reader left it.
-      async exit({ controller }) {
-        const { unfold } = scene.state(controller) ?? BASE_STATE;
-        scene.set(controller, { controlsOn: false, switchOpen: true });
-        await scene.to(controller, { unfold: 1 }, UNFOLD_MS * (1 - unfold));
-      },
+      exit: [
+        { unset: ['controlsOn'], set: { switchOpen: true } },
+        { ms: (s) => UNFOLD_MS * (1 - s.unfold), set: { unfold: 1 } },
+      ],
     },
     {
-      stepNumber: 5,
       title: 'Which Path Is the Shortest?',
       summary: 'The straight walk',
-      initialElements: [makeWalkElement({ ...FOUR_WALKS_UNFOLDED, stepIdx: 4 })],
-      async play(c) {
-        await scene.to(c, { switchShown: 0, hintUnfoldToCompare: 0 }, 600);
-        await c.wait(250);
-        await scene.to(c, { onlyC3: 1 }, 900);
-        await c.wait(400);
-        await scene.to(c, { hintStraightLine: 1 }, 600);
-      },
-      async exit({ controller }) {
-        scene.set(controller, { framingUnfolded: 1 });
-        await scene.to(controller, { sideView: 0 }, 1700);
-      },
+      play: [
+        { ms: 600, unset: ['switchShown', 'hintUnfoldToCompare'] },
+        { wait: 250, ms: 900, set: { onlyC3: 1 } },
+        { wait: 400, ms: 600, set: { hintStraightLine: 1 } },
+      ],
+      exit: [
+        { set: { framingUnfolded: 1 } },
+        { ms: 1700, unset: ['sideView'] },
+      ],
     },
     {
-      stepNumber: 6,
       title: 'Solve the Problem',
       summary: 'The answer',
-      initialElements: [makeWalkElement({ ...STRAIGHT_WALK_FLAT, stepIdx: 5 })],
-      async play(c) {
-        background(scene.to(c, { hintStraightLine: 0 }, 500));
-        await scene.to(c, { framingRaised: 1 }, 1300);
-        await c.wait(250);
-        await scene.to(c, { triangleLegs: 1 }, 1400);
-        await scene.to(c, { dShown: 1 }, 450);
-        await c.wait(300);
-        await scene.to(c, { legLengthsShown: 1 }, 900);
+      play: [
+        { ms: 500, fork: true, unset: ['hintStraightLine'] },
+        { ms: 1300, set: { framingRaised: 1 } },
+        { wait: 250, ms: 1400, set: { triangleLegs: 1 } },
+        { ms: 450, set: { dShown: 1 } },
+        { wait: 300, ms: 900, set: { legLengthsShown: 1 } },
         // the working, a piece at a time
-        await c.wait(500);
-        await scene.to(c, { working1: 1 }, 600);
-        await c.wait(600);
-        await scene.to(c, { working2: 1 }, 600);
-        await c.wait(600);
-        await scene.to(c, { working3: 1 }, 600);
-        await c.wait(600);
-        await scene.to(c, { working4: 1 }, 600);
-        await c.wait(600);
-        await scene.to(c, { working5: 1 }, 600);
-        await c.wait(250);
-        await scene.to(c, { answerRing: 1 }, 900);
-      },
+        { wait: 500, ms: 600, set: { working1: 1 } },
+        { wait: 600, ms: 600, set: { working2: 1 } },
+        { wait: 600, ms: 600, set: { working3: 1 } },
+        { wait: 600, ms: 600, set: { working4: 1 } },
+        { wait: 600, ms: 600, set: { working5: 1 } },
+        { wait: 250, ms: 900, set: { answerRing: 1 } },
+      ],
     },
   ],
 };

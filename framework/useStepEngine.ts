@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   DemoConfig,
   ElementsMap,
@@ -9,6 +9,7 @@ import {
   VisualElementPatch,
 } from './types';
 import { createCanonicalElementsMap, runDefaultExitAnimation } from './exitAnimation';
+import { resolveDemoSteps, runStepTimeline } from './stepTimeline';
 import { parseStepHash, useHashStepRouter } from './useHashStepRouter';
 import { waitForBoxArrival } from './box';
 
@@ -84,8 +85,8 @@ export const defaultStateInterpolator: StateInterpolator<Record<string, any>> = 
  * 6. Per-element-type custom `interpolateState(startState, targetPatch, progress)` called via
  *    `requestAnimationFrame` during `animateElement` / `animateElements`.
  */
-export function useStepEngine(demo: DemoConfig) {
-  const steps = demo.steps;
+export function useStepEngine(demo: DemoConfig<any>) {
+  const steps = useMemo(() => resolveDemoSteps(demo), [demo]);
   const totalSteps = steps.length;
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -426,7 +427,11 @@ export function useStepEngine(demo: DemoConfig) {
           // Small frame delay so initialElements paint cleanly before play animation starts
           await controller.wait(40);
         }
-        await step.play(controller);
+        if (typeof step.play === 'function') {
+          await step.play(controller);
+        } else {
+          await runStepTimeline(step.play, controller, demo);
+        }
         if (!abortController.signal.aborted) {
           setPhase('idle');
         }
@@ -440,7 +445,7 @@ export function useStepEngine(demo: DemoConfig) {
         }
       }
     },
-    [steps, cancelActiveAnimation, updateElements, createController]
+    [demo, steps, cancelActiveAnimation, updateElements, createController]
   );
 
   const handleExternalHashJump = useCallback(
@@ -492,7 +497,7 @@ export function useStepEngine(demo: DemoConfig) {
   /**
    * Next button handler (Requirements 3, 4, 5):
    * - Disabled when `phase !== 'idle'` (i.e., while `play` or `exit` is ongoing).
-   * - Runs current step's custom `exit` function (or `runDefaultExitAnimation` if none registered)
+   * - Runs current step's custom `exit` function/cues (plus `runDefaultExitAnimation`)
    *   to smoothly transition from current step's post-play state into next step's beginning state.
    * - Then commits next step's canonical `initialElements`, updates URL to `#step-(X+1)`,
    *   and runs next step's `play` animation.
@@ -522,13 +527,18 @@ export function useStepEngine(demo: DemoConfig) {
         );
 
       if (currentStep.exit) {
-        const exitContext: StepExitContext = {
-          currentElements: elementsRef.current,
-          nextInitialElements: nextInitialMap,
-          controller,
-          runDefaultExit,
-        };
-        await currentStep.exit(exitContext);
+        if (typeof currentStep.exit === 'function') {
+          const exitContext: StepExitContext = {
+            currentElements: elementsRef.current,
+            nextInitialElements: nextInitialMap,
+            controller,
+            runDefaultExit,
+          };
+          await currentStep.exit(exitContext);
+        } else {
+          await runStepTimeline(currentStep.exit, controller, demo);
+          await runDefaultExit();
+        }
       } else {
         await runDefaultExit();
       }
@@ -546,6 +556,7 @@ export function useStepEngine(demo: DemoConfig) {
       }
     }
   }, [
+    demo,
     phase,
     stepIndex,
     totalSteps,

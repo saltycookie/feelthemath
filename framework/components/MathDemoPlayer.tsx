@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 }
 
 export interface MathDemoPlayerProps {
-  demo: DemoConfig;
+  demo: DemoConfig<any>;
   /** Where "All demos" and Finish go. Default: the page's stepdeck-home setting (below), else the front page. */
   homeHref?: string;
 }
@@ -83,6 +83,7 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     <>
       <DemoCanvas
         title={currentStep?.title ?? demo.name}
+        stepIndex={currentStepIndex}
         elements={elements}
         renderers={demo.renderers}
         isAnimating={isAnimating}

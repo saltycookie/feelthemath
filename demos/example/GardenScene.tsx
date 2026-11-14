@@ -39,6 +39,13 @@ export interface GardenState {
   answerOpacity: number;
 }
 
+export const BASE_STATE: GardenState = {
+  rectangleOpacity: 0,
+  growthProgress: 0,
+  bubbleOpacity: 0,
+  answerOpacity: 0,
+};
+
 /** Where the full-grown garden sits in a drawing area of `box`, in px: centred, with MARGIN_M around it. */
 function layoutGarden(box: Size): { x: number; y: number; width: number; height: number } {
   const pxPerMetre = Math.min(
@@ -139,3 +146,5 @@ export const GardenRenderer: ElementRendererComponent<GardenState> = ({ element 
     </>
   );
 };
+
+GardenRenderer.defaultState = BASE_STATE;

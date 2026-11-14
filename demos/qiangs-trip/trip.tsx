@@ -2,281 +2,163 @@
 //
 // TripScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
 
+import { mountDemo, type DemoConfig } from '../../framework';
 import {
-  background,
-  elementControls,
-  mountDemo,
-  type DemoConfig,
-  type StepAnimationController,
-  type VisualElement,
-} from '../../framework';
-import {
-  BASE_STATE,
   PART1,
   ROAD_MS,
   START,
   TripSceneRenderer,
-  type BubbleKey,
   type TripState,
 } from './TripScene';
-
-const SCENE = 'trip-scene';
-const scene = elementControls<TripState>(SCENE);
-
-function makeTripElement(patch: Partial<TripState>): VisualElement<TripState> {
-  return {
-    id: SCENE,
-    type: SCENE,
-    x: 0,
-    y: 0,
-    opacity: 1,
-    state: { ...BASE_STATE, ...patch },
-  };
-}
-
-/* ================= the bubble ================= */
 
 const BUBBLE_IN_MS = 260;
 const BUBBLE_OUT_MS = 220;
 
-/** Puts `key`'s words in the bubble and fades it in. Await it, or pass it to background() to carry on meanwhile. */
-function showBubble(c: StepAnimationController, key: BubbleKey): Promise<void> {
-  scene.set(c, { bubbleKey: key });
-  return scene.to(c, { bubbleOpacity: 1 }, BUBBLE_IN_MS);
-}
-
-/** Fades the bubble out: what a step with a bubble does on Next. */
-function hideBubble(c: StepAnimationController): Promise<void> {
-  return scene.to(c, { bubbleOpacity: 0 }, BUBBLE_OUT_MS);
-}
-
-/* ================= what the chart shows as each step begins ================= */
-// Each builds on the one before it, so a step's beginning is the end of the step before.
-
-/** The empty chart, the point and the car at the start of the first part. */
-const PART1_START: Partial<TripState> = {
-  chartView: 1,
-  pointX: 0,
-  pointY: PART1.y,
-  handleRadius: 5,
-  carX: 0,
-  timeTicksOpacity: 0,
-  draggable: false,
-};
-
-/** The first part driven: its rectangle, labelled 15 mi, 30 mph tall and 0.5 h wide. */
-const PART1_DRAWN: Partial<TripState> = {
-  ...PART1_START,
-  pointX: PART1.x,
-  carX: PART1.x,
-  part1Opacity: 1,
-  part1LabelOpacity: 1,
-  speedChipOpacity: 1,
-  timeChipOpacity: 1,
-  carOpacity: 1,
-  bubbleKey: 'none',
-  bubbleOpacity: 0,
-};
-
-/** The second part driven: its rectangle at 55 mph, of unknown width. */
-const PART2_DRAWN: Partial<TripState> = {
-  ...PART1_DRAWN,
-  part2Opacity: 1,
-  part2Reach: 2 / 3,
-  part2LabelOpacity: 1,
-  speed2ChipOpacity: 1,
-  time2BraceOpacity: 1,
-  carX: 2.5,
-};
-
-/** The 50 mph average line across both parts; the car gone. */
-const AVERAGE_DRAWN: Partial<TripState> = {
-  ...PART2_DRAWN,
-  averageProgress: 1,
-  carOpacity: 0,
-};
-
-/** The deficit and the surplus outlined in pink. */
-const AREAS_OUTLINED: Partial<TripState> = {
-  ...AVERAGE_DRAWN,
-  areasOutlineOpacity: 1,
-  equalArrowsOpacity: 0,
-};
-
-/** Both areas labelled 10 mi. */
-const AREAS_LABELLED: Partial<TripState> = {
-  ...AREAS_OUTLINED,
-  areasLabelOpacity: 1,
-};
-
-/** The second part's time found: 2 h, ending at 2.5 h. */
-const TIME2_FOUND: Partial<TripState> = {
-  ...AREAS_LABELLED,
-  time2Known: 1,
-  endTimeChipOpacity: 1,
-};
-
-/* ================= the steps ================= */
-
-export const qiangsTripDemo: DemoConfig = {
+export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
   id: 'qiangs-trip',
   name: "Qiang's Trip",
   renderers: {
-    [SCENE]: TripSceneRenderer,
+    'trip-scene': TripSceneRenderer,
   },
   steps: [
     {
-      stepNumber: 1,
       title: 'Problem Description',
       summary: 'The problem',
-      initialElements: [makeTripElement({ stepIdx: 0 })],
+      elements: { 'trip-scene': {} },
     },
     {
-      stepNumber: 2,
       title: 'Problem Description',
       summary: 'The trip as a road',
-      initialElements: [makeTripElement({ stepIdx: 1, chartView: 0, roadProgress: 0 })],
-      async play(c) {
-        // The road draws itself on its own timeline (ROAD in TripScene.tsx), so `roadProgress` moves at a steady rate.
-        await scene.to(c, { roadProgress: 1 }, ROAD_MS, 'linear');
-      },
-      async exit({ controller }) {
-        await scene.to(controller, { chartView: 1 }, 1100);
-      },
+      play: { ms: ROAD_MS, easing: 'linear', set: { roadProgress: 1 } },
+      exit: { ms: 1100, set: { chartView: 1 } },
     },
     {
-      stepNumber: 3,
       title: 'Use Area to Represent Distance',
       summary: 'Distance is an area',
-      initialElements: [
-        makeTripElement({
-          stepIdx: 2,
-          chartView: 1,
-          roadProgress: 1,
-          pointX: START.x,
-          pointY: START.y,
-          pickedX: START.x,
-          pickedY: START.y,
-          draggable: true,
-        }),
+      set: {
+        pointX: START.x,
+        pointY: START.y,
+        pickedX: START.x,
+        pickedY: START.y,
+        draggable: true,
+        timeTicksOpacity: 1,
+      },
+      play: {
+        ms: 500,
+        set: {
+          handleOpacity: 1,
+          handleRing: 1,
+          part1Opacity: 1,
+          part1LabelOpacity: 1,
+          speedChipOpacity: 1,
+          timeChipOpacity: 1,
+          formulaOpacity: 1,
+        },
+      },
+      exit: [
+        { unset: ['draggable'] },
+        {
+          ms: 220,
+          unset: [
+            'handleOpacity',
+            'handleRing',
+            'part1Opacity',
+            'part1LabelOpacity',
+            'speedChipOpacity',
+            'timeChipOpacity',
+            'formulaOpacity',
+            'timeTicksOpacity',
+          ],
+        },
       ],
-      async play(c) {
-        await scene.to(c, { handleOpacity: 1, handleRing: 1, part1Opacity: 1, part1LabelOpacity: 1, speedChipOpacity: 1, timeChipOpacity: 1, formulaOpacity: 1 }, 500);
-      },
-      async exit({ controller }) {
-        scene.set(controller, { draggable: false });
-        await scene.to(
-          controller,
-          { handleOpacity: 0, handleRing: 0, part1Opacity: 0, part1LabelOpacity: 0, speedChipOpacity: 0, timeChipOpacity: 0, formulaOpacity: 0, timeTicksOpacity: 0 },
-          220
-        );
-      },
     },
     {
-      stepNumber: 4,
       title: "Let's Use Area to Describe the Problem",
       summary: 'Part 1: 0.5 hours',
-      initialElements: [makeTripElement({ ...PART1_START, stepIdx: 3 })],
-      async play(c) {
-        scene.set(c, { part1Opacity: 1 });
-        background(scene.to(c, { carOpacity: 1 }, 350));
-        await c.wait(200);
-        background(scene.to(c, { speedChipOpacity: 1 }, 400));
-        await c.wait(900);
-        await scene.to(c, { carX: PART1.x, pointX: PART1.x }, 1500);
-        await c.wait(150);
-        background(scene.to(c, { part1LabelOpacity: 1 }, 500));
-        await c.wait(150);
-        await showBubble(c, 'time1');
-        await scene.to(c, { timeChipOpacity: 1 }, 400);
-      },
-      async exit({ controller }) {
-        await hideBubble(controller);
-      },
+      set: { pointX: 0, pointY: PART1.y, handleRadius: 5, carX: 0 },
+      play: [
+        { set: { part1Opacity: 1 } },
+        { ms: 350, fork: true, set: { carOpacity: 1 } },
+        { wait: 200, ms: 400, fork: true, set: { speedChipOpacity: 1 } },
+        { wait: 900, ms: 1500, set: { carX: PART1.x, pointX: PART1.x } },
+        { wait: 150, ms: 500, fork: true, set: { part1LabelOpacity: 1 } },
+        { wait: 150, set: { bubbleKey: 'time1' } },
+        { ms: BUBBLE_IN_MS, set: { bubbleOpacity: 1 } },
+        { ms: 400, set: { timeChipOpacity: 1 } },
+      ],
+      exit: [
+        { ms: BUBBLE_OUT_MS, unset: ['bubbleOpacity'] },
+        { unset: ['bubbleKey'] },
+      ],
     },
     {
-      stepNumber: 5,
       title: "Let's Use Area to Describe the Problem",
       summary: 'Part 2: unknown time',
-      initialElements: [makeTripElement({ ...PART1_DRAWN, stepIdx: 4 })],
-      async play(c) {
-        scene.set(c, { part2Opacity: 1 });
-        background(scene.to(c, { speed2ChipOpacity: 1 }, 400));
-        await c.wait(1000);
-        await scene.to(c, { carX: 2.5, part2Reach: 2 / 3 }, 2000);
-        background(scene.to(c, { part2LabelOpacity: 1 }, 500));
-        await c.wait(150);
-        await scene.to(c, { time2BraceOpacity: 1 }, 500);
-      },
+      play: [
+        { set: { part2Opacity: 1 } },
+        { ms: 400, fork: true, set: { speed2ChipOpacity: 1 } },
+        { wait: 1000, ms: 2000, set: { carX: 2.5, part2Reach: 2 / 3 } },
+        { ms: 500, fork: true, set: { part2LabelOpacity: 1 } },
+        { wait: 150, ms: 500, set: { time2BraceOpacity: 1 } },
+      ],
     },
     {
-      stepNumber: 6,
       title: "Let's Use Area to Describe the Problem",
       summary: 'The average speed',
-      initialElements: [makeTripElement({ ...PART2_DRAWN, stepIdx: 5 })],
-      async play(c) {
-        background(scene.to(c, { carOpacity: 0 }, 500));
-        await scene.to(c, { averageProgress: 1 }, 1000);
-      },
+      play: [
+        { ms: 500, fork: true, unset: ['carOpacity'] },
+        { ms: 1000, set: { averageProgress: 1 } },
+      ],
     },
     {
-      stepNumber: 7,
       title: 'Solve the Problem',
       summary: 'The two areas must be equal',
-      initialElements: [makeTripElement({ ...AVERAGE_DRAWN, stepIdx: 6 })],
-      async play(c) {
-        await c.wait(300);
-        background(scene.to(c, { areasOutlineOpacity: 1 }, 600));
-        await c.wait(1100);
-        background(showBubble(c, 'equal'));
-        await scene.to(c, { equalArrowsOpacity: 1 }, 450);
-      },
-      async exit({ controller }) {
+      play: [
+        { wait: 300, ms: 600, fork: true, set: { areasOutlineOpacity: 1 } },
+        { wait: 1100, set: { bubbleKey: 'equal' } },
+        { ms: BUBBLE_IN_MS, fork: true, set: { bubbleOpacity: 1 } },
+        { ms: 450, set: { equalArrowsOpacity: 1 } },
+      ],
+      exit: [
         // the bubble, and the two arrows that point from it at the areas
-        await scene.to(controller, { bubbleOpacity: 0, equalArrowsOpacity: 0 }, BUBBLE_OUT_MS);
-      },
+        { ms: BUBBLE_OUT_MS, unset: ['bubbleOpacity', 'equalArrowsOpacity'] },
+        { unset: ['bubbleKey'] },
+      ],
     },
     {
-      stepNumber: 8,
       title: 'Solve the Problem',
       summary: 'The deficit is 10 miles',
-      initialElements: [makeTripElement({ ...AREAS_OUTLINED, stepIdx: 7 })],
-      async play(c) {
-        await c.wait(300);
-        background(showBubble(c, 'area'));
-        await c.wait(1000);
-        await scene.to(c, { areasLabelOpacity: 1 }, 500);
-      },
-      async exit({ controller }) {
-        await hideBubble(controller);
-      },
+      play: [
+        { wait: 300, set: { bubbleKey: 'area' } },
+        { ms: BUBBLE_IN_MS, fork: true, set: { bubbleOpacity: 1 } },
+        { wait: 1000, ms: 500, set: { areasLabelOpacity: 1 } },
+      ],
+      exit: [
+        { ms: BUBBLE_OUT_MS, unset: ['bubbleOpacity'] },
+        { unset: ['bubbleKey'] },
+      ],
     },
     {
-      stepNumber: 9,
       title: 'Solve the Problem',
       summary: 'Part 2 takes 2 hours',
-      initialElements: [makeTripElement({ ...AREAS_LABELLED, stepIdx: 8 })],
-      async play(c) {
-        await c.wait(300);
-        background(showBubble(c, 'time2'));
-        await c.wait(1500);
-        await scene.to(c, { time2Known: 1, endTimeChipOpacity: 1 }, 500);
-      },
-      async exit({ controller }) {
-        await hideBubble(controller);
-      },
+      play: [
+        { wait: 300, set: { bubbleKey: 'time2' } },
+        { ms: BUBBLE_IN_MS, fork: true, set: { bubbleOpacity: 1 } },
+        { wait: 1500, ms: 500, set: { time2Known: 1, endTimeChipOpacity: 1 } },
+      ],
+      exit: [
+        { ms: BUBBLE_OUT_MS, unset: ['bubbleOpacity'] },
+        { unset: ['bubbleKey'] },
+      ],
     },
     {
-      stepNumber: 10,
       title: 'Solve the Problem',
       summary: 'The answer: 110 miles',
-      initialElements: [makeTripElement({ ...TIME2_FOUND, stepIdx: 9 })],
-      async play(c) {
-        await c.wait(300);
-        background(showBubble(c, 'answer'));
-        await c.wait(1200);
-        await scene.to(c, { distance2Known: 1 }, 500);
-      },
+      play: [
+        { wait: 300, set: { bubbleKey: 'answer' } },
+        { ms: BUBBLE_IN_MS, fork: true, set: { bubbleOpacity: 1 } },
+        { wait: 1200, ms: 500, set: { distance2Known: 1 } },
+      ],
     },
   ],
 };

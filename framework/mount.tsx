@@ -10,7 +10,10 @@ import type { DemoConfig } from './types';
  * vite.config.ts), so that the paper is already drawn when the browser takes its snapshot for the view transition
  * from the front page. A render left to React's scheduler could land after that snapshot.
  */
-export function mountDemo(demo: DemoConfig, containerId = 'deck'): void {
+export function mountDemo<TElements extends Record<string, any>>(
+  demo: DemoConfig<TElements>,
+  containerId = 'deck'
+): void {
   const container = document.getElementById(containerId);
   if (!container) {
     throw new Error(`mountDemo: no element with id "${containerId}" to render "${demo.id}" into`);

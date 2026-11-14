@@ -32,27 +32,27 @@ export const BASE = {
   /** The printed figure's equal-length ticks and its right-angle mark. */
   printedMarks: 0,
   /** The four sides: 0 pencil lines, 1 thin sticks. */
-  sideWood: 1,
+  sideWood: 0,
   /** The sides lifted off the figure, one after another, onto the pile in the corner. */
-  sidesToPile: 1,
+  sidesToPile: 0,
   /** AC and BD: 0 pencil lines, 1 wooden sticks. */
-  mainWood: 1,
+  mainWood: 0,
   /** BD taken from the figure to the pile. */
-  bdToPile: 1,
+  bdToPile: 0,
   /** BD taken from the pile and laid under AC. */
-  bdFromPile: 1,
+  bdFromPile: 0,
   /** The pointer that runs along AC and picks the point O. */
-  pickO: 1,
+  pickO: 0,
   /** The brackets that mark the whole of AC, and then of BD, as x. */
   xBrackets: 0,
   /** y, written beside AO. */
-  acYLabel: 1,
+  acYLabel: 0,
   /** x − y, written beside OC. */
-  acXMinusYLabel: 1,
+  acXMinusYLabel: 0,
   /** BD's names, its mark at O, and its x, y and x − y, one after another. */
-  bdLabels: 1,
+  bdLabels: 0,
   /** BD turned across AC at O: 0 lying under it, 1 at a right angle to it. */
-  crossed: 1,
+  crossed: 0,
   /** The right-angle marks at O. */
   rightAngle: 0,
   /** AB taken from the pile and laid on the figure. */
@@ -99,9 +99,14 @@ const ALT = [
 
 export type SticksState = typeof BASE &
   typeof SOLVE & {
-    stepIdx: number;
     pulseCount: number;
   };
+
+export const DEFAULT_STATE: SticksState = {
+  ...BASE,
+  ...SOLVE,
+  pulseCount: 0,
+};
 
 /* ================= helpers ================= */
 interface Pt {
@@ -357,7 +362,10 @@ function SolveRows({ on, struck, bx }: { on?: boolean[]; struck?: boolean; bx?: 
   );
 }
 
-export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ element }) => {
+export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({
+  element,
+  stepIndex,
+}) => {
   const P = element.state;
   const boxRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -697,7 +705,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
       <svg
         className="scene"
         role="img"
-        aria-label={`The figure, step ${P.stepIdx + 1} of 7. ${ALT[P.stepIdx] || ALT[0]}`}
+        aria-label={`The figure, step ${stepIndex + 1} of 7. ${ALT[stepIndex] || ALT[0]}`}
         viewBox={`0 0 ${MAT.w * U} ${MAT.h * U}`}
       >
         <defs>
@@ -829,3 +837,5 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({ ele
     </div>
   );
 };
+
+SticksSceneRenderer.defaultState = DEFAULT_STATE;

@@ -109,8 +109,6 @@ const SAY: Record<BubbleKey, ReactNode> = {
  * point's. Unless it says otherwise, a number is an opacity from 0 (hidden) to 1 (shown).
  */
 export interface TripState {
-  /** The step being shown, counted from 0. */
-  stepIdx: number;
   /** What is on the paper: 0 the problem and the road, 1 the chart. In between, the first fades out and then the second fades in. */
   chartView: number;
   /** How far the road of step 2 is through its timeline (ROAD), from 0 to 1. */
@@ -181,7 +179,6 @@ export interface TripState {
 
 /** The state before anything is drawn: step 1. Each step begins as this with some of the values changed. */
 export const BASE_STATE: TripState = {
-  stepIdx: 0,
   chartView: 0,
   roadProgress: 0,
   pointX: START.x,
@@ -194,7 +191,7 @@ export const BASE_STATE: TripState = {
   handleRing: 0,
   handleHover: 0,
   formulaOpacity: 0,
-  timeTicksOpacity: 1,
+  timeTicksOpacity: 0,
   part1Opacity: 0,
   part1LabelOpacity: 0,
   speedChipOpacity: 0,
@@ -281,7 +278,11 @@ function Road({ road }: { road: number }) {
   );
 }
 
-export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element, updateState }) => {
+export const TripSceneRenderer: ElementRendererComponent<TripState> = ({
+  element,
+  stepIndex,
+  updateState,
+}) => {
   const S = element.state;
   const boxRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -426,7 +427,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
 
   const x0 = px(0),
     y0 = py(0);
-  const P = S.stepIdx === EXPLORE ? { x: S.pickedX, y: S.pickedY } : PART1;
+  const P = stepIndex === EXPLORE ? { x: S.pickedX, y: S.pickedY } : PART1;
 
   // the first part's rectangle: its corner is the point
   const rx = px(S.pointX),
@@ -723,3 +724,5 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({ element
     </div>
   );
 };
+
+TripSceneRenderer.defaultState = BASE_STATE;

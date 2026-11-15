@@ -1154,6 +1154,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     const seasonP = clamp01(S.seasonCompareProgress);
     const tangentOp = clamp01(S.tangentLineOpacity);
     const zoomP = sunFoldP >= 0.999 ? clamp01(S.surfaceZoomProgress) : 0;
+    const spreadVisOp = spreadOp * clamp01((zoomP - 0.7) / 0.3);
     const clockTime =
       clockOp > 0.002 ? formatClockTime(effectiveSpinAngle - NOON_SPIN_ANGLE) : undefined;
 
@@ -1435,7 +1436,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           clockOpacity: clockOp * solidDecP,
           sideViewProgress: sideP,
           youOpacity: S.youOnTheNorthHemisphereOpacity * solidDecP,
-          youLabelOpacity: 1 - spreadOp,
+          youLabelOpacity: zoomP > 0.001 ? 1 - spreadVisOp : 1,
           youZoomProgress: zoomP,
           forceYouFront: zoomP > 0.001 || stopNoonP >= 0.9999,
           globeBodyOpacity: globeBodyOp,
@@ -1472,7 +1473,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           sideViewProgress: sideP,
           showTiltGuide: tiltGuideOp,
           youOpacity: S.youOnTheNorthHemisphereOpacity,
-          youLabelOpacity: useJunePanel ? 1 - spreadOp : 1,
+          youLabelOpacity: useJunePanel && zoomP > 0.001 ? 1 - spreadVisOp : 1,
           youZoomProgress: useJunePanel ? zoomP : 0,
           forceYouFront: zoomP > 0.001 || stopNoonP >= 0.9999,
           globeBodyOpacity: useJunePanel ? globeBodyOp : 1,
@@ -1493,7 +1494,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
 
     // Step 8 moving dotted-line copy of sunlight beams, red heat intensity bar, and spread measurement
     let spreadComparisonNode: React.ReactNode = null;
-    if (spreadOp > 0.002 && zoomP > 0.99 && sunEarthOp > 0.002) {
+    if (spreadVisOp > 0.002 && sunEarthOp > 0.002) {
       const juneYouX = junePanelRect.x + junePanelRect.w * 0.5;
       const decYouX = decPanelRect.x + decYouOffsetInPanel;
       const copyCenterX = lerp(juneYouX, decYouX, seasonP);
@@ -1525,7 +1526,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
       const measY = barY + barH + 10;
 
       spreadComparisonNode = (
-        <g opacity={spreadOp}>
+        <g opacity={spreadVisOp}>
           {/* Dotted-line copy of the 5 sunlight beams sliding from June to December */}
           {[-2, -1, 0, 1, 2].map((idx) => {
             const hitX = copyCenterX + idx * copyDGround;
@@ -1892,6 +1893,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
   const seasonSwitchOp = clamp01(S.seasonSwitchOpacity);
   const moreHeatLabelOp = clamp01(S.moreHeatLabelOpacity);
   const lessHeatLabelOp = clamp01(S.lessHeatLabelOpacity);
+  const summerLabelOp = clamp01(S.summerLabelOpacity);
+  const winterLabelOp = clamp01(S.winterLabelOpacity);
   const seasonPos = clamp01(S.seasonCompareProgress);
   const effectiveSeasonTarget = seasonTweenTarget ?? (seasonPos >= 0.5 ? 1 : 0);
   const isDecTarget = effectiveSeasonTarget === 1;
@@ -1982,6 +1985,34 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
             }}
           >
             less heat
+          </p>
+        )}
+        {summerLabelOp > 0.01 && (
+          <p
+            className="heat-side-msg june"
+            style={{
+              left: `${juneLabelX.toFixed(1)}px`,
+              top: `${heatMsgTop.toFixed(1)}px`,
+              maxWidth: `${heatMsgMaxW}px`,
+              opacity: summerLabelOp,
+              transform: `translate(-50%, ${((1 - summerLabelOp) * 6).toFixed(1)}px)`,
+            }}
+          >
+            Summer
+          </p>
+        )}
+        {winterLabelOp > 0.01 && (
+          <p
+            className="heat-side-msg dec"
+            style={{
+              left: `${decLabelX.toFixed(1)}px`,
+              top: `${heatMsgTop.toFixed(1)}px`,
+              maxWidth: `${heatMsgMaxW}px`,
+              opacity: winterLabelOp,
+              transform: `translate(-50%, ${((1 - winterLabelOp) * 6).toFixed(1)}px)`,
+            }}
+          >
+            Winter
           </p>
         )}
         {spinToggleOp > 0.01 && (

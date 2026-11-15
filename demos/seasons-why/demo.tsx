@@ -157,13 +157,29 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       exit: [
         { unset: ['canToggleSeason'] },
         {
-          ms: MESSAGE_OUT_MS,
-          unset: [
-            'moreHeatLabelOpacity',
-            'lessHeatLabelOpacity',
-            'spreadOverlayOpacity',
-            'seasonSwitchOpacity',
-          ],
+          ms: (s) => Math.round((1 - s.seasonCompareProgress) * 1000),
+          easing: 'ease-in-out',
+          set: { seasonCompareProgress: 1 },
+        },
+      ],
+    },
+    {
+      title: 'Summer in June, winter in December',
+      play: [
+        { ms: ZOOM_TOGGLE_OUT_MS, set: { seasonSwitchOpacity: 0 } },
+        { wait: 80, ms: ZOOM_TOGGLE_IN_MS, set: { zoomToggleOpacity: 1 } },
+        { wait: 250, ms: 300, set: { moreHeatLabelOpacity: 0 } },
+        { ms: 400, set: { summerLabelOpacity: 1 } },
+        { wait: 350, ms: 300, set: { lessHeatLabelOpacity: 0 } },
+        { ms: 400, set: { winterLabelOpacity: 1 } },
+        { set: { canToggleZoom: true } },
+      ],
+      exit: [
+        { unset: ['canToggleZoom'] },
+        {
+          ms: (s) => Math.round((1 - s.surfaceZoomProgress) * 1000),
+          easing: 'ease-in-out',
+          set: { surfaceZoomProgress: 1 },
         },
       ],
     },

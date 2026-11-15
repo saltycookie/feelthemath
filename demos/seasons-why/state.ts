@@ -55,6 +55,10 @@ export interface SeasonsWhyState {
   moreHeatLabelOpacity: number;
   // Opacity of the Step 8 "less heat" message below December's month & clock.
   lessHeatLabelOpacity: number;
+  // Opacity of the Step 9 "Summer" label replacing "More heat" below June's month & clock.
+  summerLabelOpacity: number;
+  // Opacity of the Step 9 "Winter" label replacing "less heat" below December's month & clock.
+  winterLabelOpacity: number;
   // Whether the user can interactively toggle the Step 8 June / December switch.
   canToggleSeason: boolean;
   // Viewing space from the front.
@@ -98,6 +102,8 @@ export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {
   spreadOverlayOpacity: 0,
   moreHeatLabelOpacity: 0,
   lessHeatLabelOpacity: 0,
+  summerLabelOpacity: 0,
+  winterLabelOpacity: 0,
   canToggleSeason: false,
   spaceSidedViewProgress: 0,
   solidDecemberEarthProgress: 0,

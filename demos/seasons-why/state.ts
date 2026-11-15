@@ -29,8 +29,32 @@ export interface SeasonsWhyState {
   youOnTheNorthHemisphereOpacity: number;
   // Showing synchronized HH:MM AM/PM digital clocks below June and December.
   digitalClockOpacity: number;
+  // Opacity of the Step 6 Pause / Spin toggle (fades out at start of Step 7).
+  spinToggleOpacity: number;
   // Whether Earth rotation and clocks are paused by the Step 6 Pause / Spin toggle.
   earthSpinPaused: boolean;
+  // Progress (0 -> 1) of smoothly decelerating Earth spin to stop right at 12:00 PM noon in Step 7.
+  stopAtNoonProgress: number;
+  // Opacity / draw progress of the tangent line at "You" in Step 7.
+  tangentLineOpacity: number;
+  // Progress (0 -> 1) of zooming into "You" and shifting the tangent line to horizontal (Step 7).
+  surfaceZoomProgress: number;
+  // Opacity of the Step 7 Zoom In / Zoom Out toggle below the clocks.
+  zoomToggleOpacity: number;
+  // Whether the user can currently click the Step 7 Zoom In / Zoom Out toggle.
+  canToggleZoom: boolean;
+  // Showing message: "When do you get more heat, June or December?"
+  moreHeatMessageOpacity: number;
+  // Opacity of the Step 8 June / December toggle switch below the clocks.
+  seasonSwitchOpacity: number;
+  // Continuous position (0 = June, 1 = December) of the Step 8 comparison animation and toggle switch.
+  seasonCompareProgress: number;
+  // Opacity of the Step 8 red heat intensity bar, spread measurement, and dotted beam copy.
+  spreadOverlayOpacity: number;
+  // Opacity of the Step 8 "more heat from sunlight" and "less heat from sunlight" messages.
+  heatLabelsOpacity: number;
+  // Whether the user can interactively toggle the Step 8 June / December switch.
+  canToggleSeason: boolean;
   // Viewing space from the front.
   // The 2D mesh and earth orbit disappears when it progresses to 1.
   spaceSidedViewProgress: number;
@@ -59,7 +83,19 @@ export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {
   moveEarthMessageOpacity: 0,
   youOnTheNorthHemisphereOpacity: 0,
   digitalClockOpacity: 0,
+  spinToggleOpacity: 0,
   earthSpinPaused: false,
+  stopAtNoonProgress: 0,
+  tangentLineOpacity: 0,
+  surfaceZoomProgress: 0,
+  zoomToggleOpacity: 0,
+  canToggleZoom: false,
+  moreHeatMessageOpacity: 0,
+  seasonSwitchOpacity: 0,
+  seasonCompareProgress: 0,
+  spreadOverlayOpacity: 0,
+  heatLabelsOpacity: 0,
+  canToggleSeason: false,
   spaceSidedViewProgress: 0,
   solidDecemberEarthProgress: 0,
   sunFoldedProgress: 0,

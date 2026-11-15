@@ -16,6 +16,9 @@ const MESH_Y_LINES = 9; // 8 grid cells vertically (-MESH_HALF_Y .. +MESH_HALF_Y
 const SUN_R = 0.275;
 const EARTH_R = 0.20;
 const AXIAL_TILT_RAD = (23.5 * Math.PI) / 180;
+const YOU_LAT_RAD = (30 * Math.PI) / 180;
+const NOON_SPIN_ANGLE = Math.PI * 0.45;
+const TANGENT_HALF_RATIO = 0.92 / 3;
 const LATITUDES_DEG = [-60, -30, 0, 30, 60];
 const MERIDIANS = 6;
 const SPIN_RAD_PER_SEC = 1.35;
@@ -173,7 +176,7 @@ function buildFrontCurvePath(pts: EarthPos[]): string {
 
 function formatClockTime(lonRad: number): string {
   const dayFrac = (((lonRad + Math.PI) / (Math.PI * 2)) % 1 + 1) % 1;
-  const totalMinutes = (Math.floor(dayFrac * 96) * 15) % 1440;
+  const totalMinutes = (Math.floor((dayFrac + 1e-9) * 96) * 15) % 1440;
   const h24 = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
   const ampm = h24 >= 12 ? 'PM' : 'AM';
@@ -191,11 +194,20 @@ interface GlobeRenderOptions {
   isImprint?: boolean;
   label?: string;
   labelOpacity?: number;
+  labelXOverride?: number;
+  labelYOverride?: number;
   clockTime?: string;
   clockOpacity?: number;
   sideViewProgress?: number;
   showTiltGuide?: number;
   youOpacity?: number;
+  youLabelOpacity?: number;
+  youZoomProgress?: number;
+  forceYouFront?: boolean;
+  globeBodyOpacity?: number;
+  lightDirOverride?: [number, number, number];
+  globeClipId?: string;
+  surfaceOverlay?: React.ReactNode;
   gradId: string;
   proj: (x: number, y: number, z?: number) => ProjPoint;
   camDirFrom: (x: number, y: number, z: number) => [number, number, number];
@@ -212,11 +224,20 @@ function renderGlobe({
   isImprint = false,
   label,
   labelOpacity = 1,
+  labelXOverride,
+  labelYOverride,
   clockTime,
   clockOpacity = 0,
   sideViewProgress = 0,
   showTiltGuide = 0,
   youOpacity = 0,
+  youLabelOpacity = 1,
+  youZoomProgress = 0,
+  forceYouFront = false,
+  globeBodyOpacity = 1,
+  lightDirOverride,
+  globeClipId,
+  surfaceOverlay,
   gradId,
   proj,
   camDirFrom,
@@ -224,6 +245,7 @@ function renderGlobe({
 }: GlobeRenderOptions): React.ReactNode {
   const op = clamp01(opacity);
   if (op <= 0.002) return null;
+  const bodyOp = clamp01(globeBodyOpacity);
 
   const center = proj(ex, ey, 0);
   const rPx = EARTH_R * scale * center.f;
@@ -275,16 +297,16 @@ function renderGlobe({
 
   // True 3D day/night shading on the sphere: light comes from the Sun at (0, 0, 0) toward (ex, ey, 0)
   const distE = Math.hypot(ex, ey) || 1;
-  const Lx = -ex / distE;
-  const Ly = -ey / distE;
-  const Lz = 0;
+  const Lx = lightDirOverride ? lightDirOverride[0] : -ex / distE;
+  const Ly = lightDirOverride ? lightDirOverride[1] : -ey / distE;
+  const Lz = lightDirOverride ? lightDirOverride[2] : 0;
 
   let shadowPathD = '';
   let fxLit = 0.5;
   let fyLit = 0.5;
   const clipId = `${gradId}-clip`;
   const blurId = `${gradId}-blur`;
-  const shadowBlurPx = Math.max(1.8, rPx * 0.065);
+  const shadowBlurPx = Math.min(18, Math.max(1.8, rPx * 0.065));
 
   if (!isImprint && rPx > 1) {
     const dotLC = Lx * camDir[0] + Ly * camDir[1] + Lz * camDir[2];
@@ -407,30 +429,158 @@ function renderGlobe({
     youPt = sampleEarthPoint(
       ex,
       ey,
-      (30 * Math.PI) / 180,
-      spinRad - Math.PI * 0.45,
+      YOU_LAT_RAD,
+      spinRad - NOON_SPIN_ANGLE,
       tiltRad,
       proj,
       camDir
     );
   }
-  const youOnBack = Boolean(youPt && youPt.dot < 0);
+  const youOnBack = !forceYouFront && Boolean(youPt && youPt.dot < 0);
+  const youZoomP = clamp01(youZoomProgress);
+  const youLblOp = clamp01(youLabelOpacity);
 
   const renderYou = (opacity: number) =>
     youPt && opacity > 0.01 ? (
       <g opacity={opacity}>
         <circle className="you-dot" cx={youPt.sx} cy={youPt.sy} r={4.5} />
-        <text className="scene-cap c-pink halo" x={youPt.sx + 14} y={youPt.sy - 8}>
-          You
-        </text>
+        {youLblOp > 0.01 && (
+          <text
+            className="scene-cap c-pink halo"
+            opacity={youLblOp}
+            x={youPt.sx + lerp(14, 0, youZoomP)}
+            y={youPt.sy + lerp(-10, 18, youZoomP)}
+          >
+            You
+          </text>
+        )}
       </g>
     ) : null;
 
   const sideP = clamp01(sideViewProgress);
   const labelOp = clamp01(labelOpacity) * op;
-  const labelY = Math.max(
-    center.y + rPx + lerp(22, 44, sideP),
-    southOuter.y + 22 * sideP
+  const labelX = labelXOverride ?? center.x;
+  const labelY =
+    labelYOverride ??
+    Math.max(center.y + rPx + lerp(22, 44, sideP), southOuter.y + 22 * sideP);
+
+  const globeVisuals = (
+    <>
+      {/* Vertical reference line & tilt angle arc (Step 3) */}
+      {guideOp > 0.01 && (
+        <g opacity={guideOp}>
+          <line
+            className="axis-ref"
+            x1={vertBot.x}
+            y1={vertBot.y}
+            x2={vertTop.x}
+            y2={vertTop.y}
+          />
+          {tiltArcD && <path className="tilt-arc" d={tiltArcD} />}
+          {tiltLabelPt && (
+            <text
+              className="scene-cap halo"
+              x={tiltLabelPt.x}
+              y={tiltLabelPt.y - 4}
+              opacity={clamp01((tiltRad / AXIAL_TILT_RAD - 0.35) / 0.45)}
+            >
+              23.5°
+            </text>
+          )}
+        </g>
+      )}
+
+      {bodyOp > 0.002 && (
+        <g opacity={bodyOp}>
+          {/* South pole axis stick (behind globe when North pole tilts toward viewer) */}
+          {southDot < 0.92 && (
+            <line
+              className={isImprint ? 'spin-axis imprint' : 'spin-axis'}
+              x1={southPole.x}
+              y1={southPole.y}
+              x2={southOuter.x}
+              y2={southOuter.y}
+            />
+          )}
+
+          {/* Earth sphere body (always full opacity to preserve its color) */}
+          <circle
+            className={isImprint ? 'earth-body imprint' : 'earth-body'}
+            cx={center.x}
+            cy={center.y}
+            r={rPx}
+            fill={isImprint ? 'var(--blue-fill)' : `url(#${gradId})`}
+          />
+          {!isImprint && shadowPathD && (
+            <g clipPath={`url(#${clipId})`}>
+              <path
+                d={shadowPathD}
+                fill="#6795c6"
+                fillOpacity={0.95}
+                filter={`url(#${blurId})`}
+              />
+            </g>
+          )}
+
+          {/* "You" dot dimmed behind the front grid when on the far hemisphere */}
+          {youOnBack && renderYou(youOp * 0.35)}
+
+          {/* Latitude & longitude lines on front hemisphere */}
+          <g className={isImprint ? 'earth-grid imprint' : 'earth-grid'}>
+            {!isImprint &&
+              lonPaths.map((d, idx) => <path key={`lon-${idx}`} className="meridian" d={d} />)}
+            {latPaths.map(
+              ({ deg, isEquator, d }) =>
+                d && (isEquator || !isImprint) && (
+                  <path
+                    key={`lat-${deg}`}
+                    className={isEquator ? 'equator' : 'parallel'}
+                    d={d}
+                  />
+                )
+            )}
+          </g>
+
+          {/* Globe outline */}
+          <circle
+            className={isImprint ? 'earth-outline imprint' : 'earth-outline'}
+            cx={center.x}
+            cy={center.y}
+            r={rPx}
+          />
+
+          {/* North pole axis stick & pole dot */}
+          {northDot > -0.92 && (
+            <g className={isImprint ? 'spin-axis-g imprint' : 'spin-axis-g'}>
+              <line
+                className={isImprint ? 'spin-axis imprint' : 'spin-axis'}
+                x1={northPole.x}
+                y1={northPole.y}
+                x2={northOuter.x}
+                y2={northOuter.y}
+              />
+              <circle
+                className={isImprint ? 'pole-dot imprint' : 'pole-dot'}
+                cx={northOuter.x}
+                cy={northOuter.y}
+                r={isImprint ? 2.4 : 3.2}
+              />
+            </g>
+          )}
+
+          {/* North pole dot right on the sphere center when viewed top-down */}
+          {northDot > 0.92 && (
+            <circle className="pole-dot" cx={northPole.x} cy={northPole.y} r={3} />
+          )}
+        </g>
+      )}
+
+      {/* Step 7 flat land, surface tangent, and 5 sunlight beams */}
+      {surfaceOverlay}
+
+      {/* "You" dot in front of the Earth/land when on the front hemisphere */}
+      {!youOnBack && renderYou(youOp)}
+    </>
   );
 
   return (
@@ -458,119 +608,13 @@ function renderGlobe({
         </defs>
       )}
 
-      {/* Vertical reference line & tilt angle arc (Step 3) */}
-      {guideOp > 0.01 && (
-        <g opacity={guideOp}>
-          <line
-            className="axis-ref"
-            x1={vertBot.x}
-            y1={vertBot.y}
-            x2={vertTop.x}
-            y2={vertTop.y}
-          />
-          {tiltArcD && <path className="tilt-arc" d={tiltArcD} />}
-          {tiltLabelPt && (
-            <text
-              className="scene-cap halo"
-              x={tiltLabelPt.x}
-              y={tiltLabelPt.y - 4}
-              opacity={clamp01((tiltRad / AXIAL_TILT_RAD - 0.35) / 0.45)}
-            >
-              23.5°
-            </text>
-          )}
-        </g>
-      )}
-
-      {/* South pole axis stick (behind globe when North pole tilts toward viewer) */}
-      {southDot < 0.92 && (
-        <line
-          className={isImprint ? 'spin-axis imprint' : 'spin-axis'}
-          x1={southPole.x}
-          y1={southPole.y}
-          x2={southOuter.x}
-          y2={southOuter.y}
-        />
-      )}
-
-      {/* Earth sphere body (always full opacity to preserve its color) */}
-      <circle
-        className={isImprint ? 'earth-body imprint' : 'earth-body'}
-        cx={center.x}
-        cy={center.y}
-        r={rPx}
-        fill={isImprint ? 'var(--blue-fill)' : `url(#${gradId})`}
-      />
-      {!isImprint && shadowPathD && (
-        <g clipPath={`url(#${clipId})`}>
-          <path
-            d={shadowPathD}
-            fill="#6795c6"
-            fillOpacity={0.95}
-            filter={`url(#${blurId})`}
-          />
-        </g>
-      )}
-
-      {/* "You" dot dimmed behind the front grid when on the far hemisphere */}
-      {youOnBack && renderYou(youOp * 0.35)}
-
-      {/* Latitude & longitude lines on front hemisphere */}
-      <g className={isImprint ? 'earth-grid imprint' : 'earth-grid'}>
-        {!isImprint &&
-          lonPaths.map((d, idx) => <path key={`lon-${idx}`} className="meridian" d={d} />)}
-        {latPaths.map(
-          ({ deg, isEquator, d }) =>
-            d && (isEquator || !isImprint) && (
-              <path
-                key={`lat-${deg}`}
-                className={isEquator ? 'equator' : 'parallel'}
-                d={d}
-              />
-            )
-        )}
-      </g>
-
-      {/* Globe outline */}
-      <circle
-        className={isImprint ? 'earth-outline imprint' : 'earth-outline'}
-        cx={center.x}
-        cy={center.y}
-        r={rPx}
-      />
-
-      {/* North pole axis stick & pole dot */}
-      {northDot > -0.92 && (
-        <g className={isImprint ? 'spin-axis-g imprint' : 'spin-axis-g'}>
-          <line
-            className={isImprint ? 'spin-axis imprint' : 'spin-axis'}
-            x1={northPole.x}
-            y1={northPole.y}
-            x2={northOuter.x}
-            y2={northOuter.y}
-          />
-          <circle
-            className={isImprint ? 'pole-dot imprint' : 'pole-dot'}
-            cx={northOuter.x}
-            cy={northOuter.y}
-            r={isImprint ? 2.4 : 3.2}
-          />
-        </g>
-      )}
-
-      {/* North pole dot right on the sphere center when viewed top-down */}
-      {northDot > 0.92 && (
-        <circle className="pole-dot" cx={northPole.x} cy={northPole.y} r={3} />
-      )}
-
-      {/* "You" dot in front of the Earth when on the front hemisphere */}
-      {!youOnBack && renderYou(youOp)}
+      {globeClipId ? <g clipPath={`url(#${globeClipId})`}>{globeVisuals}</g> : globeVisuals}
 
       {/* Globe label */}
       {label && labelOp > 0.01 && (
         <text
           className={isImprint ? 'scene-lbl imprint halo' : 'scene-lbl earth halo'}
-          x={center.x}
+          x={labelX}
           y={labelY}
           opacity={labelOp}
         >
@@ -578,12 +622,12 @@ function renderGlobe({
         </text>
       )}
 
-      {/* Digital clock (HH:MM AM/PM) below the month label (Step 6) */}
+      {/* Digital clock (HH:MM AM/PM) below the month label (Step 6+) */}
       {clockTime && clamp01(clockOpacity) > 0.01 && (
         <g
           className="digital-clock"
           opacity={clamp01(clockOpacity) * op}
-          transform={`translate(${center.x.toFixed(1)} ${(labelY + 28).toFixed(1)})`}
+          transform={`translate(${labelX.toFixed(1)} ${(labelY + 28).toFixed(1)})`}
         >
           <rect className="digital-clock-box" x={-46} y={-13} width={92} height={26} rx={6} />
           <text className="digital-clock-txt" x={0} y={0}>
@@ -604,6 +648,9 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
   const uid = useId().replace(/:/g, '');
   const boxRef = useRef<HTMLDivElement>(null);
   const [spinAngle, setSpinAngle] = useState(0);
+  const stopNoonRef = useRef<{ startAngle: number; targetAngle: number } | null>(null);
+  const [zoomTweenTarget, setZoomTweenTarget] = useState<0 | 1 | null>(null);
+  const [seasonTweenTarget, setSeasonTweenTarget] = useState<0 | 1 | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ pointerId: number; angleOffset: number } | null>(null);
 
@@ -617,8 +664,12 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     null
   );
 
-  // Continuously spin the Earth whenever it is visible and not paused
-  const isSpinning = S.sunAndEarthOpacity > 0.01 && !S.earthSpinPaused;
+  const stopNoonP = clamp01(S.stopAtNoonProgress);
+  const canToggleZoom = Boolean(S.canToggleZoom) && !isAnimating;
+  const canToggleSeason = Boolean(S.canToggleSeason) && !isAnimating;
+
+  // Continuously spin the Earth whenever it is visible, not paused, and not stopping at noon
+  const isSpinning = S.sunAndEarthOpacity > 0.01 && !S.earthSpinPaused && stopNoonP <= 0.0001;
   useEffect(() => {
     if (!isSpinning) return;
     if (
@@ -640,6 +691,104 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     return () => window.cancelAnimationFrame(rafId);
   }, [isSpinning]);
 
+  // Keep spinAngle synced to NOON_SPIN_ANGLE once stopped at noon so Back navigation resumes cleanly
+  useEffect(() => {
+    if (stopNoonP >= 0.9999) {
+      setSpinAngle(NOON_SPIN_ANGLE);
+    }
+  }, [stopNoonP]);
+
+  let effectiveSpinAngle = spinAngle;
+  if (stopNoonP <= 0.0001) {
+    stopNoonRef.current = null;
+  } else if (stopNoonP >= 0.9999) {
+    stopNoonRef.current = null;
+    effectiveSpinAngle = NOON_SPIN_ANGLE;
+  } else {
+    if (!stopNoonRef.current) {
+      const start = ((spinAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      const rawDelta =
+        ((NOON_SPIN_ANGLE - start) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      const delta = rawDelta < 1.1 ? rawDelta + Math.PI * 2 : rawDelta;
+      stopNoonRef.current = { startAngle: start, targetAngle: start + delta };
+    }
+    const easedStop = 1 - Math.pow(1 - stopNoonP, 2);
+    effectiveSpinAngle = lerp(
+      stopNoonRef.current.startAngle,
+      stopNoonRef.current.targetAngle,
+      easedStop
+    );
+  }
+
+  // Smoothly animate between zoomed in (1) and zoomed out (0) when user clicks the Step 7 toggle
+  const surfaceZoomRef = useRef(S.surfaceZoomProgress);
+  surfaceZoomRef.current = S.surfaceZoomProgress;
+  const seasonCompareRef = useRef(S.seasonCompareProgress);
+  seasonCompareRef.current = S.seasonCompareProgress;
+  const updateStateRef = useRef(updateState);
+  updateStateRef.current = updateState;
+
+  useEffect(() => {
+    if (zoomTweenTarget === null) return;
+    if (!canToggleZoom) {
+      setZoomTweenTarget(null);
+      return;
+    }
+
+    const startZoom = clamp01(surfaceZoomRef.current);
+    const targetZoom = zoomTweenTarget;
+    const durationMs = Math.max(120, Math.round(Math.abs(targetZoom - startZoom) * 950));
+    const startTime = performance.now();
+    let rafId = 0;
+
+    const tick = (now: number) => {
+      const raw = Math.min(1, (now - startTime) / durationMs);
+      const eased =
+        raw < 0.5 ? 4 * raw * raw * raw : 1 - Math.pow(-2 * raw + 2, 3) / 2;
+      const nextVal = raw >= 1 ? targetZoom : lerp(startZoom, targetZoom, eased);
+      updateStateRef.current({ surfaceZoomProgress: nextVal });
+      if (raw < 1) {
+        rafId = window.requestAnimationFrame(tick);
+      } else {
+        setZoomTweenTarget(null);
+      }
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [zoomTweenTarget, canToggleZoom]);
+
+  // Smoothly animate between June (0) and December (1) when user clicks the Step 8 toggle switch
+  useEffect(() => {
+    if (seasonTweenTarget === null) return;
+    if (!canToggleSeason) {
+      setSeasonTweenTarget(null);
+      return;
+    }
+
+    const startVal = clamp01(seasonCompareRef.current);
+    const targetVal = seasonTweenTarget;
+    const durationMs = Math.max(120, Math.round(Math.abs(targetVal - startVal) * 1400));
+    const startTime = performance.now();
+    let rafId = 0;
+
+    const tick = (now: number) => {
+      const raw = Math.min(1, (now - startTime) / durationMs);
+      const eased =
+        raw < 0.5 ? 4 * raw * raw * raw : 1 - Math.pow(-2 * raw + 2, 3) / 2;
+      const nextVal = raw >= 1 ? targetVal : lerp(startVal, targetVal, eased);
+      updateStateRef.current({ seasonCompareProgress: nextVal });
+      if (raw < 1) {
+        rafId = window.requestAnimationFrame(tick);
+      } else {
+        setSeasonTweenTarget(null);
+      }
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [seasonTweenTarget, canToggleSeason]);
+
   // Layout calculation
   const W = box?.w ?? 0;
   const H = box?.h ?? 0;
@@ -656,11 +805,14 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     ? Math.min((W - 2 * padX) / 2.96, (availH - 2 * padY) / 2.84)
     : 100;
   const zoomedScale = box
-    ? Math.min((W - 2 * padX) / 1.52, (availH - 2 * padY) / 0.82)
+    ? Math.min((W - 2 * padX) / 1.52, Math.max(80, availH - 2 * padY - 72) / 0.68)
     : 100;
   const scale = lerp(baseScale, zoomedScale, sunFoldP);
   const cx = W / 2;
-  const cy = availH / 2 + (4 - 0.04 * scale * viewP) * (1 - sideP);
+  const cy =
+    availH / 2 +
+    (4 - 0.04 * scale * viewP) * (1 - sideP) -
+    Math.min(36, availH * 0.08) * sunFoldP;
 
   const canDrag = Boolean(S.canDragEarth) && !isAnimating;
 
@@ -749,6 +901,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
   // Build projected 3D scene primitives once `box` is measured
   let sceneContent: React.ReactNode = null;
   let toggleTop = Math.max(0, H - 36);
+  let juneLabelX = W * 0.25;
+  let decLabelX = W * 0.75;
   if (box) {
     const { proj, camDirFrom } = makeProjector(
       S.space30DegViewProgress,
@@ -994,24 +1148,273 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     }
 
     const clockOp = clamp01(S.digitalClockOpacity);
-    const clockTime = clockOp > 0.002 ? formatClockTime(spinAngle - Math.PI * 0.45) : undefined;
+    const spinToggleOp = clamp01(S.spinToggleOpacity);
+    const zoomToggleOp = clamp01(S.zoomToggleOpacity);
+    const spreadOp = clamp01(S.spreadOverlayOpacity);
+    const seasonP = clamp01(S.seasonCompareProgress);
+    const tangentOp = clamp01(S.tangentLineOpacity);
+    const zoomP = sunFoldP >= 0.999 ? clamp01(S.surfaceZoomProgress) : 0;
+    const clockTime =
+      clockOp > 0.002 ? formatClockTime(effectiveSpinAngle - NOON_SPIN_ANGLE) : undefined;
+
+    juneLabelX = cx - scale * earthXOffset;
+    decLabelX = cx + scale * earthXOffset;
+
+    const juneUnzoomedCenter = proj(-earthXOffset, 0, 0);
+    const juneUnzoomedRPx = EARTH_R * scale * juneUnzoomedCenter.f;
+    const juneUnzoomedSouthOuter = proj(
+      -earthXOffset - EARTH_R * 1.72 * Math.sin(AXIAL_TILT_RAD),
+      0,
+      -EARTH_R * 1.72 * Math.cos(AXIAL_TILT_RAD)
+    );
+    const fixedSideLabelY = Math.max(
+      juneUnzoomedCenter.y + juneUnzoomedRPx + lerp(22, 44, sideP),
+      juneUnzoomedSouthOuter.y + 22 * sideP
+    );
+
     if (clockOp > 0.002) {
-      const juneCenter = proj(-earthXOffset, 0, 0);
-      const juneRPx = EARTH_R * scale * juneCenter.f;
-      const juneSouthOuter = proj(
-        -earthXOffset - EARTH_R * 1.72 * Math.sin(AXIAL_TILT_RAD),
-        0,
-        -EARTH_R * 1.72 * Math.cos(AXIAL_TILT_RAD)
-      );
-      const juneLabelY = Math.max(
-        juneCenter.y + juneRPx + lerp(22, 44, sideP),
-        juneSouthOuter.y + 22 * sideP
-      );
-      const clockBottomY = juneLabelY + 28 + 13;
-      toggleTop = Math.max(0, Math.min(H - 34, clockBottomY + 10));
+      const clockBottomY = fixedSideLabelY + 28 + 13;
+      toggleTop = Math.max(0, Math.min(availH - 28, clockBottomY + 10));
     }
 
-    // Solid spinning December Earth (Step 5/6 — +π phase aligns solar noon with June Earth)
+    const panelTop = 4;
+    const panelBottom = Math.max(panelTop + 80, fixedSideLabelY - 16);
+    const panelH = panelBottom - panelTop;
+    const junePanelRect = { x: 6, y: panelTop, w: Math.max(40, cx - 12), h: panelH };
+    const decPanelRect = { x: cx + 6, y: panelTop, w: Math.max(40, W - cx - 12), h: panelH };
+
+    const rayOp = clamp01(sunFoldP / 0.15) * sunEarthOp;
+    const lineGap = scale * 0.08;
+    const rayFracs = [-0.8, -0.4, 0, 0.4, 0.8];
+
+    const panelHalfTarget = Math.min(junePanelRect.w, decPanelRect.w) * 0.495;
+    const baseTangentHalfLen = TANGENT_HALF_RATIO * EARTH_R * scale;
+    const surfaceZoomMult = Math.max(5.5, panelHalfTarget / Math.max(1, baseTangentHalfLen));
+
+    const globeBodyOp = clamp01(1 - clamp01((zoomP - 0.1) / 0.65));
+    const flatLandOp = clamp01((zoomP - 0.25) / 0.55);
+
+    const youTargetY = panelTop + panelH * 0.68;
+    const juneElevSin = Math.sin(Math.PI / 2 - (YOU_LAT_RAD - AXIAL_TILT_RAD));
+    const decElevAngle = Math.PI / 2 - (YOU_LAT_RAD + AXIAL_TILT_RAD);
+    const decElevSin = Math.sin(decElevAngle);
+    const decElevCot = Math.cos(decElevAngle) / decElevSin;
+
+    const minPanelW = Math.min(junePanelRect.w, decPanelRect.w);
+    const beamMargin = 10;
+    const dPerpZoom = Math.min(minPanelW * 0.052, panelH * 0.08);
+    const decGroundHalfSpan = (2 * dPerpZoom) / decElevSin;
+
+    const decYouOffsetInPanel = Math.min(
+      decPanelRect.w - beamMargin - decGroundHalfSpan,
+      Math.max(decPanelRect.w * 0.5, decPanelRect.w * 0.56)
+    );
+    const decLeftRunway = Math.max(20, decYouOffsetInPanel - beamMargin - decGroundHalfSpan);
+    const maxDeltaYForDec = decLeftRunway / decElevCot;
+    const sharedBeamDropY = Math.max(
+      28,
+      Math.min(panelH * 0.5, youTargetY - (panelTop + 14), maxDeltaYForDec)
+    );
+    const beamStartY = youTargetY - sharedBeamDropY;
+
+    const buildSurfaceView = (side: 'june' | 'dec') => {
+      const isJune = side === 'june';
+      const worldEx = isJune ? -earthXOffset : earthXOffset;
+      const panelRect = isJune ? junePanelRect : decPanelRect;
+      const thetaNorm0 = isJune
+        ? YOU_LAT_RAD - AXIAL_TILT_RAD
+        : Math.PI - (YOU_LAT_RAD + AXIAL_TILT_RAD);
+      const targetRot = Math.PI / 2 - thetaNorm0;
+      const rotRad = targetRot * zoomP;
+      const panelTiltRad = tiltRad - rotRad;
+      const zoomFactor = lerp(1, surfaceZoomMult, zoomP);
+      const panelScale = scale * zoomFactor;
+
+      const youDx0 = EARTH_R * Math.cos(thetaNorm0);
+      const youDz0 = EARTH_R * Math.sin(thetaNorm0);
+      const youPos0X = cx + scale * (worldEx + youDx0);
+      const youPos0Y = cy - scale * youDz0;
+      const youTargetX = isJune
+        ? panelRect.x + panelRect.w * 0.5
+        : panelRect.x + decYouOffsetInPanel;
+      const youPosX = lerp(youPos0X, youTargetX, zoomP);
+      const youPosY = lerp(youPos0Y, youTargetY, zoomP);
+
+      const normAng = thetaNorm0 + rotRad;
+      const youDx = EARTH_R * Math.cos(normAng);
+      const youDz = EARTH_R * Math.sin(normAng);
+      const panelCx = youPosX - panelScale * youDx;
+      const panelCy = youPosY + panelScale * youDz;
+
+      const xShift = worldEx * (1 - clamp01(zoomP / 0.3));
+      const q = 1 / 6.0;
+      const panelProj = (x: number, y: number, z = 0): ProjPoint => {
+        const lx = x - worldEx;
+        const zc = -y;
+        const f = 1 / (1 - zc * q);
+        return {
+          x: panelCx + panelScale * ((xShift + lx) * f - xShift),
+          y: panelCy - panelScale * z * f,
+          f,
+          zc,
+        };
+      };
+      const panelCamDir = (x: number, y: number, z: number): [number, number, number] => {
+        const lx = x - worldEx;
+        const vx = -(xShift + lx);
+        const vy = -6.0 - y;
+        const vz = -z;
+        const len = Math.hypot(vx, vy, vz) || 1;
+        return [vx / len, vy / len, vz / len];
+      };
+
+      const lightDirOverride: [number, number, number] = isJune
+        ? [Math.cos(rotRad), 0, Math.sin(rotRad)]
+        : [-Math.cos(rotRad), 0, -Math.sin(rotRad)];
+
+      // Sunlight travel direction in screen (x_right, y_down) coordinates
+      const Dx = isJune ? -Math.cos(rotRad) : Math.cos(rotRad);
+      const Dy = isJune ? Math.sin(rotRad) : -Math.sin(rotRad);
+      const rayAngDeg = (Math.atan2(Dy, Dx) * 180) / Math.PI;
+      const cosR = Math.cos(rotRad);
+      const sinR = Math.sin(rotRad);
+      const lxStart = isJune ? earthXOffset - 0.08 : -earthXOffset + 0.08;
+
+      const tx = Math.sin(normAng);
+      const ty = Math.cos(normAng);
+      const gx = -Math.cos(normAng);
+      const gy = Math.sin(normAng);
+
+      const zoomRays: React.ReactNode[] = [];
+      if (zoomP > 0.001 && rayOp > 0.005) {
+        const dGroundTarget = dPerpZoom / (isJune ? juneElevSin : decElevSin);
+        const endSmooth = zoomP * zoomP * (3 - 2 * zoomP);
+        const lenBlend = clamp01(zoomP / 0.85);
+        const lenSmooth = lenBlend * lenBlend * (3 - 2 * lenBlend);
+
+        for (let k = -2; k <= 2; k++) {
+          const frac = k * 0.4;
+          const z = frac * EARTH_R;
+          const dxHit = Math.sqrt(Math.max(0, EARTH_R * EARTH_R - z * z));
+          const lxHit0 = isJune ? dxHit : -dxHit;
+          const pHitSphere = panelProj(
+            worldEx + lxHit0 * cosR - z * sinR,
+            0,
+            lxHit0 * sinR + z * cosR
+          );
+          const endSphereX = pHitSphere.x - 6 * Dx;
+          const endSphereY = pHitSphere.y - 6 * Dy;
+
+          const groundPosOffset = (isJune ? -k : k) * dGroundTarget;
+          const hitFlatX = youPosX + groundPosOffset * tx;
+          const hitFlatY = youPosY + groundPosOffset * ty;
+          const endFlatX = hitFlatX - 6 * Dx;
+          const endFlatY = hitFlatY - 6 * Dy;
+
+          const endX = lerp(endSphereX, endFlatX, endSmooth);
+          const endY = lerp(endSphereY, endFlatY, endSmooth);
+
+          const len0 = Math.max(8, Math.abs(lxStart - lxHit0) * scale - 6);
+          const lenToTop = Math.max(12, (endY - beamStartY) / Math.max(0.28, Dy));
+          const rayLen = lerp(len0, lenToTop, lenSmooth);
+          const startX = endX - rayLen * Dx;
+          const startY = endY - rayLen * Dy;
+
+          zoomRays.push(
+            <g key={`beam-${k}`} opacity={rayOp}>
+              <line
+                className="sunlight-ray"
+                x1={startX}
+                y1={startY}
+                x2={endX}
+                y2={endY}
+              />
+              <path
+                className="sunlight-arrow"
+                d="M-6.5,-3.8 L0,0 L-6.5,3.8"
+                transform={`translate(${endX.toFixed(1)} ${endY.toFixed(1)}) rotate(${rayAngDeg.toFixed(1)})`}
+              />
+            </g>
+          );
+        }
+      }
+
+      const lineOp = tangentOp > 0.002 ? clamp01(tangentOp / 0.25) : 0;
+      const tangentDrawP = clamp01(tangentOp / 0.85);
+      const leftHalfLen =
+        lerp(baseTangentHalfLen, youTargetX - (panelRect.x + 2), zoomP) * tangentDrawP;
+      const rightHalfLen =
+        lerp(baseTangentHalfLen, panelRect.x + panelRect.w - 2 - youTargetX, zoomP) * tangentDrawP;
+
+      const xL = youPosX - leftHalfLen * tx;
+      const yL = youPosY - leftHalfLen * ty;
+      const xR = youPosX + rightHalfLen * tx;
+      const yR = youPosY + rightHalfLen * ty;
+      const landDepth = panelRect.h + 40;
+      const landGradId = `flatLand-${side}-${uid}`;
+      const landPolyD = `M${xL.toFixed(1)},${yL.toFixed(1)} L${xR.toFixed(1)},${yR.toFixed(1)} L${(xR + landDepth * gx).toFixed(1)},${(yR + landDepth * gy).toFixed(1)} L${(xL + landDepth * gx).toFixed(1)},${(yL + landDepth * gy).toFixed(1)} Z`;
+
+      const surfaceOverlay =
+        zoomP > 0.001 || tangentOp > 0.002 ? (
+          <g>
+            {/* Flat land surface filling below the tangent line as Earth zooms in */}
+            {flatLandOp > 0.005 && (leftHalfLen > 1 || rightHalfLen > 1) && (
+              <g opacity={flatLandOp}>
+                <defs>
+                  <linearGradient
+                    id={landGradId}
+                    gradientUnits="userSpaceOnUse"
+                    x1={youPosX}
+                    y1={youPosY}
+                    x2={youPosX + panelRect.h * 0.34 * gx}
+                    y2={youPosY + panelRect.h * 0.34 * gy}
+                  >
+                    <stop offset="0%" stopColor="#c3def8" />
+                    <stop offset="40%" stopColor="#dcecfb" />
+                    <stop offset="100%" stopColor="#f3f8fe" />
+                  </linearGradient>
+                </defs>
+                <path className="flat-land" d={landPolyD} fill={`url(#${landGradId})`} />
+              </g>
+            )}
+
+            {/* 5 parallel sunlight beams */}
+            {zoomRays.length > 0 && <g>{zoomRays}</g>}
+
+            {/* Tangent / flat ground surface line drawn through "You" */}
+            {lineOp > 0.01 && (leftHalfLen > 1 || rightHalfLen > 1) && (
+              <g opacity={lineOp}>
+                {1 - flatLandOp > 0.01 && (
+                  <line
+                    className="tangent-line-halo"
+                    opacity={1 - flatLandOp}
+                    x1={xL}
+                    y1={yL}
+                    x2={xR}
+                    y2={yR}
+                  />
+                )}
+                <line className="tangent-line" x1={xL} y1={yL} x2={xR} y2={yR} />
+              </g>
+            )}
+          </g>
+        ) : null;
+
+      return {
+        panelTiltRad,
+        panelScale,
+        panelProj,
+        panelCamDir,
+        lightDirOverride,
+        fixedLabelX: cx + scale * worldEx,
+        surfaceOverlay,
+      };
+    };
+
+    const juneSide = zoomP > 0.001 || tangentOp > 0.002 ? buildSurfaceView('june') : null;
+    const decSide = zoomP > 0.001 || tangentOp > 0.002 ? buildSurfaceView('dec') : null;
+
+    // Solid spinning December Earth (Step 5/6/7 — +π phase aligns solar noon with June Earth)
     const solidDecOp = sunEarthOp * solidDecP;
     if (solidDecOp > 0.002) {
       const decProj = proj(earthXOffset, 0, 0);
@@ -1021,62 +1424,184 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           key: 'solid-dec-earth',
           ex: earthXOffset,
           ey: 0,
-          tiltRad: AXIAL_TILT_RAD,
-          spinRad: spinAngle + Math.PI,
+          tiltRad: decSide ? decSide.panelTiltRad : AXIAL_TILT_RAD,
+          spinRad: effectiveSpinAngle + Math.PI,
           opacity: solidDecOp,
           label: 'December',
           labelOpacity: 1,
+          labelXOverride: zoomP > 0.001 && decSide ? decSide.fixedLabelX : undefined,
+          labelYOverride: zoomP > 0.001 ? fixedSideLabelY : undefined,
           clockTime,
           clockOpacity: clockOp * solidDecP,
           sideViewProgress: sideP,
           youOpacity: S.youOnTheNorthHemisphereOpacity * solidDecP,
+          youLabelOpacity: 1 - spreadOp,
+          youZoomProgress: zoomP,
+          forceYouFront: zoomP > 0.001 || stopNoonP >= 0.9999,
+          globeBodyOpacity: globeBodyOp,
+          lightDirOverride: zoomP > 0.001 && decSide ? decSide.lightDirOverride : undefined,
+          globeClipId: zoomP > 0.001 ? `decPanelClip-${uid}` : undefined,
+          surfaceOverlay: decSide?.surfaceOverlay,
           gradId: `decSolidGrad-${uid}`,
-          proj,
-          camDirFrom,
-          scale,
+          proj: zoomP > 0.001 && decSide ? decSide.panelProj : proj,
+          camDirFrom: zoomP > 0.001 && decSide ? decSide.panelCamDir : camDirFrom,
+          scale: zoomP > 0.001 && decSide ? decSide.panelScale : scale,
         }),
       });
     }
 
-    // Live spinning Earth
+    // Live spinning Earth (becomes June Earth in Steps 5-7)
     if (sunEarthOp > 0.002) {
+      const useJunePanel = sunFoldP >= 0.999 && juneSide !== null;
       depthItems.push({
         zc: earthScreen.zc,
         node: renderGlobe({
           key: 'live-earth',
-          ex,
-          ey,
-          tiltRad,
-          spinRad: spinAngle,
+          ex: useJunePanel && zoomP > 0.001 ? -earthXOffset : ex,
+          ey: useJunePanel && zoomP > 0.001 ? 0 : ey,
+          tiltRad: useJunePanel && juneSide ? juneSide.panelTiltRad : tiltRad,
+          spinRad: effectiveSpinAngle,
           opacity: sunEarthOp,
           label: liveEarthLabel,
           labelOpacity: liveEarthLabelOp,
+          labelXOverride:
+            useJunePanel && zoomP > 0.001 && juneSide ? juneSide.fixedLabelX : undefined,
+          labelYOverride: useJunePanel && zoomP > 0.001 ? fixedSideLabelY : undefined,
           clockTime,
           clockOpacity: clockOp,
           sideViewProgress: sideP,
           showTiltGuide: tiltGuideOp,
           youOpacity: S.youOnTheNorthHemisphereOpacity,
+          youLabelOpacity: useJunePanel ? 1 - spreadOp : 1,
+          youZoomProgress: useJunePanel ? zoomP : 0,
+          forceYouFront: zoomP > 0.001 || stopNoonP >= 0.9999,
+          globeBodyOpacity: useJunePanel ? globeBodyOp : 1,
+          lightDirOverride:
+            useJunePanel && zoomP > 0.001 && juneSide ? juneSide.lightDirOverride : undefined,
+          globeClipId: useJunePanel && zoomP > 0.001 ? `junePanelClip-${uid}` : undefined,
+          surfaceOverlay: useJunePanel ? juneSide?.surfaceOverlay : undefined,
           gradId: `earthGrad-${uid}`,
-          proj,
-          camDirFrom,
-          scale,
+          proj: useJunePanel && zoomP > 0.001 && juneSide ? juneSide.panelProj : proj,
+          camDirFrom:
+            useJunePanel && zoomP > 0.001 && juneSide ? juneSide.panelCamDir : camDirFrom,
+          scale: useJunePanel && zoomP > 0.001 && juneSide ? juneSide.panelScale : scale,
         }),
       });
     }
 
     depthItems.sort((a, b) => a.zc - b.zc);
 
-    // 4. Vertical center line & horizontal sunlight rays (Step 5)
+    // Step 8 moving dotted-line copy of sunlight beams, red heat intensity bar, and spread measurement
+    let spreadComparisonNode: React.ReactNode = null;
+    if (spreadOp > 0.002 && zoomP > 0.99 && sunEarthOp > 0.002) {
+      const juneYouX = junePanelRect.x + junePanelRect.w * 0.5;
+      const decYouX = decPanelRect.x + decYouOffsetInPanel;
+      const copyCenterX = lerp(juneYouX, decYouX, seasonP);
+
+      const juneRayAngle = Math.PI / 2 + (YOU_LAT_RAD - AXIAL_TILT_RAD);
+      const decRayAngle = decElevAngle;
+      const copyRayAngle = lerp(juneRayAngle, decRayAngle, seasonP);
+      const copyDx = Math.cos(copyRayAngle);
+      const copyDy = Math.sin(copyRayAngle);
+      const copyRayDeg = (copyRayAngle * 180) / Math.PI;
+      const copyDGround = dPerpZoom / copyDy;
+
+      const leftHitX = copyCenterX - 2 * copyDGround;
+      const rightHitX = copyCenterX + 2 * copyDGround;
+      const spreadRatio = juneElevSin / copyDy;
+      const minRatio = 1;
+      const maxRatio = juneElevSin / decElevSin;
+      const heatFadeT = clamp01((spreadRatio - minRatio) / Math.max(1e-4, maxRatio - minRatio));
+
+      const barR = Math.round(lerp(220, 245, heatFadeT));
+      const barG = Math.round(lerp(48, 178, heatFadeT));
+      const barB = Math.round(lerp(42, 170, heatFadeT));
+      const barFill = `rgb(${barR}, ${barG}, ${barB})`;
+      const barStroke = `rgba(176, 36, 30, ${lerp(0.88, 0.42, heatFadeT).toFixed(2)})`;
+
+      const barY = youTargetY + 7;
+      const barH = 11;
+      const measY = barY + barH + 10;
+
+      spreadComparisonNode = (
+        <g opacity={spreadOp}>
+          {/* Dotted-line copy of the 5 sunlight beams sliding from June to December */}
+          {[-2, -1, 0, 1, 2].map((idx) => {
+            const hitX = copyCenterX + idx * copyDGround;
+            const endX = hitX - 6 * copyDx;
+            const endY = youTargetY - 6 * copyDy;
+            const rayLen = (endY - beamStartY) / copyDy;
+            const startX = endX - rayLen * copyDx;
+            const startY = beamStartY;
+            return (
+              <g key={`copy-beam-${idx}`}>
+                <line
+                  className="sunlight-ray-copy"
+                  x1={startX}
+                  y1={startY}
+                  x2={endX}
+                  y2={endY}
+                />
+                <path
+                  className="sunlight-arrow-copy"
+                  d="M-6.5,-3.8 L0,0 L-6.5,3.8"
+                  transform={`translate(${endX.toFixed(1)} ${endY.toFixed(1)}) rotate(${copyRayDeg.toFixed(1)})`}
+                />
+              </g>
+            );
+          })}
+
+          {/* Red heat intensity bar under the land */}
+          <rect
+            className="heat-bar"
+            x={leftHitX}
+            y={barY}
+            width={Math.max(4, rightHitX - leftHitX)}
+            height={barH}
+            rx={4}
+            fill={barFill}
+            stroke={barStroke}
+          />
+
+          {/* Measurement bracket and "X units spread" label */}
+          <line
+            className="spread-measure-line"
+            x1={leftHitX}
+            y1={measY}
+            x2={rightHitX}
+            y2={measY}
+          />
+          <line
+            className="spread-measure-tick"
+            x1={leftHitX}
+            y1={measY - 4}
+            x2={leftHitX}
+            y2={measY + 4}
+          />
+          <line
+            className="spread-measure-tick"
+            x1={rightHitX}
+            y1={measY - 4}
+            x2={rightHitX}
+            y2={measY + 4}
+          />
+          <text className="spread-measure-txt halo" x={copyCenterX} y={measY + 16}>
+            {`${spreadRatio.toFixed(2)} units spread`}
+          </text>
+        </g>
+      );
+    }
+
+    // 4. Vertical center line & horizontal sunlight rays (Steps 5-6; smoothly fades into zoomed panels in Step 7)
     const showSunFold = sunFoldP > 0.002 && sunEarthOp > 0.002;
-    const centerLineOp = clamp01(sunFoldP / 0.2) * sunEarthOp;
+    const centerLineOp =
+      clamp01(sunFoldP / 0.2) * sunEarthOp * (1 - clamp01(zoomP / 0.35));
     const lineHalfZ = lerp(0.30, 0.38, clamp01(sunFoldP / 0.35));
     const lineTop = proj(0, 0, lineHalfZ);
     const lineBot = proj(0, 0, -lineHalfZ);
 
-    const rayOp = clamp01(sunFoldP / 0.15) * sunEarthOp;
-    const lineGap = scale * 0.08;
-    const rayFracs = [-0.8, -0.4, 0, 0.4, 0.8];
-    const sunlightRays = showSunFold
+    const showUnzoomedRays = showSunFold && zoomP <= 0.001;
+    const sunlightRays = showUnzoomedRays
       ? rayFracs.map((frac) => {
           const z = frac * EARTH_R;
           const pStart = proj(0, 0, z);
@@ -1253,6 +1778,24 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           <mask id={`meshMask-${uid}`} maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
             <rect x="0" y="0" width={W} height={H} fill={`url(#meshFade-${uid})`} />
           </mask>
+          <clipPath id={`junePanelClip-${uid}`}>
+            <rect
+              x={junePanelRect.x}
+              y={junePanelRect.y}
+              width={junePanelRect.w}
+              height={junePanelRect.h}
+              rx={8}
+            />
+          </clipPath>
+          <clipPath id={`decPanelClip-${uid}`}>
+            <rect
+              x={decPanelRect.x}
+              y={decPanelRect.y}
+              width={decPanelRect.w}
+              height={decPanelRect.h}
+              rx={8}
+            />
+          </clipPath>
         </defs>
 
         {/* 2D Space Mesh (horizontally unbounded within canvas) */}
@@ -1286,13 +1829,13 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           </g>
         )}
 
-        {/* Horizontal sunlight rays from center line to both Earths (Step 6) */}
-        {showSunFold && rayOp > 0.002 && <g opacity={rayOp}>{sunlightRays}</g>}
+        {/* Horizontal sunlight rays from center line to both Earths (Step 5/6 unzoomed) */}
+        {showUnzoomedRays && rayOp > 0.002 && <g opacity={rayOp}>{sunlightRays}</g>}
 
         {/* Depth-sorted Sun, Earth, and Imprints */}
         {depthItems.map((item) => item.node)}
 
-        {/* Vertical center line crossing the center of the Sun (Step 6) */}
+        {/* Vertical center line crossing the center of the Sun (Step 5/6) */}
         {showSunFold && centerLineOp > 0.002 && (
           <line
             className="sun-center-line"
@@ -1304,6 +1847,21 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           />
         )}
 
+        {/* Subtle divider between zoomed June and December surface panels (Step 7) */}
+        {zoomP > 0.01 && (
+          <line
+            className="zoom-divider"
+            x1={cx}
+            y1={panelTop + 6}
+            x2={cx}
+            y2={panelBottom - 6}
+            opacity={zoomP * 0.75}
+          />
+        )}
+
+        {/* Step 8 moving dotted beam copy, red heat bar, and spread measurement */}
+        {spreadComparisonNode}
+
         {/* Topmost Step 4 draggable Earth affordance & hit target */}
         {dragLayer}
       </>
@@ -1312,10 +1870,23 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
 
   const msgOp = clamp01(S.aboutSameDistMessageOpacity);
   const moveMsgOp = clamp01(S.moveEarthMessageOpacity);
-  const clockToggleOp = clamp01(S.digitalClockOpacity);
+  const heatMsgOp = clamp01(S.moreHeatMessageOpacity);
+  const spinToggleOp = clamp01(S.spinToggleOpacity);
+  const zoomToggleOp = clamp01(S.zoomToggleOpacity);
+  const seasonSwitchOp = clamp01(S.seasonSwitchOpacity);
+  const heatLabelsOp = clamp01(S.heatLabelsOpacity);
+  const seasonPos = clamp01(S.seasonCompareProgress);
+  const effectiveSeasonTarget = seasonTweenTarget ?? (seasonPos >= 0.5 ? 1 : 0);
+  const isDecTarget = effectiveSeasonTarget === 1;
+  const canClickSeason = seasonSwitchOp > 0.05 && canToggleSeason;
   const isSpinPaused = Boolean(S.earthSpinPaused);
-  const canToggleSpin = clockToggleOp > 0.05 && !isAnimating;
+  const canToggleSpin = spinToggleOp > 0.05 && !isAnimating;
+  const effectiveZoomTarget = zoomTweenTarget ?? (S.surfaceZoomProgress >= 0.5 ? 1 : 0);
+  const isZoomedOut = effectiveZoomTarget === 0;
+  const canClickZoom = zoomToggleOp > 0.05 && canToggleZoom;
   const probOp = clamp01(S.problemOpacity);
+  const heatMsgTop = toggleTop + 40;
+  const heatMsgMaxW = Math.max(120, Math.round(W * 0.44));
 
   return (
     <div className="fw-scene seasons-root">
@@ -1358,7 +1929,45 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
         >
           Move the earth around yourself!
         </p>
-        {clockToggleOp > 0.01 && (
+        <p
+          className="seasons-msg"
+          aria-hidden={heatMsgOp <= 0.01 ? true : undefined}
+          style={{
+            opacity: heatMsgOp,
+            transform: `translateY(${((1 - heatMsgOp) * 8).toFixed(1)}px)`,
+          }}
+        >
+          When do you get more heat, June or December?
+        </p>
+        {heatLabelsOp > 0.01 && (
+          <>
+            <p
+              className="heat-side-msg june"
+              style={{
+                left: `${juneLabelX.toFixed(1)}px`,
+                top: `${heatMsgTop.toFixed(1)}px`,
+                maxWidth: `${heatMsgMaxW}px`,
+                opacity: heatLabelsOp,
+                transform: `translate(-50%, ${((1 - heatLabelsOp) * 6).toFixed(1)}px)`,
+              }}
+            >
+              more heat from sunlight
+            </p>
+            <p
+              className="heat-side-msg dec"
+              style={{
+                left: `${decLabelX.toFixed(1)}px`,
+                top: `${heatMsgTop.toFixed(1)}px`,
+                maxWidth: `${heatMsgMaxW}px`,
+                opacity: heatLabelsOp,
+                transform: `translate(-50%, ${((1 - heatLabelsOp) * 6).toFixed(1)}px)`,
+              }}
+            >
+              less heat from sunlight
+            </p>
+          </>
+        )}
+        {spinToggleOp > 0.01 && (
           <button
             type="button"
             className="spin-toggle"
@@ -1368,9 +1977,9 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
             onClick={() => canToggleSpin && updateState({ earthSpinPaused: !isSpinPaused })}
             style={{
               top: `${toggleTop.toFixed(1)}px`,
-              opacity: clockToggleOp,
+              opacity: spinToggleOp,
               pointerEvents: canToggleSpin ? 'auto' : 'none',
-              transform: `translate(-50%, ${((1 - clockToggleOp) * 6).toFixed(1)}px)`,
+              transform: `translate(-50%, ${((1 - spinToggleOp) * 6).toFixed(1)}px)`,
             }}
           >
             {isSpinPaused ? (
@@ -1389,6 +1998,65 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
                 <span>Pause</span>
               </>
             )}
+          </button>
+        )}
+        {zoomToggleOp > 0.01 && (
+          <button
+            type="button"
+            className="zoom-toggle"
+            aria-pressed={isZoomedOut}
+            aria-label={isZoomedOut ? 'Zoom in on both Earths' : 'Zoom out from both Earths'}
+            disabled={!canClickZoom}
+            onClick={() => canClickZoom && setZoomTweenTarget(isZoomedOut ? 1 : 0)}
+            style={{
+              top: `${toggleTop.toFixed(1)}px`,
+              opacity: zoomToggleOp,
+              pointerEvents: canClickZoom ? 'auto' : 'none',
+              transform: `translate(-50%, ${((1 - zoomToggleOp) * 6).toFixed(1)}px)`,
+            }}
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="6.8" cy="6.8" r="4.5" />
+              <line x1="10.2" y1="10.2" x2="14" y2="14" />
+              <line x1="4.9" y1="6.8" x2="8.7" y2="6.8" />
+              {isZoomedOut && <line x1="6.8" y1="4.9" x2="6.8" y2="8.7" />}
+            </svg>
+            <span>{isZoomedOut ? 'Zoom In' : 'Zoom Out'}</span>
+          </button>
+        )}
+        {seasonSwitchOp > 0.01 && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isDecTarget}
+            aria-label={isDecTarget ? 'Switch sunlight comparison to June' : 'Switch sunlight comparison to December'}
+            className="season-switch"
+            disabled={!canClickSeason}
+            onClick={() => canClickSeason && setSeasonTweenTarget(isDecTarget ? 0 : 1)}
+            style={{
+              top: `${toggleTop.toFixed(1)}px`,
+              opacity: seasonSwitchOp,
+              pointerEvents: canClickSeason ? 'auto' : 'none',
+              transform: `translate(-50%, ${((1 - seasonSwitchOp) * 6).toFixed(1)}px)`,
+            }}
+          >
+            <span
+              className="season-switch-thumb"
+              style={{ transform: `translateX(${(seasonPos * 100).toFixed(2)}%)` }}
+              aria-hidden="true"
+            />
+            <span
+              className="season-switch-lbl"
+              style={{ color: seasonPos < 0.5 ? 'var(--orange-ink)' : 'var(--ink-dim)' }}
+            >
+              June
+            </span>
+            <span
+              className="season-switch-lbl"
+              style={{ color: seasonPos >= 0.5 ? 'var(--orange-ink)' : 'var(--ink-dim)' }}
+            >
+              December
+            </span>
           </button>
         )}
       </div>

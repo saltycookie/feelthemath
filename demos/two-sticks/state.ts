@@ -1,5 +1,5 @@
 /**
- * The figure's state. The steps (sticks.tsx) animate these values. Every value runs from 0
+ * The figure's state. The steps (demo.tsx) animate these values. Every value runs from 0
  * (not shown, or not begun) to 1 (shown, or done), except `pulseCount` which triggers a pulse when incremented.
  */
 export interface SticksState {

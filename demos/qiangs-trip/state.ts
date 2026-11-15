@@ -1,7 +1,7 @@
 export type BubbleKey = 'none' | 'time1' | 'equal' | 'area' | 'time2' | 'answer';
 
 /**
- * What the trip scene looks like at one moment. The steps (trip.tsx) animate these values; the reader changes the
+ * What the trip scene looks like at one moment. The steps (demo.tsx) animate these values; the reader changes the
  * point's. Unless it says otherwise, a number is an opacity from 0 (hidden) to 1 (shown).
  */
 export interface TripState {

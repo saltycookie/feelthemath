@@ -1,5 +1,5 @@
 // Qiang's Trip: the scene. Its state, and the renderer that draws it; the steps that change the state are
-// in trip.tsx.
+// in demo.tsx.
 
 import React, { Fragment, ReactNode, useRef, useState } from 'react';
 import {
@@ -17,7 +17,7 @@ import {
   type BubbleAnchor,
   type ElementRendererComponent,
 } from '../../framework';
-import { DEFAULT_TRIP_STATE, type BubbleKey, type TripState } from './TripState';
+import { DEFAULT_TRIP_STATE, type BubbleKey, type TripState } from './state';
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 

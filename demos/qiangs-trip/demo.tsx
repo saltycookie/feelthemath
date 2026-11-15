@@ -1,10 +1,10 @@
 // Qiang's Trip: 15 miles at 30 mph, then 55 mph: how far to average 50 mph? Solved with areas on a speed–time chart.
 //
-// TripScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
+// renderer.tsx has the renderer that draws the scene, and state.ts has its state. This file has the steps.
 
 import { mountDemo, type DemoConfig } from '../../framework';
-import { TripSceneRenderer } from './TripScene';
-import { type TripState } from './TripState';
+import { TripSceneRenderer } from './renderer';
+import { type TripState } from './state';
 
 const ROAD_MS = 6450;
 const BUBBLE_IN_MS = 260;

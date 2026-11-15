@@ -12,7 +12,7 @@ import {
   type ElementRendererComponent,
   type Size,
 } from '../../framework';
-import { DEFAULT_GARDEN_STATE, type GardenState } from './GardenState';
+import { DEFAULT_GARDEN_STATE, type GardenState } from './state';
 
 /* ================= the garden (lengths in metres) ================= */
 const LENGTH_M = 3;

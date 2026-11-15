@@ -1,5 +1,5 @@
 // Two Perpendicular Sticks: the scene. Its state, and the renderer that draws it; the steps that change the state
-// are in sticks.tsx.
+// are in demo.tsx.
 
 import React, { Fragment, ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -11,7 +11,7 @@ import {
   type ElementRendererComponent,
   type Size,
 } from '../../framework';
-import { DEFAULT_STICKS_STATE, type SticksState } from './SticksState';
+import { DEFAULT_STICKS_STATE, type SticksState } from './state';
 
 /* ================= the setup (lengths in cm) ================= */
 const U = 40; // SVG units per centimetre

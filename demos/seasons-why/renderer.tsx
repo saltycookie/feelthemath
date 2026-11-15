@@ -1512,6 +1512,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
       const minRatio = 1;
       const maxRatio = juneElevSin / decElevSin;
       const heatFadeT = clamp01((spreadRatio - minRatio) / Math.max(1e-4, maxRatio - minRatio));
+      const spreadUnits = lerp(3, 5, heatFadeT);
 
       const barR = Math.round(lerp(220, 245, heatFadeT));
       const barG = Math.round(lerp(48, 178, heatFadeT));
@@ -1601,7 +1602,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
             y2={measY + 4}
           />
           <text className="spread-measure-txt halo" x={copyCenterX} y={measY + 16}>
-            {`${spreadRatio.toFixed(2)} units spread`}
+            {`${spreadUnits.toFixed(2)} units spread`}
           </text>
         </g>
       );

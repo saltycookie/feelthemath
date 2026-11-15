@@ -172,14 +172,15 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         { ms: 400, set: { summerLabelOpacity: 1 } },
         { wait: 350, ms: 300, set: { lessHeatLabelOpacity: 0 } },
         { ms: 400, set: { winterLabelOpacity: 1 } },
+        { wait: 500, ms: SURFACE_ZOOM_MS, easing: 'ease-in-out', set: { surfaceZoomProgress: 0 } },
         { set: { canToggleZoom: true } },
       ],
       exit: [
         { unset: ['canToggleZoom'] },
         {
-          ms: (s) => Math.round((1 - s.surfaceZoomProgress) * 1000),
+          ms: (s) => Math.round(s.surfaceZoomProgress * 1000),
           easing: 'ease-in-out',
-          set: { surfaceZoomProgress: 1 },
+          set: { surfaceZoomProgress: 0 },
         },
       ],
     },

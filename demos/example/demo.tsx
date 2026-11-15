@@ -1,12 +1,12 @@
 // A minimal StepDeck demo to copy when starting a new one.
 // Three steps: the question, a rectangle that draws itself under it, then the answer.
 //
-// GardenScene.tsx has the scene: its state, and the renderer that draws it.
+// renderer.tsx has the renderer that draws the scene, and state.ts has its state.
 // This file has the steps (the DemoConfig) and puts the demo on the page.
 
 import { mountDemo, type DemoConfig } from '../../framework';
-import { GardenRenderer } from './GardenScene';
-import { type GardenState } from './GardenState';
+import { GardenRenderer } from './renderer';
+import { type GardenState } from './state';
 
 /** How long each animation takes, in ms. */
 const GROW_MS = 1500;

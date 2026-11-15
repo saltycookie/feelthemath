@@ -1,11 +1,11 @@
 // Two Perpendicular Sticks: AB + CD = 10 cm: how long is AC? The figure is rebuilt with sticks, which are laid end to
 // end on a ruler.
 //
-// SticksScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
+// renderer.tsx has the renderer that draws the scene, and state.ts has its state. This file has the steps.
 
 import { mountDemo, type DemoConfig } from '../../framework';
-import { SticksSceneRenderer } from './SticksScene';
-import { type SticksState } from './SticksState';
+import { SticksSceneRenderer } from './renderer';
+import { type SticksState } from './state';
 
 export const twoSticksDemo: DemoConfig<{ 'sticks-scene': SticksState }> = {
   id: 'two-sticks',

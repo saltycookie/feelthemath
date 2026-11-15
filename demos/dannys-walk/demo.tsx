@@ -1,11 +1,11 @@
 // Danny's Walk: from the playground to the river and on home: how short can the walk be? A paper folded along the
 // river unfolds, and the shortest walk becomes a straight line.
 //
-// WalkScene.tsx has the scene: its state, and the renderer that draws it. This file has the steps.
+// renderer.tsx has the renderer that draws the scene, and state.ts has its state. This file has the steps.
 
 import { mountDemo, type DemoConfig } from '../../framework';
-import { WalkSceneRenderer } from './WalkScene';
-import { type WalkState } from './WalkState';
+import { WalkSceneRenderer } from './renderer';
+import { type WalkState } from './state';
 
 const UNFOLD_MS = 2600;
 

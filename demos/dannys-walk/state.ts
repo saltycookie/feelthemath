@@ -1,5 +1,5 @@
 /**
- * What the walk scene looks like at one moment. The steps (walk.tsx) animate these values; the reader changes
+ * What the walk scene looks like at one moment. The steps (demo.tsx) animate these values; the reader changes
  * `unfold` with the switch. Unless it says otherwise, a number runs from 0 (hidden, or not begun) to 1 (shown, or
  * done).
  */

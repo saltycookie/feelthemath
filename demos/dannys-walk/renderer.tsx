@@ -1,5 +1,5 @@
 // Danny's Walk: the scene. Its state, and the renderer that draws it; the steps that change the state are in
-// walk.tsx.
+// demo.tsx.
 
 import React, { ReactNode, useLayoutEffect, useRef } from 'react';
 import {
@@ -11,7 +11,7 @@ import {
   useTween,
   type ElementRendererComponent,
 } from '../../framework';
-import { DEFAULT_WALK_STATE, type WalkState } from './WalkState';
+import { DEFAULT_WALK_STATE, type WalkState } from './state';
 
 /* ---------- the places, in metres ---------- */
 const A = { x: 0, y: 20 }; // Danny's home: on the back half of the paper

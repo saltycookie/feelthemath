@@ -17,10 +17,20 @@ export interface SeasonsWhyState {
   // Tilt the earth's spin axis to the correct angle.
   earthSpinAxisTiltedProgress: number;
   // The tilted earth orbiting the sun, leaving imprints for the June earth and
-  // the  December earth.
+  // the December earth.
   tiltedEarthOrbitingProgress: number;
+  // Interactive orbit offset (in turns relative to June, in [-0.5, 0.5]) when the user drags the Earth in Step 4.
+  earthDragProgress: number;
+  // Whether the user can currently drag the live Earth around its orbit.
+  canDragEarth: boolean;
+  // Showing message: "Move the earth around yourself!"
+  moveEarthMessageOpacity: number;
   // Showing you as a dot with a "You" label, at 30 deg north.
   youOnTheNorthHemisphereOpacity: number;
+  // Showing synchronized HH:MM AM/PM digital clocks below June and December.
+  digitalClockOpacity: number;
+  // Whether Earth rotation and clocks are paused by the Step 6 Pause / Spin toggle.
+  earthSpinPaused: boolean;
   // Viewing space from the front.
   // The 2D mesh and earth orbit disappears when it progresses to 1.
   spaceSidedViewProgress: number;
@@ -44,6 +54,14 @@ export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {
   space30DegViewProgress: 0,
   earthSpinAxisTiltedProgress: 0,
   tiltedEarthOrbitingProgress: 0,
+  earthDragProgress: 0,
+  canDragEarth: false,
+  moveEarthMessageOpacity: 0,
   youOnTheNorthHemisphereOpacity: 0,
+  digitalClockOpacity: 0,
+  earthSpinPaused: false,
+  spaceSidedViewProgress: 0,
+  solidDecemberEarthProgress: 0,
+  sunFoldedProgress: 0,
 };
 

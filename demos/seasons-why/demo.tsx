@@ -14,6 +14,10 @@ const MESSAGE_OUT_MS = 250;
 const VIEW_TILT_MS = 1400;
 const AXIS_TILT_MS = 1200;
 const TILTED_ORBIT_MS = 4500;
+const VIEW_SIDE_MS = 1200;
+const YOU_IN_MS = 500;
+const DEC_SOLID_MS = 800;
+const SUN_FOLD_MS = 1600;
 
 export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = {
   id: 'seasons-why',
@@ -54,22 +58,48 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
     {
       title: 'The Earth Always Tilts to the Same Direction',
       play: [
-        { wait: 250, ms: TILTED_ORBIT_MS, easing: 'ease-in-out', set: { tiltedEarthOrbitingProgress: 1 } },
+        { wait: 250, ms: TILTED_ORBIT_MS, easing: 'linear', set: { tiltedEarthOrbitingProgress: 1 } },
+        { wait: 250, ms: MESSAGE_IN_MS, set: { moveEarthMessageOpacity: 1 } },
+        { set: { canDragEarth: true } },
+      ],
+      exit: [
+        { unset: ['canDragEarth'] },
+        {
+          parallel: [
+            {
+              ms: (s) => Math.round(MESSAGE_OUT_MS * s.moveEarthMessageOpacity),
+              unset: ['moveEarthMessageOpacity'],
+            },
+            {
+              ms: (s) => Math.round(Math.abs(s.earthDragProgress) * 2400),
+              easing: 'ease-in-out',
+              set: { earthDragProgress: 0 },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      title: 'June vs December',
+      play: [
+        { wait: 200, ms: VIEW_SIDE_MS, easing: 'ease-in-out', set: { spaceSidedViewProgress: 1 } },
+        { wait: 200, ms: DEC_SOLID_MS, easing: 'ease-in-out', set: { solidDecemberEarthProgress: 1 } },
+        { wait: 300, ms: SUN_FOLD_MS, easing: 'ease-in-out', set: { sunFoldedProgress: 1 } },
       ],
     },
     {
       title: 'Suppose You Live in the North',
       play: [
-        {set: {spaceSidedViewProgress: 1}},
-        {set: {youOnTheNorthHemisphereOpacity: 1}}
-      ]
+        {
+          wait: 200,
+          ms: YOU_IN_MS,
+          set: { youOnTheNorthHemisphereOpacity: 1, digitalClockOpacity: 1 },
+        },
+      ],
+      exit: [
+        { unset: ['earthSpinPaused'] },
+      ],
     },
-    {
-      title: 'June vs December',
-      play: [
-        {set: {sunFoldedProgress: 1}}
-      ]
-    }
   ],
 };
 

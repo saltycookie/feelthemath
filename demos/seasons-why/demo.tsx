@@ -57,8 +57,20 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         { wait: 250, ms: TILTED_ORBIT_MS, easing: 'ease-in-out', set: { tiltedEarthOrbitingProgress: 1 } },
       ],
     },
+    {
+      title: 'Suppose You Live in the North',
+      play: [
+        {set: {spaceSidedViewProgress: 1}},
+        {set: {youOnTheNorthHemisphereOpacity: 1}}
+      ]
+    },
+    {
+      title: 'June vs December',
+      play: [
+        {set: {sunFoldedProgress: 1}}
+      ]
+    }
   ],
 };
 
 mountDemo(seasonsWhyDemo);
-

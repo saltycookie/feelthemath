@@ -511,10 +511,10 @@ function renderGlobe({
             r={rPx}
             fill={
               isImprint
-                ? 'color-mix(in srgb, var(--blue) 28%, var(--paper))'
+                ? 'color-mix(in srgb, var(--blue) 30%, var(--paper))'
                 : `url(#${gradId})`
             }
-            fillOpacity={isImprint ? 0.65 : undefined}
+            fillOpacity={isImprint ? 0.82 : undefined}
           />
           {!isImprint && shadowPathD && (
             <g clipPath={`url(#${clipId})`}>
@@ -1111,7 +1111,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     const imprintNodes: React.ReactNode[] = [];
 
     // June imprint (left, -earthXOffset, 0) — semi-transparent globe with orbit passing through it
-    const juneImprintOp = juneIn * 0.75 * (1 - solidDecP);
+    const juneImprintOp = juneIn * 0.85 * (1 - solidDecP);
     if (juneImprintOp > 0.002) {
       imprintNodes.push(
         renderGlobe({
@@ -1134,7 +1134,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     }
 
     // December imprint (right, +earthXOffset, 0) — semi-transparent globe with orbit passing through it
-    const decImprintOp = decIn * 0.75 * (1 - solidDecP);
+    const decImprintOp = decIn * 0.85 * (1 - solidDecP);
     if (decImprintOp > 0.002) {
       imprintNodes.push(
         renderGlobe({

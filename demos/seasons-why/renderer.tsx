@@ -1889,7 +1889,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
   const spinToggleOp = clamp01(S.spinToggleOpacity);
   const zoomToggleOp = clamp01(S.zoomToggleOpacity);
   const seasonSwitchOp = clamp01(S.seasonSwitchOpacity);
-  const heatLabelsOp = clamp01(S.heatLabelsOpacity);
+  const moreHeatLabelOp = clamp01(S.moreHeatLabelOpacity);
+  const lessHeatLabelOp = clamp01(S.lessHeatLabelOpacity);
   const seasonPos = clamp01(S.seasonCompareProgress);
   const effectiveSeasonTarget = seasonTweenTarget ?? (seasonPos >= 0.5 ? 1 : 0);
   const isDecTarget = effectiveSeasonTarget === 1;
@@ -1954,33 +1955,33 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
         >
           When do you get more heat, June or December?
         </p>
-        {heatLabelsOp > 0.01 && (
-          <>
-            <p
-              className="heat-side-msg june"
-              style={{
-                left: `${juneLabelX.toFixed(1)}px`,
-                top: `${heatMsgTop.toFixed(1)}px`,
-                maxWidth: `${heatMsgMaxW}px`,
-                opacity: heatLabelsOp,
-                transform: `translate(-50%, ${((1 - heatLabelsOp) * 6).toFixed(1)}px)`,
-              }}
-            >
-              more heat from sunlight
-            </p>
-            <p
-              className="heat-side-msg dec"
-              style={{
-                left: `${decLabelX.toFixed(1)}px`,
-                top: `${heatMsgTop.toFixed(1)}px`,
-                maxWidth: `${heatMsgMaxW}px`,
-                opacity: heatLabelsOp,
-                transform: `translate(-50%, ${((1 - heatLabelsOp) * 6).toFixed(1)}px)`,
-              }}
-            >
-              less heat from sunlight
-            </p>
-          </>
+        {moreHeatLabelOp > 0.01 && (
+          <p
+            className="heat-side-msg june"
+            style={{
+              left: `${juneLabelX.toFixed(1)}px`,
+              top: `${heatMsgTop.toFixed(1)}px`,
+              maxWidth: `${heatMsgMaxW}px`,
+              opacity: moreHeatLabelOp,
+              transform: `translate(-50%, ${((1 - moreHeatLabelOp) * 6).toFixed(1)}px)`,
+            }}
+          >
+            More heat
+          </p>
+        )}
+        {lessHeatLabelOp > 0.01 && (
+          <p
+            className="heat-side-msg dec"
+            style={{
+              left: `${decLabelX.toFixed(1)}px`,
+              top: `${heatMsgTop.toFixed(1)}px`,
+              maxWidth: `${heatMsgMaxW}px`,
+              opacity: lessHeatLabelOp,
+              transform: `translate(-50%, ${((1 - lessHeatLabelOp) * 6).toFixed(1)}px)`,
+            }}
+          >
+            less heat
+          </p>
         )}
         {spinToggleOp > 0.01 && (
           <button

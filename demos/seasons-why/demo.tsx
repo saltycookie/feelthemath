@@ -150,14 +150,20 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
           set: { seasonSwitchOpacity: 1, spreadOverlayOpacity: 1 },
         },
         { wait: 550, ms: SPREAD_SLIDE_MS, easing: 'ease-in-out', set: { seasonCompareProgress: 1 } },
-        { wait: 200, ms: HEAT_LABELS_IN_MS, set: { heatLabelsOpacity: 1 } },
+        { wait: 200, ms: HEAT_LABELS_IN_MS, set: { moreHeatLabelOpacity: 1 } },
+        { wait: 350, ms: HEAT_LABELS_IN_MS, set: { lessHeatLabelOpacity: 1 } },
         { set: { canToggleSeason: true } },
       ],
       exit: [
         { unset: ['canToggleSeason'] },
         {
           ms: MESSAGE_OUT_MS,
-          unset: ['heatLabelsOpacity', 'spreadOverlayOpacity', 'seasonSwitchOpacity'],
+          unset: [
+            'moreHeatLabelOpacity',
+            'lessHeatLabelOpacity',
+            'spreadOverlayOpacity',
+            'seasonSwitchOpacity',
+          ],
         },
       ],
     },

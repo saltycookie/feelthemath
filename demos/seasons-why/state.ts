@@ -51,8 +51,10 @@ export interface SeasonsWhyState {
   seasonCompareProgress: number;
   // Opacity of the Step 8 red heat intensity bar, spread measurement, and dotted beam copy.
   spreadOverlayOpacity: number;
-  // Opacity of the Step 8 "more heat from sunlight" and "less heat from sunlight" messages.
-  heatLabelsOpacity: number;
+  // Opacity of the Step 8 "More heat" message below June's month & clock.
+  moreHeatLabelOpacity: number;
+  // Opacity of the Step 8 "less heat" message below December's month & clock.
+  lessHeatLabelOpacity: number;
   // Whether the user can interactively toggle the Step 8 June / December switch.
   canToggleSeason: boolean;
   // Viewing space from the front.
@@ -94,7 +96,8 @@ export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {
   seasonSwitchOpacity: 0,
   seasonCompareProgress: 0,
   spreadOverlayOpacity: 0,
-  heatLabelsOpacity: 0,
+  moreHeatLabelOpacity: 0,
+  lessHeatLabelOpacity: 0,
   canToggleSeason: false,
   spaceSidedViewProgress: 0,
   solidDecemberEarthProgress: 0,

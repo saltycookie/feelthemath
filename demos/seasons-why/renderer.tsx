@@ -509,7 +509,12 @@ function renderGlobe({
             cx={center.x}
             cy={center.y}
             r={rPx}
-            fill={isImprint ? 'var(--blue-fill)' : `url(#${gradId})`}
+            fill={
+              isImprint
+                ? 'color-mix(in srgb, var(--blue) 28%, var(--paper))'
+                : `url(#${gradId})`
+            }
+            fillOpacity={isImprint ? 0.65 : undefined}
           />
           {!isImprint && shadowPathD && (
             <g clipPath={`url(#${clipId})`}>
@@ -946,26 +951,32 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     const orbitOp = clamp01(S.earthOrbitOpacity) * (1 - sideP);
     let fullOrbitD = '';
     let drawnOrbitD = '';
+    let backOrbitD = '';
+    let frontOrbitD = '';
+    let orbitComplete = false;
     if (orbitOp > 0.002) {
+      const buildOrbitArc = (aStart: number, aEnd: number, segCount: number) => {
+        const pts: string[] = [];
+        for (let i = 0; i <= segCount; i++) {
+          const a = lerp(aStart, aEnd, i / segCount);
+          const p = proj(ORBIT_R * Math.cos(a), ORBIT_R * Math.sin(a), 0);
+          pts.push(`${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+        }
+        return pts.join('');
+      };
+
       const segs = 96;
-      const fullPts: string[] = [];
-      for (let i = 0; i <= segs; i++) {
-        const a = Math.PI + (i / segs) * Math.PI * 2;
-        const p = proj(ORBIT_R * Math.cos(a), ORBIT_R * Math.sin(a), 0);
-        fullPts.push(`${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`);
-      }
-      fullOrbitD = fullPts.join('') + 'Z';
+      fullOrbitD = buildOrbitArc(Math.PI, Math.PI * 3, segs) + 'Z';
 
       const prog = clamp01(S.earthOrbitProgress);
+      orbitComplete = prog >= 0.999;
       if (prog > 0.003) {
-        const arcSegs = Math.max(2, Math.ceil(segs * prog));
-        const arcPts: string[] = [];
-        for (let i = 0; i <= arcSegs; i++) {
-          const a = Math.PI + ((i / arcSegs) * prog) * Math.PI * 2;
-          const p = proj(ORBIT_R * Math.cos(a), ORBIT_R * Math.sin(a), 0);
-          arcPts.push(`${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`);
-        }
-        drawnOrbitD = arcPts.join('');
+        drawnOrbitD = buildOrbitArc(Math.PI, Math.PI + prog * Math.PI * 2, Math.max(2, Math.ceil(segs * prog)));
+      }
+      if (orbitComplete) {
+        const orbitExitDelta = 2 * Math.asin(Math.min(0.95, EARTH_R / (2 * ORBIT_R)));
+        backOrbitD = buildOrbitArc(2 * Math.PI - orbitExitDelta, 3 * Math.PI + orbitExitDelta, 64);
+        frontOrbitD = buildOrbitArc(Math.PI + orbitExitDelta, 2 * Math.PI - orbitExitDelta, 48);
       }
     }
 
@@ -1099,8 +1110,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
 
     const imprintNodes: React.ReactNode[] = [];
 
-    // June imprint (left, -earthXOffset, 0) — semi-transparent behind the orbit, fades out when solid December Earth appears
-    const juneImprintOp = juneIn * 0.5 * (1 - solidDecP);
+    // June imprint (left, -earthXOffset, 0) — semi-transparent globe with orbit passing through it
+    const juneImprintOp = juneIn * 0.75 * (1 - solidDecP);
     if (juneImprintOp > 0.002) {
       imprintNodes.push(
         renderGlobe({
@@ -1122,8 +1133,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
       );
     }
 
-    // December imprint (right, +earthXOffset, 0) — semi-transparent behind the orbit, fades out as solid December Earth fades in
-    const decImprintOp = decIn * 0.5 * (1 - solidDecP);
+    // December imprint (right, +earthXOffset, 0) — semi-transparent globe with orbit passing through it
+    const decImprintOp = decIn * 0.75 * (1 - solidDecP);
     if (decImprintOp > 0.002) {
       imprintNodes.push(
         renderGlobe({
@@ -1830,27 +1841,47 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           </g>
         )}
 
-        {/* Semi-transparent June and December imprints (behind the orbit path) */}
-        {imprintNodes}
-
-        {/* Earth Orbit */}
-        {orbitOp > 0.002 && (
-          <g opacity={orbitOp}>
-            <path className="orbit-guide" d={fullOrbitD} />
-            {drawnOrbitD && <path className="orbit-trail" d={drawnOrbitD} />}
-            {orbitArrowsOp > 0.01 && (
-              <g opacity={orbitArrowsOp}>
-                {renderOrbitArrow(Math.PI / 2)}
-                {renderOrbitArrow((3 * Math.PI) / 2)}
+        {/* Earth Orbit (back & interior behind imprints, front arc emerging in front of imprints) */}
+        {orbitOp > 0.002 && orbitComplete && imprintNodes.length > 0 ? (
+          <>
+            <g opacity={orbitOp}>
+              <path className="orbit-guide" d={backOrbitD} style={{ strokeLinecap: 'butt' }} />
+              <path className="orbit-trail" d={backOrbitD} style={{ strokeLinecap: 'butt' }} />
+              {orbitArrowsOp > 0.01 && (
+                <g opacity={orbitArrowsOp}>{renderOrbitArrow(Math.PI / 2)}</g>
+              )}
+            </g>
+            {imprintNodes}
+            <g opacity={orbitOp}>
+              <path className="orbit-guide" d={frontOrbitD} style={{ strokeLinecap: 'butt' }} />
+              <path className="orbit-trail" d={frontOrbitD} style={{ strokeLinecap: 'butt' }} />
+              {orbitArrowsOp > 0.01 && (
+                <g opacity={orbitArrowsOp}>{renderOrbitArrow((3 * Math.PI) / 2)}</g>
+              )}
+            </g>
+          </>
+        ) : (
+          <>
+            {orbitOp > 0.002 && (
+              <g opacity={orbitOp}>
+                <path className="orbit-guide" d={fullOrbitD} />
+                {drawnOrbitD && <path className="orbit-trail" d={drawnOrbitD} />}
+                {orbitArrowsOp > 0.01 && (
+                  <g opacity={orbitArrowsOp}>
+                    {renderOrbitArrow(Math.PI / 2)}
+                    {renderOrbitArrow((3 * Math.PI) / 2)}
+                  </g>
+                )}
               </g>
             )}
-          </g>
+            {imprintNodes}
+          </>
         )}
 
         {/* Horizontal sunlight rays from center line to both Earths (Step 5/6 unzoomed) */}
         {showUnzoomedRays && rayOp > 0.002 && <g opacity={rayOp}>{sunlightRays}</g>}
 
-        {/* Depth-sorted Sun, Earth, and Imprints */}
+        {/* Depth-sorted Sun and live/solid Earths (always in front of orbit & imprints) */}
         {depthItems.map((item) => item.node)}
 
         {/* Vertical center line crossing the center of the Sun (Step 5/6) */}

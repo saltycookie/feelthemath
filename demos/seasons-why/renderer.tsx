@@ -1097,13 +1097,13 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
       });
     }
 
-    // June imprint (left, -earthXOffset, 0) — fades out when solid December Earth appears so it won't show through translucent June Earth
-    const juneImprintOp = juneIn * 0.85 * (1 - solidDecP);
+    const imprintNodes: React.ReactNode[] = [];
+
+    // June imprint (left, -earthXOffset, 0) — semi-transparent behind the orbit, fades out when solid December Earth appears
+    const juneImprintOp = juneIn * 0.5 * (1 - solidDecP);
     if (juneImprintOp > 0.002) {
-      const juneProj = proj(-earthXOffset, 0, 0);
-      depthItems.push({
-        zc: juneProj.zc - 0.25,
-        node: renderGlobe({
+      imprintNodes.push(
+        renderGlobe({
           key: 'june-imprint',
           ex: -earthXOffset,
           ey: 0,
@@ -1118,17 +1118,15 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           proj,
           camDirFrom,
           scale,
-        }),
-      });
+        })
+      );
     }
 
-    // December imprint (right, +earthXOffset, 0) — fades out as solid December Earth fades in
-    const decImprintOp = decIn * 0.85 * (1 - solidDecP);
+    // December imprint (right, +earthXOffset, 0) — semi-transparent behind the orbit, fades out as solid December Earth fades in
+    const decImprintOp = decIn * 0.5 * (1 - solidDecP);
     if (decImprintOp > 0.002) {
-      const decProj = proj(earthXOffset, 0, 0);
-      depthItems.push({
-        zc: decProj.zc - 0.25,
-        node: renderGlobe({
+      imprintNodes.push(
+        renderGlobe({
           key: 'dec-imprint',
           ex: earthXOffset,
           ey: 0,
@@ -1143,8 +1141,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           proj,
           camDirFrom,
           scale,
-        }),
-      });
+        })
+      );
     }
 
     const clockOp = clamp01(S.digitalClockOpacity);
@@ -1832,6 +1830,9 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           </g>
         )}
 
+        {/* Semi-transparent June and December imprints (behind the orbit path) */}
+        {imprintNodes}
+
         {/* Earth Orbit */}
         {orbitOp > 0.002 && (
           <g opacity={orbitOp}>
@@ -1918,8 +1919,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           transform: `translateY(calc(-50% + ${((1 - probOp) * 8).toFixed(1)}px))`,
         }}
       >
-        Why are there <b className="c-orange">hot summers</b> and{' '}
-        <b className="c-blue">cold winters</b>?
+        Why are there <b className="c-orange">summers</b> and{' '}
+        <b className="c-blue">winters</b>?
       </p>
       <div
         className="box"

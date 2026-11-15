@@ -50,7 +50,7 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         { ms: MESH_IN_MS, set: { mesh2DOpacity: 1 } },
         { wait: 150, ms: SUN_EARTH_IN_MS, set: { sunAndEarthOpacity: 1 } },
         { wait: 250, ms: ORBIT_SHOW_MS, set: { earthOrbitOpacity: 1 } },
-        { wait: 150, ms: ORBIT_MS, easing: 'ease-in-out', set: { earthOrbitProgress: 1 } },
+        { wait: 150, ms: ORBIT_MS, easing: 'linear', set: { earthOrbitProgress: 1 } },
         { wait: 250, ms: MESSAGE_IN_MS, set: { aboutSameDistMessageOpacity: 1 } },
       ],
       exit: [

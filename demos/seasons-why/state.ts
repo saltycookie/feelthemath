@@ -1,5 +1,5 @@
 export interface SeasonsWhyState {
-  // Showing "Why are there hot summers and cold winters?"
+  // Showing "Why are there summers and winters?"
   problemOpacity: number;
   // 2D mesh representing the space.
   mesh2DOpacity: number;

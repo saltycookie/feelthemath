@@ -19,8 +19,19 @@ export interface SeasonsWhyState {
   // The tilted earth orbiting the sun, leaving imprints for the June earth and
   // the  December earth.
   tiltedEarthOrbitingProgress: number;
-  // Showing you as a dot with a "You" label.
+  // Showing you as a dot with a "You" label, at 30 deg north.
   youOnTheNorthHemisphereOpacity: number;
+  // Viewing space from the front.
+  // The 2D mesh and earth orbit disappears when it progresses to 1.
+  spaceSidedViewProgress: number;
+  // The December earth imprint becomes a solid spinning earth like the June earth.
+  solidDecemberEarthProgress: number;
+  // A vertical line crossing the center of the sun appears
+  // The view zooms in (so the sun and earth gets bigger), while the sun gets
+  // folded and disappear into the vertical line.
+  // Horizontal sunlight shines from the center line to both earths.
+  // All the above progress at the same time.
+  sunFoldedProgress: number;
 }
 
 export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {

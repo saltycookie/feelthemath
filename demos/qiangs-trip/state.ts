@@ -17,6 +17,8 @@ export interface TripState {
   pickedX: number;
   /** Where the reader has put the point, in mph: on the 5 mph grid. */
   pickedY: number;
+  /** Whether to display the fixed Part 1 coordinates (0.5 h, 30 mph) instead of the user-picked coordinates. */
+  usePart1Coords: boolean;
   /** Whether the reader can move the point (step 3). */
   draggable: boolean;
   /** The point's radius in px. Its move icon fades in between 6 and 11. */
@@ -81,6 +83,7 @@ export const DEFAULT_TRIP_STATE: TripState = {
   pointY: 40,
   pickedX: 1.5,
   pickedY: 40,
+  usePart1Coords: false,
   draggable: false,
   handleRadius: 11,
   handleOpacity: 0,

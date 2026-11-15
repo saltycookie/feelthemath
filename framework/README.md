@@ -94,7 +94,7 @@ Each VE's `x`, `y`, `opacity`, `scale`, and `state` live globally across the dem
    - Right: `↺ Replay` button (on the left of `Next`) and `Next →` button (which becomes `Finish` on the final step and returns to `../../`).
    - Each step is synchronized with `#step-X` in the URL hash via `useHashStepRouter`.
 2. **Canvas & Title Area (`DemoCanvas.tsx` & `TitleBar.tsx`)**:
-   - Renders the `.titlebar` with the "All demos" home link on the left and the current step's title centered in the middle, and `.stage` below containing the active `VisualElement`s (passing `stepIndex` into each renderer).
+   - Renders the `.titlebar` with the "All demos" home link on the left and the current step's title centered in the middle, and `.stage` below containing the active `VisualElement`s.
 3. **Initial Visual Elements & `play` Animation**:
    - Entering a step immediately renders its resolved canonical `initialElements`.
    - If the step defines `play`, it runs automatically on entry. While `play` is running, `Next` is disabled.

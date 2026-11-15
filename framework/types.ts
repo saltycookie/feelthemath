@@ -215,8 +215,6 @@ export type ResolvedStepConfig<TElements extends Record<string, any> = Record<st
  */
 export interface ElementRendererProps<TState = any> {
   element: VisualElement<TState>;
-  /** 0-based index of the active step */
-  stepIndex: number;
   isAnimating: boolean;
   /** Allows interactive controls inside the canvas (e.g., fold/unfold switch, draggable point) to update element state */
   updateState: (patch: Partial<TState>) => void;

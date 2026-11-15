@@ -31,16 +31,6 @@ const SIDE_START: Record<'AB' | 'BC' | 'CD' | 'DA', number> = {
   DA: 0.16,
 };
 
-const ALT = [
-  'The homework figure on a mat, with the question written above it. AC and BD cross at O at a right angle, AO equals BO and OC equals OD.',
-  'Above the ruler: Imagine, how would you build this shape using sticks? Then every line turns into a stick.',
-  'BC and AD, then AB and CD, then BD are laid upright side by side in the top-left corner, leaving only AC. AC is labeled x, a point O is picked on it, AO is labeled y and OC x minus y.',
-  'BD is taken from the corner, laid under AC and marked the same way. Then BD is laid across AC at a right angle at O.',
-  'AB is taken from the corner and laid on top, labeled root 2 times y, then CD, labeled root 2 times x minus y.',
-  'The two thin sticks are laid end to end on the ruler and reach 10 centimetres: root 2 times y plus root 2 times x minus y equals 10.',
-  'The equation moves to the top of the paper and is solved line by line. x equals 10 divided by root 2, which is 5 root 2, so AC is 5 root 2 centimetres.',
-];
-
 /* ================= helpers ================= */
 interface Pt {
   x: number;
@@ -297,7 +287,6 @@ function SolveRows({ on, struck, bx }: { on?: boolean[]; struck?: boolean; bx?: 
 
 export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({
   element,
-  stepIndex,
 }) => {
   const P = element.state;
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -638,7 +627,7 @@ export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({
       <svg
         className="scene"
         role="img"
-        aria-label={`The figure, step ${stepIndex + 1} of 7. ${ALT[stepIndex] || ALT[0]}`}
+        aria-label="The homework figure on a mat, with the question written above it."
         viewBox={`0 0 ${MAT.w * U} ${MAT.h * U}`}
       >
         <defs>

@@ -72,7 +72,7 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
       title: "Let's Use Area to Describe the Problem",
       summary: 'Part 1: 0.5 hours',
       play: [
-        { set: { pointX: 0, pointY: 30, handleRadius: 5, carX: 0, part1Opacity: 1 } },
+        { set: { usePart1Coords: true, pointX: 0, pointY: 30, handleRadius: 5, carX: 0, part1Opacity: 1 } },
         {
           parallel: [
             { ms: 350, set: { carOpacity: 1 } },

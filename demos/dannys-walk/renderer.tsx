@@ -33,7 +33,6 @@ const DASH = 20,
 /** How long the interactive switch takes to unfold/fold the paper all the way, in ms. */
 const UNFOLD_MS = 2600;
 
-const FOLD = 2;
 const ALT = [
   '',
   "A straight river running from west to east. Danny's home, A, is 20 meters north of it. The playground, B, is 120 meters " +
@@ -212,7 +211,6 @@ function ringPath(w: number, h: number) {
 
 export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({
   element,
-  stepIndex,
   updateState,
 }) => {
   const S = element.state;
@@ -532,12 +530,24 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({
   };
   const mask = { x: String(-SW), y: String(-SH), width: String(3 * SW), height: String(3 * SH) };
 
+  const figureVisible = S.riverProgress > 0 || S.paperShown > 0;
+  const figureAlt =
+    S.framingRaised > 0 || S.triangleLegs > 0
+      ? ALT[5]
+      : S.onlyC3 > 0
+        ? ALT[4]
+        : S.c2Shown > 0
+          ? ALT[3]
+          : S.paperShown > 0
+            ? ALT[2]
+            : ALT[1];
+
   return (
     <div
       ref={stageRef}
       className="fw-scene walk-root"
     >
-      <p ref={probRef} className="problem" aria-hidden={stepIndex >= FOLD ? 'true' : 'false'} style={{ opacity: String(S.problemShown) }}>
+      <p ref={probRef} className="problem" aria-hidden={S.problemShown < 0.05 ? 'true' : 'false'} style={{ opacity: String(S.problemShown) }}>
         Danny's home is <b>20 meters</b> north of a <b className="c-blue">straight river</b> that flows from west to
         east. A playground is <b>120 meters</b> east of his home and <b>30 meters</b> north of the river. After
         playing at the playground, Danny wants to walk to the river bank to wash up before going home. What is the
@@ -555,8 +565,8 @@ export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({
       <svg
         id="fig"
         role="img"
-        aria-label={ALT[stepIndex] || ALT[1]}
-        aria-hidden={stepIndex === 0 ? 'true' : undefined}
+        aria-label={figureAlt}
+        aria-hidden={!figureVisible ? 'true' : undefined}
         viewBox={stage ? '0 0 ' + SW + ' ' + SH : undefined}
         style={stage ? ({ '--fs': fs + 'px' } as React.CSSProperties) : undefined}
       >

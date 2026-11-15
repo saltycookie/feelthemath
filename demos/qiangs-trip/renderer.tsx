@@ -28,7 +28,6 @@ const XDRAG = 3,
 /** How long the point takes to glide to where the reader put it, in ms. */
 const POINT_GLIDE_MS = 140;
 const PART1 = { x: 0.5, y: 30 };
-const EXPLORE = 2; // 0-based index of step 3
 
 const ROAD_REF_MS = 6450;
 const ROAD: Record<string, [number, number]> = {
@@ -167,7 +166,6 @@ function Road({ road }: { road: number }) {
 
 export const TripSceneRenderer: ElementRendererComponent<TripState> = ({
   element,
-  stepIndex,
   updateState,
 }) => {
   const S = element.state;
@@ -314,7 +312,7 @@ export const TripSceneRenderer: ElementRendererComponent<TripState> = ({
 
   const x0 = px(0),
     y0 = py(0);
-  const P = stepIndex === EXPLORE ? { x: S.pickedX, y: S.pickedY } : PART1;
+  const P = S.usePart1Coords ? PART1 : { x: S.pickedX, y: S.pickedY };
 
   // the first part's rectangle: its corner is the point
   const rx = px(S.pointX),

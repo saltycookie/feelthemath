@@ -83,7 +83,6 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     <>
       <DemoCanvas
         title={currentStep?.title ?? demo.name}
-        stepIndex={currentStepIndex}
         elements={elements}
         renderers={demo.renderers}
         isAnimating={isAnimating}

@@ -5,7 +5,6 @@ import { TitleBar } from './TitleBar';
 
 export interface DemoCanvasProps {
   title: string;
-  stepIndex: number;
   elements: ElementsMap;
   renderers: ElementRendererRegistry;
   isAnimating: boolean;
@@ -21,7 +20,6 @@ export interface DemoCanvasProps {
  */
 export const DemoCanvas: React.FC<DemoCanvasProps> = ({
   title,
-  stepIndex,
   elements,
   renderers,
   isAnimating,
@@ -71,7 +69,6 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
             >
               <Renderer
                 element={el}
-                stepIndex={stepIndex}
                 isAnimating={isAnimating}
                 updateState={(patch) => onUpdateElementState(el.id, patch)}
               />

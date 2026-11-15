@@ -1519,8 +1519,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
       const barFill = `rgb(${barR}, ${barG}, ${barB})`;
       const barStroke = `rgba(176, 36, 30, ${lerp(0.88, 0.42, heatFadeT).toFixed(2)})`;
 
-      const barY = youTargetY + 7;
-      const barH = 11;
+      const barY = youTargetY + 1.1;
+      const barH = Math.round(Math.min(34, Math.max(20, (panelBottom - youTargetY) * 0.3)));
       const measY = barY + barH + 10;
 
       spreadComparisonNode = (
@@ -1551,17 +1551,32 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
             );
           })}
 
-          {/* Red heat intensity bar under the land */}
+          {/* Strictly rectangular red heat intensity bar touching the ground */}
           <rect
             className="heat-bar"
             x={leftHitX}
             y={barY}
             width={Math.max(4, rightHitX - leftHitX)}
             height={barH}
-            rx={4}
             fill={barFill}
             stroke={barStroke}
           />
+
+          {/* Keep both "You" surface dots crisp above the top edge of the bar */}
+          {S.youOnTheNorthHemisphereOpacity > 0.01 && (
+            <g opacity={clamp01(S.youOnTheNorthHemisphereOpacity)}>
+              <circle className="you-dot" cx={juneYouX} cy={youTargetY} r={4.5} />
+              {solidDecP > 0.01 && (
+                <circle
+                  className="you-dot"
+                  cx={decYouX}
+                  cy={youTargetY}
+                  r={4.5}
+                  opacity={solidDecP}
+                />
+              )}
+            </g>
+          )}
 
           {/* Measurement bracket and "X units spread" label */}
           <line

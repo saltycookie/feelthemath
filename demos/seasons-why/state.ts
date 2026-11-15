@@ -10,10 +10,10 @@ export interface SeasonsWhyState {
   earthOrbitProgress: number;
   // Showing the earth orbit.
   earthOrbitOpacity: number;
-  // Showing message: ""
+  // Showing message: "No, the Earth stays at about the same distance from the Sun all year."
   aboutSameDistMessageOpacity: number;
-  // Showing space (2d mesh, sun, earth, orbit, etc) from the front, 45 degree to the top.
-  space45DegViewProgress: number;
+  // Showing space (2d mesh, sun, earth, orbit, etc) from the front, 30 degree above the plane.
+  space30DegViewProgress: number;
   // Tilt the earth's spin axis to the correct angle.
   earthSpinAxisTiltedProgress: number;
   // The tilted earth orbiting the sun, leaving imprints for the June earth and
@@ -22,3 +22,17 @@ export interface SeasonsWhyState {
   // Showing you as a dot with a "You" label.
   youOnTheNorthHemisphereOpacity: number;
 }
+
+export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {
+  problemOpacity: 0,
+  mesh2DOpacity: 0,
+  sunAndEarthOpacity: 0,
+  earthOrbitProgress: 0,
+  earthOrbitOpacity: 0,
+  aboutSameDistMessageOpacity: 0,
+  space30DegViewProgress: 0,
+  earthSpinAxisTiltedProgress: 0,
+  tiltedEarthOrbitingProgress: 0,
+  youOnTheNorthHemisphereOpacity: 0,
+};
+

@@ -1,0 +1,57 @@
+/* Why Are There Seasons?: styles for this demo only. Colours, font, navigation, the box and the paper come from framework/theme.css. */
+
+.stage, .fw-visual-element { align-items: center; }
+.seasons-root { position: relative; display: flex; flex-direction: column; align-items: center; }
+.seasons-problem {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 47%;
+  margin: 0 auto;
+  text-align: center;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+.box { position: relative; flex: 1; min-height: 0; align-self: stretch; }
+.pic { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.seasons-msg {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 4px;
+  margin: 0;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--orange-ink);
+  font: 700 clamp(15px, min(max(18px, 2.3vw), 3.4vh), 24px)/1.3 var(--font-hand);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+.space-plane { fill: var(--panel); stroke: var(--grid-strong); stroke-width: 1.2; }
+.gl { stroke: var(--grid); stroke-width: 1; }
+.gl.major { stroke: var(--grid-strong); }
+.orbit-guide { fill: none; stroke: var(--ink-faint); stroke-width: 1.6; stroke-dasharray: 6 5; }
+.orbit-trail { fill: none; stroke: var(--blue); stroke-width: 2.2; stroke-linecap: round; stroke-opacity: 0.78; }
+.orbit-arrow { fill: none; stroke: var(--blue-ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sun-ray { stroke: var(--orange); stroke-width: 2.2; stroke-linecap: round; stroke-opacity: 0.75; }
+.sun-body { stroke: var(--orange-ink); stroke-width: 1.8; }
+.earth-body { stroke: none; }
+.earth-outline { fill: none; stroke: var(--blue-ink); stroke-width: 1.8; }
+.earth-outline.imprint { stroke: var(--blue); stroke-width: 1.5; stroke-dasharray: 4 3; stroke-opacity: 0.75; }
+.earth-grid .meridian,
+.earth-grid .parallel { fill: none; stroke: var(--ink); stroke-width: 1; stroke-opacity: 0.42; stroke-linecap: round; }
+.earth-grid .equator { fill: none; stroke: var(--blue-ink); stroke-width: 1.65; stroke-opacity: 0.85; stroke-linecap: round; }
+.earth-grid.imprint .equator { stroke: var(--blue); stroke-width: 1.3; stroke-dasharray: 3 3; stroke-opacity: 0.7; }
+.spin-axis { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.spin-axis.imprint { stroke: var(--blue-ink); stroke-width: 1.6; stroke-dasharray: 3 3; stroke-opacity: 0.8; }
+.pole-dot { fill: var(--ink); }
+.pole-dot.imprint { fill: var(--blue-ink); opacity: 0.8; }
+.axis-ref { stroke: var(--ink-dim); stroke-width: 1.4; stroke-dasharray: 4 4; }
+.tilt-arc { fill: none; stroke: var(--orange-ink); stroke-width: 1.8; stroke-linecap: round; }
+.you-dot { fill: var(--pink); stroke: var(--paper); stroke-width: 1.8; }
+.scene-lbl { font: 700 clamp(14px, 2vw, 18px) var(--font-hand); text-anchor: middle; dominant-baseline: central; }
+.scene-lbl.sun { fill: var(--orange-ink); }
+.scene-lbl.earth,
+.scene-lbl.imprint,
+.scene-lbl.season-lbl { fill: var(--blue-ink); }
+.scene-cap { font: 700 clamp(13px, 1.8vw, 16px) var(--font-hand); fill: var(--orange-ink); text-anchor: middle; dominant-baseline: central; }

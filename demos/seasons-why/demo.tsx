@@ -167,12 +167,12 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       title: 'Summer in June, winter in December',
       play: [
         { ms: ZOOM_TOGGLE_OUT_MS, set: { seasonSwitchOpacity: 0 } },
-        { wait: 80, ms: ZOOM_TOGGLE_IN_MS, set: { zoomToggleOpacity: 1 } },
         { wait: 250, ms: 300, set: { moreHeatLabelOpacity: 0 } },
         { ms: 400, set: { summerLabelOpacity: 1 } },
         { wait: 350, ms: 300, set: { lessHeatLabelOpacity: 0 } },
         { ms: 400, set: { winterLabelOpacity: 1 } },
         { wait: 500, ms: SURFACE_ZOOM_MS, easing: 'ease-in-out', set: { surfaceZoomProgress: 0 } },
+        { wait: 200, ms: ZOOM_TOGGLE_IN_MS, set: { zoomToggleOpacity: 1 } },
         { set: { canToggleZoom: true } },
       ],
       exit: [

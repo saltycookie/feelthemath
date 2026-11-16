@@ -55,8 +55,7 @@
 .scene-lbl { font: 700 clamp(14px, 2vw, 18px) var(--font-hand); text-anchor: middle; dominant-baseline: central; }
 .scene-lbl.sun { fill: var(--orange-ink); }
 .scene-lbl.earth,
-.scene-lbl.imprint,
-.scene-lbl.season-lbl { fill: var(--blue-ink); }
+.scene-lbl.imprint { fill: var(--blue-ink); }
 .scene-cap { font: 700 clamp(13px, 1.8vw, 16px) var(--font-hand); fill: var(--orange-ink); text-anchor: middle; dominant-baseline: central; }
 .digital-clock {
   filter: drop-shadow(0 1px 3px var(--shadow));
@@ -270,12 +269,27 @@
 .earth-drag-cue.dragging .earth-drag-arc-head {
   stroke-opacity: 0.45;
 }
+.box.can-drag,
+.box.can-drag .pic,
+.box.can-drag .earth-drag-layer,
+.box.can-drag .earth-drag-layer * {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
 .earth-drag-badge {
   pointer-events: all;
   cursor: grab;
-  touch-action: none;
   filter: drop-shadow(0 2px 5px var(--shadow));
   transition: opacity 160ms ease, transform 160ms ease;
+}
+.earth-drag-badge,
+.earth-drag-badge * {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 .earth-drag-badge-bg {
   fill: var(--paper);
@@ -310,9 +324,12 @@
   stroke-width: 2.6;
   animation: none;
 }
-.earth-drag-hit.dragging,
+.earth-drag-hit.dragging {
+  cursor: grabbing;
+}
 .earth-drag-badge.dragging {
   cursor: grabbing;
+  pointer-events: none;
 }
 @keyframes earth-drag-pulse {
   0%, 100% { stroke-opacity: 0.45; }

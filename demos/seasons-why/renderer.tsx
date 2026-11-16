@@ -94,7 +94,7 @@ function makeProjector(
     return [vx / len, vy / len, vz / len];
   };
 
-  return { proj, camDirFrom, alpha, ca, sa };
+  return { proj, camDirFrom };
 }
 
 function sampleEarthPoint(
@@ -858,44 +858,82 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     return Math.atan2(y, x);
   };
 
+  const updateDragFromClientPos = (clientX: number, clientY: number, angleOffset: number) => {
+    const ptrTheta = screenToOrbitTheta(clientX, clientY);
+    if (ptrTheta === null) return;
+    const theta = ptrTheta + angleOffset;
+    const rawTurns = (theta - Math.PI) / (2 * Math.PI);
+    const nextDragP = (((rawTurns % 1) + 1.5) % 1) - 0.5;
+    dragContextRef.current.updateState({ earthDragProgress: nextDragP });
+  };
+
+  const endDrag = (pointerId?: number) => {
+    const active = dragRef.current;
+    if (!active) return;
+    if (pointerId !== undefined && pointerId !== active.pointerId) return;
+    dragRef.current = null;
+    setIsDragging(false);
+    try {
+      if (boxRef.current?.hasPointerCapture?.(active.pointerId)) {
+        boxRef.current.releasePointerCapture(active.pointerId);
+      }
+    } catch {
+      // Ignore if pointer capture is unavailable or already released
+    }
+  };
+
+  // Prevent iOS Safari / mobile browsers from hijacking an active Earth drag for scroll/overscroll
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el || !canDrag) return;
+    const onTouchMove = (e: TouchEvent) => {
+      if (dragRef.current) {
+        e.preventDefault();
+      }
+    };
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener('touchmove', onTouchMove);
+    };
+  }, [canDrag]);
+
   useEffect(() => {
     if (!isDragging) return;
-    if (!canDrag) {
-      dragRef.current = null;
-      setIsDragging(false);
+    if (!canDrag || !dragRef.current) {
+      endDrag();
       return;
     }
 
     const onPointerMove = (e: PointerEvent) => {
       const active = dragRef.current;
       if (!active || e.pointerId !== active.pointerId) return;
-      const ptrTheta = screenToOrbitTheta(e.clientX, e.clientY);
-      if (ptrTheta === null) return;
-      const theta = ptrTheta + active.angleOffset;
-      const rawTurns = (theta - Math.PI) / (2 * Math.PI);
-      const nextDragP = (((rawTurns % 1) + 1.5) % 1) - 0.5;
-      dragContextRef.current.updateState({ earthDragProgress: nextDragP });
+      updateDragFromClientPos(e.clientX, e.clientY, active.angleOffset);
     };
 
     const onPointerEnd = (e: PointerEvent) => {
-      const active = dragRef.current;
-      if (!active || e.pointerId !== active.pointerId) return;
-      dragRef.current = null;
-      setIsDragging(false);
+      endDrag(e.pointerId);
+    };
+
+    const onWindowBlur = () => {
+      endDrag();
     };
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerEnd);
     window.addEventListener('pointercancel', onPointerEnd);
+    window.addEventListener('blur', onWindowBlur);
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerEnd);
       window.removeEventListener('pointercancel', onPointerEnd);
+      window.removeEventListener('blur', onWindowBlur);
     };
   }, [isDragging, canDrag]);
 
   const handleEarthPointerDown = (e: React.PointerEvent<SVGElement>) => {
     if (!canDrag || !box) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (dragRef.current && !e.isPrimary) return;
     e.preventDefault();
     e.stopPropagation();
     const ptrTheta = screenToOrbitTheta(e.clientX, e.clientY);
@@ -907,6 +945,29 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     const angleOffset = ptrTheta === null ? 0 : curTheta - ptrTheta;
     dragRef.current = { pointerId: e.pointerId, angleOffset };
     setIsDragging(true);
+    try {
+      boxRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore if pointer capture is unavailable (e.g., synthetic events)
+    }
+  };
+
+  const handleBoxPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const active = dragRef.current;
+    if (!active || e.pointerId !== active.pointerId) return;
+    if (!canDrag) {
+      endDrag(e.pointerId);
+      return;
+    }
+    e.stopPropagation();
+    updateDragFromClientPos(e.clientX, e.clientY, active.angleOffset);
+  };
+
+  const handleBoxPointerEnd = (e: React.PointerEvent<HTMLDivElement>) => {
+    const active = dragRef.current;
+    if (!active || e.pointerId !== active.pointerId) return;
+    e.stopPropagation();
+    endDrag(e.pointerId);
   };
 
   // Build projected 3D scene primitives once `box` is measured
@@ -1038,7 +1099,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     const normTurn = (((tiltedP + dragP) % 1) + 1) % 1;
     const monthIdx = Math.round(normTurn * 12) % 12;
     const liveEarthLabel = tiltedP > 0.002 ? MONTHS[monthIdx] : 'Earth';
-    const liveEarthLabelOp = 1;
     const distToJune = Math.min(normTurn, 1 - normTurn);
     const distToDec = Math.abs(normTurn - 0.5);
     const juneImprintLabelOp = clamp01((distToJune - 0.04) / 0.05);
@@ -1163,8 +1223,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     }
 
     const clockOp = clamp01(S.digitalClockOpacity);
-    const spinToggleOp = clamp01(S.spinToggleOpacity);
-    const zoomToggleOp = clamp01(S.zoomToggleOpacity);
     const spreadOp = clamp01(S.spreadOverlayOpacity);
     const seasonP = clamp01(S.seasonCompareProgress);
     const tangentOp = clamp01(S.tangentLineOpacity);
@@ -1483,7 +1541,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           spinRad: effectiveSpinAngle,
           opacity: sunEarthOp,
           label: liveEarthLabel,
-          labelOpacity: liveEarthLabelOp,
           labelXOverride:
             useJunePanel && zoomP > 0.001 && juneSide ? juneSide.fixedLabelX : undefined,
           labelYOverride: useJunePanel && zoomP > 0.001 ? fixedSideLabelY : undefined,
@@ -1762,7 +1819,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
             className={isDragging ? 'earth-drag-hit dragging' : 'earth-drag-hit'}
             cx={earthScreen.x}
             cy={earthScreen.y}
-            r={Math.max(liveEarthRPx + 18, 32)}
+            r={Math.max(liveEarthRPx + 28, 46)}
             onPointerDown={handleEarthPointerDown}
           />
           {cueOp > 0.01 && (
@@ -1967,9 +2024,13 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
         <b className="c-blue">winters</b>?
       </p>
       <div
-        className="box"
+        className={canDrag ? 'box can-drag' : 'box'}
         ref={boxRef}
         style={isDragging ? { cursor: 'grabbing' } : undefined}
+        onPointerMove={handleBoxPointerMove}
+        onPointerUp={handleBoxPointerEnd}
+        onPointerCancel={handleBoxPointerEnd}
+        onLostPointerCapture={handleBoxPointerEnd}
       >
         <svg className="pic" role="img" aria-label={ALT_TEXT}>
           {sceneContent}

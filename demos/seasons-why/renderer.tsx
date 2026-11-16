@@ -1319,25 +1319,73 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     const flatLandOp = clamp01((zoomP - 0.25) / 0.55);
 
     const youTargetY = panelTop + panelH * 0.68;
-    const juneElevSin = Math.sin(Math.PI / 2 - (YOU_LAT_RAD - AXIAL_TILT_RAD));
-    const decElevAngle = Math.PI / 2 - (YOU_LAT_RAD + AXIAL_TILT_RAD);
-    const decElevSin = Math.sin(decElevAngle);
-    const decElevCot = Math.cos(decElevAngle) / decElevSin;
+    const juneDeltaLat = youLatRad - AXIAL_TILT_RAD;
+    const decDeltaLat = youLatRad + AXIAL_TILT_RAD;
+    const juneElevSin = Math.max(0.28, Math.cos(juneDeltaLat));
+    const decElevAngle = Math.PI / 2 - Math.abs(decDeltaLat);
+    const decElevSin = Math.max(0.28, Math.cos(decDeltaLat));
 
     const minPanelW = Math.min(junePanelRect.w, decPanelRect.w);
     const beamMargin = 10;
     const dPerpZoom = Math.min(minPanelW * 0.052, panelH * 0.08);
+    const juneGroundHalfSpan = (2 * dPerpZoom) / juneElevSin;
     const decGroundHalfSpan = (2 * dPerpZoom) / decElevSin;
 
-    const decYouOffsetInPanel = Math.min(
-      decPanelRect.w - beamMargin - decGroundHalfSpan,
-      Math.max(decPanelRect.w * 0.5, decPanelRect.w * 0.56)
+    const computeYouOffsetInPanel = (panelW: number, dxAtZoom: number, groundHalfSpan: number) => {
+      const shiftFrac = clamp01((Math.abs(dxAtZoom) - 0.2) / 0.6) * 0.06 * Math.sign(dxAtZoom);
+      const desired = panelW * (0.5 + shiftFrac);
+      return Math.max(
+        beamMargin + groundHalfSpan,
+        Math.min(panelW - beamMargin - groundHalfSpan, desired)
+      );
+    };
+
+    const juneDx1 = -Math.sin(juneDeltaLat);
+    const decDx1 = Math.sin(decDeltaLat);
+    const juneYouOffsetInPanel = computeYouOffsetInPanel(
+      junePanelRect.w,
+      juneDx1,
+      juneGroundHalfSpan
     );
-    const decLeftRunway = Math.max(20, decYouOffsetInPanel - beamMargin - decGroundHalfSpan);
-    const maxDeltaYForDec = decLeftRunway / decElevCot;
+    const decYouOffsetInPanel = computeYouOffsetInPanel(
+      decPanelRect.w,
+      decDx1,
+      decGroundHalfSpan
+    );
+
+    const computeMaxDropY = (
+      panelW: number,
+      youOffset: number,
+      dxAtZoom: number,
+      elevSin: number,
+      groundHalfSpan: number
+    ) => {
+      const cot = Math.abs(dxAtZoom) / elevSin;
+      if (cot < 1e-3) return Infinity;
+      const runway =
+        dxAtZoom >= 0
+          ? Math.max(20, youOffset - beamMargin - groundHalfSpan)
+          : Math.max(20, panelW - beamMargin - groundHalfSpan - youOffset);
+      return runway / cot;
+    };
+
+    const maxDeltaYForJune = computeMaxDropY(
+      junePanelRect.w,
+      juneYouOffsetInPanel,
+      juneDx1,
+      juneElevSin,
+      juneGroundHalfSpan
+    );
+    const maxDeltaYForDec = computeMaxDropY(
+      decPanelRect.w,
+      decYouOffsetInPanel,
+      decDx1,
+      decElevSin,
+      decGroundHalfSpan
+    );
     const sharedBeamDropY = Math.max(
       28,
-      Math.min(panelH * 0.5, youTargetY - (panelTop + 14), maxDeltaYForDec)
+      Math.min(panelH * 0.5, youTargetY - (panelTop + 14), maxDeltaYForJune, maxDeltaYForDec)
     );
     const beamStartY = youTargetY - sharedBeamDropY;
 
@@ -1358,9 +1406,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
       const youDz0 = EARTH_R * Math.sin(thetaNorm0);
       const youPos0X = cx + scale * (worldEx + youDx0);
       const youPos0Y = cy - scale * youDz0;
-      const youTargetX = isJune
-        ? panelRect.x + panelRect.w * 0.5
-        : panelRect.x + decYouOffsetInPanel;
+      const youTargetX = panelRect.x + (isJune ? juneYouOffsetInPanel : decYouOffsetInPanel);
       const youPosX = lerp(youPos0X, youTargetX, zoomP);
       const youPosY = lerp(youPos0Y, youTargetY, zoomP);
 

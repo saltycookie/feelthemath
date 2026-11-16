@@ -179,10 +179,8 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         { set: { canToggleZoom: true } },
       ],
       exit: [
-        { unset: ['canToggleZoom'] },
         {
           parallel: [
-            { ms: ZOOM_TOGGLE_OUT_MS, set: { zoomToggleOpacity: 0 } },
             {
               ms: MESSAGE_OUT_MS,
               set: {
@@ -207,6 +205,7 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       play: [
         { wait: 250, ms: YOU_SOUTH_MS, easing: 'ease-in-out', set: { youSouthProgress: 1 } },
         { wait: 250, ms: MESSAGE_IN_MS, set: { southQuestionMessageOpacity: 1 } },
+        { set: { zoomToggleOpacity: 1, canToggleZoom: true } },
       ],
     },
   ],

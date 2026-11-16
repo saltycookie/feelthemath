@@ -33,6 +33,8 @@ function copyStaticPagesAssets(): Plugin {
         'demos/qiangs-trip/thumbnail@2x.png',
         'demos/two-sticks/thumbnail.png',
         'demos/two-sticks/thumbnail@2x.png',
+        'demos/seasons-why/thumbnail.png',
+        'demos/seasons-why/thumbnail@2x.png',
       ];
 
       for (const relPath of filesToCopy) {
@@ -93,7 +95,7 @@ function copyStaticPagesAssets(): Plugin {
       //    - Place <link rel="stylesheet"> tags (theme.css first, then demo css) BEFORE <script type="module">
       //    - Add blocking="render" to <script type="module"> so the React tree and box.ts are ready
       //      before the browser fires pagereveal and captures the cross-document view transition snapshot.
-      const demoSlugs = ['dannys-walk', 'qiangs-trip', 'two-sticks', 'example'];
+      const demoSlugs = ['dannys-walk', 'qiangs-trip', 'two-sticks', 'example', 'seasons-why'];
       for (const slug of demoSlugs) {
         const demoHtmlPath = resolve(outDir, `demos/${slug}/index.html`);
         if (!existsSync(demoHtmlPath)) continue;
@@ -138,6 +140,7 @@ export default defineConfig({
         'qiangs-trip': resolve(__dirname, 'demos/qiangs-trip/index.html'),
         'two-sticks': resolve(__dirname, 'demos/two-sticks/index.html'),
         example: resolve(__dirname, 'demos/example/index.html'),
+        'seasons-why': resolve(__dirname, 'demos/seasons-why/index.html'),
       },
     },
   },

@@ -33,6 +33,8 @@ function copyStaticPagesAssets(): Plugin {
         'demos/qiangs-trip/thumbnail@2x.png',
         'demos/two-sticks/thumbnail.png',
         'demos/two-sticks/thumbnail@2x.png',
+        'demos/seasons-why/thumbnail.png',
+        'demos/seasons-why/thumbnail@2x.png',
       ];
 
       for (const relPath of filesToCopy) {

@@ -201,6 +201,8 @@ interface GlobeRenderOptions {
   sideViewProgress?: number;
   showTiltGuide?: number;
   youOpacity?: number;
+  youLatRad?: number;
+  youSouthProgress?: number;
   youLabelOpacity?: number;
   youZoomProgress?: number;
   forceYouFront?: boolean;
@@ -231,6 +233,8 @@ function renderGlobe({
   sideViewProgress = 0,
   showTiltGuide = 0,
   youOpacity = 0,
+  youLatRad = YOU_LAT_RAD,
+  youSouthProgress = 0,
   youLabelOpacity = 1,
   youZoomProgress = 0,
   forceYouFront = false,
@@ -422,14 +426,14 @@ function renderGlobe({
     );
   }
 
-  // "You" dot on Northern Hemisphere (30°N, fixed on the spinning Earth)
+  // "You" dot (30°N moving to 30°S in Step 10, fixed on the spinning Earth)
   const youOp = clamp01(youOpacity);
   let youPt: EarthPos | null = null;
   if (youOp > 0.01 && !isImprint) {
     youPt = sampleEarthPoint(
       ex,
       ey,
-      YOU_LAT_RAD,
+      youLatRad,
       spinRad - NOON_SPIN_ANGLE,
       tiltRad,
       proj,
@@ -438,7 +442,9 @@ function renderGlobe({
   }
   const youOnBack = !forceYouFront && Boolean(youPt && youPt.dot < 0);
   const youZoomP = clamp01(youZoomProgress);
+  const youSouthP = clamp01(youSouthProgress);
   const youLblOp = clamp01(youLabelOpacity);
+  const youBaseYOff = lerp(-10, 12, youSouthP * (ex < 0 ? 1 : 0));
 
   const renderYou = (opacity: number) =>
     youPt && opacity > 0.01 ? (
@@ -449,7 +455,7 @@ function renderGlobe({
             className="scene-cap c-pink halo"
             opacity={youLblOp}
             x={youPt.sx + lerp(14, 0, youZoomP)}
-            y={youPt.sy + lerp(-10, 18, youZoomP)}
+            y={youPt.sy + lerp(youBaseYOff, 18, youZoomP)}
           >
             You
           </text>
@@ -1164,6 +1170,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     const tangentOp = clamp01(S.tangentLineOpacity);
     const zoomP = sunFoldP >= 0.999 ? clamp01(S.surfaceZoomProgress) : 0;
     const spreadVisOp = spreadOp * clamp01((zoomP - 0.7) / 0.3);
+    const southP = clamp01(S.youSouthProgress);
+    const youLatRad = lerp(YOU_LAT_RAD, -YOU_LAT_RAD, southP);
     const clockTime =
       clockOp > 0.002 ? formatClockTime(effectiveSpinAngle - NOON_SPIN_ANGLE) : undefined;
 
@@ -1232,8 +1240,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
       const worldEx = isJune ? -earthXOffset : earthXOffset;
       const panelRect = isJune ? junePanelRect : decPanelRect;
       const thetaNorm0 = isJune
-        ? YOU_LAT_RAD - AXIAL_TILT_RAD
-        : Math.PI - (YOU_LAT_RAD + AXIAL_TILT_RAD);
+        ? youLatRad - AXIAL_TILT_RAD
+        : Math.PI - (youLatRad + AXIAL_TILT_RAD);
       const targetRot = Math.PI / 2 - thetaNorm0;
       const rotRad = targetRot * zoomP;
       const panelTiltRad = tiltRad - rotRad;
@@ -1445,6 +1453,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           clockOpacity: clockOp * solidDecP,
           sideViewProgress: sideP,
           youOpacity: S.youOnTheNorthHemisphereOpacity * solidDecP,
+          youLatRad,
+          youSouthProgress: southP,
           youLabelOpacity: zoomP > 0.001 ? 1 - spreadVisOp : 1,
           youZoomProgress: zoomP,
           forceYouFront: zoomP > 0.001 || stopNoonP >= 0.9999,
@@ -1482,6 +1492,8 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           sideViewProgress: sideP,
           showTiltGuide: tiltGuideOp,
           youOpacity: S.youOnTheNorthHemisphereOpacity,
+          youLatRad,
+          youSouthProgress: southP,
           youLabelOpacity: useJunePanel && zoomP > 0.001 ? 1 - spreadVisOp : 1,
           youZoomProgress: useJunePanel ? zoomP : 0,
           forceYouFront: zoomP > 0.001 || stopNoonP >= 0.9999,
@@ -1920,6 +1932,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
   const msgOp = clamp01(S.aboutSameDistMessageOpacity);
   const moveMsgOp = clamp01(S.moveEarthMessageOpacity);
   const heatMsgOp = clamp01(S.moreHeatMessageOpacity);
+  const southMsgOp = clamp01(S.southQuestionMessageOpacity);
   const spinToggleOp = clamp01(S.spinToggleOpacity);
   const zoomToggleOp = clamp01(S.zoomToggleOpacity);
   const seasonSwitchOp = clamp01(S.seasonSwitchOpacity);
@@ -1990,6 +2003,16 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           }}
         >
           When do you get more heat, June or December?
+        </p>
+        <p
+          className="seasons-msg"
+          aria-hidden={southMsgOp <= 0.01 ? true : undefined}
+          style={{
+            opacity: southMsgOp,
+            transform: `translateY(${((1 - southMsgOp) * 8).toFixed(1)}px)`,
+          }}
+        >
+          Can you figure out when is summer, when is winter?
         </p>
         {moreHeatLabelOp > 0.01 && (
           <p

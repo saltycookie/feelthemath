@@ -27,6 +27,7 @@ const ZOOM_TOGGLE_OUT_MS = 250;
 const SEASON_SWITCH_IN_MS = 450;
 const SPREAD_SLIDE_MS = 2600;
 const HEAT_LABELS_IN_MS = 500;
+const YOU_SOUTH_MS = 1400;
 
 export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = {
   id: 'seasons-why',
@@ -178,10 +179,24 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       exit: [
         { unset: ['canToggleZoom'] },
         {
-          ms: (s) => Math.round(s.surfaceZoomProgress * 1000),
-          easing: 'ease-in-out',
-          set: { surfaceZoomProgress: 0 },
+          parallel: [
+            { ms: ZOOM_TOGGLE_OUT_MS, set: { zoomToggleOpacity: 0 } },
+            { ms: MESSAGE_OUT_MS, set: { summerLabelOpacity: 0, winterLabelOpacity: 0 } },
+            {
+              ms: (s) => Math.round(s.surfaceZoomProgress * 1000),
+              easing: 'ease-in-out',
+              set: { surfaceZoomProgress: 0 },
+            },
+          ],
         },
+        { unset: ['spreadOverlayOpacity'] },
+      ],
+    },
+    {
+      title: 'What if You Live in the South?',
+      play: [
+        { wait: 250, ms: YOU_SOUTH_MS, easing: 'ease-in-out', set: { youSouthProgress: 1 } },
+        { wait: 250, ms: MESSAGE_IN_MS, set: { southQuestionMessageOpacity: 1 } },
       ],
     },
   ],

@@ -59,6 +59,10 @@ export interface SeasonsWhyState {
   summerLabelOpacity: number;
   // Opacity of the Step 9 "Winter" label replacing "less heat" below December's month & clock.
   winterLabelOpacity: number;
+  // Continuous position (0 = 30°N, 1 = 30°S) moving "You" and its tangent line to the Southern Hemisphere in Step 10.
+  youSouthProgress: number;
+  // Opacity of the Step 10 bottom message: "Can you figure out when is summer, when is winter?"
+  southQuestionMessageOpacity: number;
   // Whether the user can interactively toggle the Step 8 June / December switch.
   canToggleSeason: boolean;
   // Viewing space from the front.
@@ -104,6 +108,8 @@ export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {
   lessHeatLabelOpacity: 0,
   summerLabelOpacity: 0,
   winterLabelOpacity: 0,
+  youSouthProgress: 0,
+  southQuestionMessageOpacity: 0,
   canToggleSeason: false,
   spaceSidedViewProgress: 0,
   solidDecemberEarthProgress: 0,

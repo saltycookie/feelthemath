@@ -21,12 +21,13 @@ const SUN_FOLD_MS = 1600;
 const SPIN_TOGGLE_OUT_MS = 250;
 const STOP_NOON_MS = 1800;
 const TANGENT_IN_MS = 550;
-const SURFACE_ZOOM_MS = 1600;
+const SURFACE_ZOOM_MS = 2600;
 const ZOOM_TOGGLE_IN_MS = 450;
 const ZOOM_TOGGLE_OUT_MS = 250;
-const SEASON_SWITCH_IN_MS = 450;
+const SPREAD_IN_MS = 450;
 const SPREAD_SLIDE_MS = 2600;
 const HEAT_LABELS_IN_MS = 500;
+const ANSWER_RING_MS = 750;
 const YOU_SOUTH_MS = 1400;
 
 export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = {
@@ -105,9 +106,11 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
           ms: YOU_IN_MS,
           set: { youOnTheNorthHemisphereOpacity: 1, digitalClockOpacity: 1, spinToggleOpacity: 1 },
         },
+        { wait: 250, ms: MESSAGE_IN_MS, set: { sunlightDiffMessageOpacity: 1 } },
       ],
       exit: [
         { unset: ['earthSpinPaused'] },
+        { ms: MESSAGE_OUT_MS, unset: ['sunlightDiffMessageOpacity'] },
       ],
     },
     {
@@ -133,7 +136,7 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
               unset: ['moreHeatMessageOpacity'],
             },
             {
-              ms: (s) => Math.round((1 - s.surfaceZoomProgress) * 1000),
+              ms: (s) => Math.round((1 - s.surfaceZoomProgress) * SURFACE_ZOOM_MS),
               easing: 'ease-in-out',
               set: { surfaceZoomProgress: 1 },
             },
@@ -147,16 +150,14 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         { ms: ZOOM_TOGGLE_OUT_MS, set: { zoomToggleOpacity: 0 } },
         {
           wait: 80,
-          ms: SEASON_SWITCH_IN_MS,
-          set: { seasonSwitchOpacity: 1, spreadOverlayOpacity: 1 },
+          ms: SPREAD_IN_MS,
+          set: { spreadOverlayOpacity: 1 },
         },
         { wait: 550, ms: SPREAD_SLIDE_MS, easing: 'ease-in-out', set: { seasonCompareProgress: 1 } },
         { wait: 200, ms: HEAT_LABELS_IN_MS, set: { moreHeatLabelOpacity: 1 } },
         { wait: 350, ms: HEAT_LABELS_IN_MS, set: { lessHeatLabelOpacity: 1 } },
-        { set: { canToggleSeason: true } },
       ],
       exit: [
-        { unset: ['canToggleSeason'] },
         {
           ms: (s) => Math.round((1 - s.seasonCompareProgress) * 1000),
           easing: 'ease-in-out',
@@ -167,12 +168,13 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
     {
       title: 'Summer in June, winter in December',
       play: [
-        { ms: ZOOM_TOGGLE_OUT_MS, set: { seasonSwitchOpacity: 0 } },
         { wait: 250, ms: 300, set: { moreHeatLabelOpacity: 0 } },
         { ms: 400, set: { summerLabelOpacity: 1 } },
-        { wait: 350, ms: 300, set: { lessHeatLabelOpacity: 0 } },
+        { wait: 150, ms: ANSWER_RING_MS, set: { summerRingProgress: 1 } },
+        { wait: 300, ms: 300, set: { lessHeatLabelOpacity: 0 } },
         { ms: 400, set: { winterLabelOpacity: 1 } },
-        { wait: 500, ms: SURFACE_ZOOM_MS, easing: 'ease-in-out', set: { surfaceZoomProgress: 0 } },
+        { wait: 150, ms: ANSWER_RING_MS, set: { winterRingProgress: 1 } },
+        { wait: 450, ms: SURFACE_ZOOM_MS, easing: 'ease-in-out', set: { surfaceZoomProgress: 0 } },
         { wait: 200, ms: ZOOM_TOGGLE_IN_MS, set: { zoomToggleOpacity: 1 } },
         { set: { canToggleZoom: true } },
       ],
@@ -181,9 +183,17 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         {
           parallel: [
             { ms: ZOOM_TOGGLE_OUT_MS, set: { zoomToggleOpacity: 0 } },
-            { ms: MESSAGE_OUT_MS, set: { summerLabelOpacity: 0, winterLabelOpacity: 0 } },
             {
-              ms: (s) => Math.round(s.surfaceZoomProgress * 1000),
+              ms: MESSAGE_OUT_MS,
+              set: {
+                summerLabelOpacity: 0,
+                winterLabelOpacity: 0,
+                summerRingProgress: 0,
+                winterRingProgress: 0,
+              },
+            },
+            {
+              ms: (s) => Math.round(s.surfaceZoomProgress * SURFACE_ZOOM_MS),
               easing: 'ease-in-out',
               set: { surfaceZoomProgress: 0 },
             },

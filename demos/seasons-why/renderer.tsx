@@ -124,13 +124,15 @@ function sampleEarthPoint(
 }
 
 /**
- * Builds an SVG path string containing only the front-facing (`dot >= 0`) spans
- * of a sampled curve on the sphere, interpolating limb crossings cleanly.
+ * Builds an SVG path string containing either the front-facing (`dot >= 0`) or
+ * back-facing (`dot < 0`) spans of a sampled curve on the sphere, interpolating
+ * limb crossings cleanly.
  */
-function buildFrontCurvePath(pts: EarthPos[]): string {
+function buildSphereCurvePath(pts: EarthPos[], front: boolean): string {
   if (pts.length < 2) return '';
   const segments: string[] = [];
   let inSpan = false;
+  const isVis = (pt: EarthPos) => (front ? pt.dot >= 0 : pt.dot < 0);
 
   const pushMove = (x: number, y: number) => {
     segments.push(`M${x.toFixed(1)},${y.toFixed(1)}`);
@@ -141,8 +143,9 @@ function buildFrontCurvePath(pts: EarthPos[]): string {
 
   for (let i = 0; i < pts.length; i++) {
     const cur = pts[i];
+    const curVis = isVis(cur);
     if (i === 0) {
-      if (cur.dot >= 0) {
+      if (curVis) {
         pushMove(cur.sx, cur.sy);
         inSpan = true;
       }
@@ -150,8 +153,7 @@ function buildFrontCurvePath(pts: EarthPos[]): string {
     }
 
     const prev = pts[i - 1];
-    const prevVis = prev.dot >= 0;
-    const curVis = cur.dot >= 0;
+    const prevVis = isVis(prev);
 
     if (!prevVis && curVis) {
       const t = prev.dot / (prev.dot - cur.dot);
@@ -172,6 +174,72 @@ function buildFrontCurvePath(pts: EarthPos[]): string {
   }
 
   return segments.join('');
+}
+
+/** Hand-drawn orange answer ring path around a box of size w × h (matches Danny's Walk). */
+function ringPath(w: number, h: number): string {
+  const n = 64;
+  const a0 = -2.5;
+  const sweep = 2 * Math.PI + 0.55;
+  const pts: string[][] = [];
+  for (let i = 0; i <= n; i++) {
+    const u = i / n;
+    const a = a0 + sweep * u;
+    const g = 1.035 - 0.07 * u;
+    pts.push([
+      (w / 2 + (w / 2 - 3) * g * Math.cos(a)).toFixed(1),
+      (h / 2 + (h / 2 - 3) * g * Math.sin(a)).toFixed(1),
+    ]);
+  }
+  return 'M' + pts.join('L');
+}
+
+function AnswerRingWord({ text, progress }: { text: string; progress: number }) {
+  const ringRef = useRef<SVGSVGElement | null>(null);
+  const ringPathRef = useRef<SVGPathElement | null>(null);
+
+  const ringBox = useMeasure<Size | null>(
+    ringRef,
+    () => {
+      const rect = ringRef.current?.getBoundingClientRect();
+      return rect && rect.width > 0 && rect.height > 0
+        ? { w: rect.width, h: rect.height }
+        : undefined;
+    },
+    null
+  );
+
+  const ringD = ringBox ? ringPath(ringBox.w, ringBox.h) : undefined;
+  const ringLen = useMeasure(
+    ringPathRef,
+    () => (ringD && ringPathRef.current ? ringPathRef.current.getTotalLength() : undefined),
+    0,
+    [ringD]
+  );
+
+  const p = clamp01(progress);
+
+  return (
+    <span className="season-ans">
+      {text}
+      <svg
+        ref={ringRef}
+        className="season-ring"
+        aria-hidden="true"
+        viewBox={ringBox ? `0 0 ${ringBox.w} ${ringBox.h}` : undefined}
+        style={{ opacity: p > 0 && ringLen > 0 ? 1 : 0 }}
+      >
+        <path
+          ref={ringPathRef}
+          d={ringD}
+          style={{
+            strokeDasharray: String(ringLen),
+            strokeDashoffset: String(ringLen * (1 - p)),
+          }}
+        />
+      </svg>
+    </span>
+  );
 }
 
 function formatClockTime(lonRad: number): string {
@@ -281,7 +349,8 @@ function renderGlobe({
     return {
       deg,
       isEquator: deg === 0,
-      d: buildFrontCurvePath(pts),
+      d: buildSphereCurvePath(pts, true),
+      backD: isImprint && deg === 0 ? buildSphereCurvePath(pts, false) : '',
     };
   });
 
@@ -295,7 +364,7 @@ function renderGlobe({
       const lat = lerp(-Math.PI / 2, Math.PI / 2, i / steps);
       pts.push(sampleEarthPoint(ex, ey, lat, lon, tiltRad, proj, camDir));
     }
-    const d = buildFrontCurvePath(pts);
+    const d = buildSphereCurvePath(pts, true);
     if (d) lonPaths.push(d);
   }
 
@@ -509,6 +578,18 @@ function renderGlobe({
             />
           )}
 
+          {/* Backside of the equator visible through semi-transparent imprint */}
+          {isImprint &&
+            latPaths.map(
+              ({ deg, isEquator, backD }) =>
+                isEquator &&
+                backD && (
+                  <g key={`lat-back-${deg}`} className="earth-grid imprint">
+                    <path className="equator-back" d={backD} />
+                  </g>
+                )
+            )}
+
           {/* Earth sphere body (always full opacity to preserve its color) */}
           <circle
             className={isImprint ? 'earth-body imprint' : 'earth-body'}
@@ -661,7 +742,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
   const [spinAngle, setSpinAngle] = useState(0);
   const stopNoonRef = useRef<{ startAngle: number; targetAngle: number } | null>(null);
   const [zoomTweenTarget, setZoomTweenTarget] = useState<0 | 1 | null>(null);
-  const [seasonTweenTarget, setSeasonTweenTarget] = useState<0 | 1 | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragRef = useRef<{ pointerId: number; angleOffset: number } | null>(null);
 
@@ -677,7 +757,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
 
   const stopNoonP = clamp01(S.stopAtNoonProgress);
   const canToggleZoom = Boolean(S.canToggleZoom) && !isAnimating;
-  const canToggleSeason = Boolean(S.canToggleSeason) && !isAnimating;
 
   // Continuously spin the Earth whenever it is visible, not paused, and not stopping at noon
   const isSpinning = S.sunAndEarthOpacity > 0.01 && !S.earthSpinPaused && stopNoonP <= 0.0001;
@@ -731,11 +810,9 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     );
   }
 
-  // Smoothly animate between zoomed in (1) and zoomed out (0) when user clicks the Step 7 toggle
+  // Smoothly animate between zoomed in (1) and zoomed out (0) when user clicks the Step 7 / Step 9 toggle
   const surfaceZoomRef = useRef(S.surfaceZoomProgress);
   surfaceZoomRef.current = S.surfaceZoomProgress;
-  const seasonCompareRef = useRef(S.seasonCompareProgress);
-  seasonCompareRef.current = S.seasonCompareProgress;
   const updateStateRef = useRef(updateState);
   updateStateRef.current = updateState;
 
@@ -748,7 +825,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
 
     const startZoom = clamp01(surfaceZoomRef.current);
     const targetZoom = zoomTweenTarget;
-    const durationMs = Math.max(120, Math.round(Math.abs(targetZoom - startZoom) * 950));
+    const durationMs = Math.max(180, Math.round(Math.abs(targetZoom - startZoom) * 2200));
     const startTime = performance.now();
     let rafId = 0;
 
@@ -768,37 +845,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     rafId = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(rafId);
   }, [zoomTweenTarget, canToggleZoom]);
-
-  // Smoothly animate between June (0) and December (1) when user clicks the Step 8 toggle switch
-  useEffect(() => {
-    if (seasonTweenTarget === null) return;
-    if (!canToggleSeason) {
-      setSeasonTweenTarget(null);
-      return;
-    }
-
-    const startVal = clamp01(seasonCompareRef.current);
-    const targetVal = seasonTweenTarget;
-    const durationMs = Math.max(120, Math.round(Math.abs(targetVal - startVal) * 1400));
-    const startTime = performance.now();
-    let rafId = 0;
-
-    const tick = (now: number) => {
-      const raw = Math.min(1, (now - startTime) / durationMs);
-      const eased =
-        raw < 0.5 ? 4 * raw * raw * raw : 1 - Math.pow(-2 * raw + 2, 3) / 2;
-      const nextVal = raw >= 1 ? targetVal : lerp(startVal, targetVal, eased);
-      updateStateRef.current({ seasonCompareProgress: nextVal });
-      if (raw < 1) {
-        rafId = window.requestAnimationFrame(tick);
-      } else {
-        setSeasonTweenTarget(null);
-      }
-    };
-
-    rafId = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(rafId);
-  }, [seasonTweenTarget, canToggleSeason]);
 
   // Layout calculation
   const W = box?.w ?? 0;
@@ -973,6 +1019,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
   // Build projected 3D scene primitives once `box` is measured
   let sceneContent: React.ReactNode = null;
   let toggleTop = Math.max(0, H - 36);
+  let heatMsgTop = Math.max(0, H - 48);
   let juneLabelX = W * 0.25;
   let decLabelX = W * 0.75;
   if (box) {
@@ -1251,6 +1298,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     if (clockOp > 0.002) {
       const clockBottomY = fixedSideLabelY + 28 + 13;
       toggleTop = Math.max(0, Math.min(availH - 28, clockBottomY + 10));
+      heatMsgTop = Math.max(0, Math.min(H - 48, clockBottomY + 12));
     }
 
     const panelTop = 4;
@@ -1577,6 +1625,12 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
       const decYouX = decPanelRect.x + decYouOffsetInPanel;
       const copyCenterX = lerp(juneYouX, decYouX, seasonP);
 
+      const juneDGround = dPerpZoom / juneElevSin;
+      const juneLeftHitX = juneYouX - 2 * juneDGround;
+      const juneRightHitX = juneYouX + 2 * juneDGround;
+      const juneBarFill = 'rgb(220, 48, 42)';
+      const juneBarStroke = 'rgba(176, 36, 30, 0.88)';
+
       const juneRayAngle = Math.PI / 2 + (YOU_LAT_RAD - AXIAL_TILT_RAD);
       const decRayAngle = decElevAngle;
       const copyRayAngle = lerp(juneRayAngle, decRayAngle, seasonP);
@@ -1602,6 +1656,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
       const barY = youTargetY + 1.1;
       const barH = Math.round(Math.min(34, Math.max(20, (panelBottom - youTargetY) * 0.3)));
       const measY = barY + barH + 10;
+      const movingMeasOp = clamp01(seasonP / 0.12);
 
       spreadComparisonNode = (
         <g opacity={spreadVisOp}>
@@ -1631,18 +1686,31 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
             );
           })}
 
-          {/* Strictly rectangular red heat intensity bar touching the ground */}
+          {/* Static copy of the red heat intensity bar kept at the June position */}
           <rect
             className="heat-bar"
-            x={leftHitX}
+            x={juneLeftHitX}
             y={barY}
-            width={Math.max(4, rightHitX - leftHitX)}
+            width={Math.max(4, juneRightHitX - juneLeftHitX)}
             height={barH}
-            fill={barFill}
-            stroke={barStroke}
+            fill={juneBarFill}
+            stroke={juneBarStroke}
           />
 
-          {/* Keep both "You" surface dots crisp above the top edge of the bar */}
+          {/* Moving red heat intensity bar sliding with the beams toward December */}
+          {seasonP > 0.001 && (
+            <rect
+              className="heat-bar"
+              x={leftHitX}
+              y={barY}
+              width={Math.max(4, rightHitX - leftHitX)}
+              height={barH}
+              fill={barFill}
+              stroke={barStroke}
+            />
+          )}
+
+          {/* Keep both "You" surface dots crisp above the top edge of the bars */}
           {S.youOnTheNorthHemisphereOpacity > 0.01 && (
             <g opacity={clamp01(S.youOnTheNorthHemisphereOpacity)}>
               <circle className="you-dot" cx={juneYouX} cy={youTargetY} r={4.5} />
@@ -1658,31 +1726,61 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
             </g>
           )}
 
-          {/* Measurement bracket and "X units spread" label */}
+          {/* Static June measurement bracket and "3.00 units spread" label */}
           <line
             className="spread-measure-line"
-            x1={leftHitX}
+            x1={juneLeftHitX}
             y1={measY}
-            x2={rightHitX}
+            x2={juneRightHitX}
             y2={measY}
           />
           <line
             className="spread-measure-tick"
-            x1={leftHitX}
+            x1={juneLeftHitX}
             y1={measY - 4}
-            x2={leftHitX}
+            x2={juneLeftHitX}
             y2={measY + 4}
           />
           <line
             className="spread-measure-tick"
-            x1={rightHitX}
+            x1={juneRightHitX}
             y1={measY - 4}
-            x2={rightHitX}
+            x2={juneRightHitX}
             y2={measY + 4}
           />
-          <text className="spread-measure-txt halo" x={copyCenterX} y={measY + 16}>
-            {`${spreadUnits.toFixed(2)} units spread`}
+          <text className="spread-measure-txt halo" x={juneYouX} y={measY + 16}>
+            3.00 units spread
           </text>
+
+          {/* Moving measurement bracket and "X units spread" label */}
+          {movingMeasOp > 0.01 && (
+            <g opacity={movingMeasOp}>
+              <line
+                className="spread-measure-line"
+                x1={leftHitX}
+                y1={measY}
+                x2={rightHitX}
+                y2={measY}
+              />
+              <line
+                className="spread-measure-tick"
+                x1={leftHitX}
+                y1={measY - 4}
+                x2={leftHitX}
+                y2={measY + 4}
+              />
+              <line
+                className="spread-measure-tick"
+                x1={rightHitX}
+                y1={measY - 4}
+                x2={rightHitX}
+                y2={measY + 4}
+              />
+              <text className="spread-measure-txt halo" x={copyCenterX} y={measY + 16}>
+                {`${spreadUnits.toFixed(2)} units spread`}
+              </text>
+            </g>
+          )}
         </g>
       );
     }
@@ -1988,26 +2086,23 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
 
   const msgOp = clamp01(S.aboutSameDistMessageOpacity);
   const moveMsgOp = clamp01(S.moveEarthMessageOpacity);
+  const sunlightDiffMsgOp = clamp01(S.sunlightDiffMessageOpacity);
   const heatMsgOp = clamp01(S.moreHeatMessageOpacity);
   const southMsgOp = clamp01(S.southQuestionMessageOpacity);
   const spinToggleOp = clamp01(S.spinToggleOpacity);
   const zoomToggleOp = clamp01(S.zoomToggleOpacity);
-  const seasonSwitchOp = clamp01(S.seasonSwitchOpacity);
   const moreHeatLabelOp = clamp01(S.moreHeatLabelOpacity);
   const lessHeatLabelOp = clamp01(S.lessHeatLabelOpacity);
   const summerLabelOp = clamp01(S.summerLabelOpacity);
   const winterLabelOp = clamp01(S.winterLabelOpacity);
-  const seasonPos = clamp01(S.seasonCompareProgress);
-  const effectiveSeasonTarget = seasonTweenTarget ?? (seasonPos >= 0.5 ? 1 : 0);
-  const isDecTarget = effectiveSeasonTarget === 1;
-  const canClickSeason = seasonSwitchOp > 0.05 && canToggleSeason;
+  const summerRingP = clamp01(S.summerRingProgress);
+  const winterRingP = clamp01(S.winterRingProgress);
   const isSpinPaused = Boolean(S.earthSpinPaused);
   const canToggleSpin = spinToggleOp > 0.05 && !isAnimating;
   const effectiveZoomTarget = zoomTweenTarget ?? (S.surfaceZoomProgress >= 0.5 ? 1 : 0);
   const isZoomedOut = effectiveZoomTarget === 0;
   const canClickZoom = zoomToggleOp > 0.05 && canToggleZoom;
   const probOp = clamp01(S.problemOpacity);
-  const heatMsgTop = toggleTop + 40;
   const heatMsgMaxW = Math.max(120, Math.round(W * 0.44));
 
   return (
@@ -2057,6 +2152,16 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
         </p>
         <p
           className="seasons-msg"
+          aria-hidden={sunlightDiffMsgOp <= 0.01 ? true : undefined}
+          style={{
+            opacity: sunlightDiffMsgOp,
+            transform: `translateY(${((1 - sunlightDiffMsgOp) * 8).toFixed(1)}px)`,
+          }}
+        >
+          Do you see any difference in sunlight between June and December?
+        </p>
+        <p
+          className="seasons-msg"
           aria-hidden={heatMsgOp <= 0.01 ? true : undefined}
           style={{
             opacity: heatMsgOp,
@@ -2086,7 +2191,9 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
               transform: `translate(-50%, ${((1 - moreHeatLabelOp) * 6).toFixed(1)}px)`,
             }}
           >
-            More heat
+            Narrower spread,
+            <br />
+            more intense heat
           </p>
         )}
         {lessHeatLabelOp > 0.01 && (
@@ -2100,12 +2207,14 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
               transform: `translate(-50%, ${((1 - lessHeatLabelOp) * 6).toFixed(1)}px)`,
             }}
           >
-            less heat
+            Wider spread,
+            <br />
+            less intense heat
           </p>
         )}
         {summerLabelOp > 0.01 && (
           <p
-            className="heat-side-msg june"
+            className="heat-side-msg june season-ans-msg"
             style={{
               left: `${juneLabelX.toFixed(1)}px`,
               top: `${heatMsgTop.toFixed(1)}px`,
@@ -2114,12 +2223,12 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
               transform: `translate(-50%, ${((1 - summerLabelOp) * 6).toFixed(1)}px)`,
             }}
           >
-            Summer
+            <AnswerRingWord text="Summer" progress={summerRingP} />
           </p>
         )}
         {winterLabelOp > 0.01 && (
           <p
-            className="heat-side-msg dec"
+            className="heat-side-msg dec season-ans-msg"
             style={{
               left: `${decLabelX.toFixed(1)}px`,
               top: `${heatMsgTop.toFixed(1)}px`,
@@ -2128,7 +2237,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
               transform: `translate(-50%, ${((1 - winterLabelOp) * 6).toFixed(1)}px)`,
             }}
           >
-            Winter
+            <AnswerRingWord text="Winter" progress={winterRingP} />
           </p>
         )}
         {spinToggleOp > 0.01 && (
@@ -2186,41 +2295,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
               {isZoomedOut && <line x1="6.8" y1="4.9" x2="6.8" y2="8.7" />}
             </svg>
             <span>{isZoomedOut ? 'Zoom In' : 'Zoom Out'}</span>
-          </button>
-        )}
-        {seasonSwitchOp > 0.01 && (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isDecTarget}
-            aria-label={isDecTarget ? 'Switch sunlight comparison to June' : 'Switch sunlight comparison to December'}
-            className="season-switch"
-            disabled={!canClickSeason}
-            onClick={() => canClickSeason && setSeasonTweenTarget(isDecTarget ? 0 : 1)}
-            style={{
-              top: `${toggleTop.toFixed(1)}px`,
-              opacity: seasonSwitchOp,
-              pointerEvents: canClickSeason ? 'auto' : 'none',
-              transform: `translate(-50%, ${((1 - seasonSwitchOp) * 6).toFixed(1)}px)`,
-            }}
-          >
-            <span
-              className="season-switch-thumb"
-              style={{ transform: `translateX(${(seasonPos * 100).toFixed(2)}%)` }}
-              aria-hidden="true"
-            />
-            <span
-              className="season-switch-lbl"
-              style={{ color: seasonPos < 0.5 ? 'var(--orange-ink)' : 'var(--ink-dim)' }}
-            >
-              June
-            </span>
-            <span
-              className="season-switch-lbl"
-              style={{ color: seasonPos >= 0.5 ? 'var(--orange-ink)' : 'var(--ink-dim)' }}
-            >
-              December
-            </span>
           </button>
         )}
       </div>

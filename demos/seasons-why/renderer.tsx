@@ -264,8 +264,6 @@ interface GlobeRenderOptions {
   labelOpacity?: number;
   labelXOverride?: number;
   labelYOverride?: number;
-  clockTime?: string;
-  clockOpacity?: number;
   sideViewProgress?: number;
   showTiltGuide?: number;
   youOpacity?: number;
@@ -296,8 +294,6 @@ function renderGlobe({
   labelOpacity = 1,
   labelXOverride,
   labelYOverride,
-  clockTime,
-  clockOpacity = 0,
   sideViewProgress = 0,
   showTiltGuide = 0,
   youOpacity = 0,
@@ -713,20 +709,6 @@ function renderGlobe({
           {label}
         </text>
       )}
-
-      {/* Digital clock (HH:MM AM/PM) below the month label (Step 6+) */}
-      {clockTime && clamp01(clockOpacity) > 0.01 && (
-        <g
-          className="digital-clock"
-          opacity={clamp01(clockOpacity) * op}
-          transform={`translate(${labelX.toFixed(1)} ${(labelY + 28).toFixed(1)})`}
-        >
-          <rect className="digital-clock-box" x={-46} y={-13} width={92} height={26} rx={6} />
-          <text className="digital-clock-txt" x={0} y={0}>
-            {clockTime}
-          </text>
-        </g>
-      )}
     </g>
   );
 }
@@ -862,14 +844,13 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     ? Math.min((W - 2 * padX) / 2.96, (availH - 2 * padY) / 2.84)
     : 100;
   const zoomedScale = box
-    ? Math.min((W - 2 * padX) / 1.52, Math.max(80, availH - 2 * padY - 72) / 0.68)
+    ? Math.min((W - 2 * padX) / 1.52, Math.max(80, H - 160) / 0.68)
     : 100;
   const scale = lerp(baseScale, zoomedScale, sunFoldP);
   const cx = W / 2;
-  const cy =
-    availH / 2 +
-    (4 - 0.04 * scale * viewP) * (1 - sideP) -
-    Math.min(36, availH * 0.08) * sunFoldP;
+  const unfoldedCy = availH / 2 + (4 - 0.04 * scale * viewP) * (1 - sideP);
+  const foldedCy = H / 2 - Math.min(34, H * 0.06);
+  const cy = lerp(unfoldedCy, foldedCy, sunFoldP);
 
   const canDrag = Boolean(S.canDragEarth) && !isAnimating;
 
@@ -1020,6 +1001,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
   let sceneContent: React.ReactNode = null;
   let toggleTop = Math.max(0, H - 36);
   let heatMsgTop = Math.max(0, H - 48);
+  let seasonsMsgTop = Math.max(0, H - 42);
   let juneLabelX = W * 0.25;
   let decLabelX = W * 0.75;
   if (box) {
@@ -1283,6 +1265,16 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     juneLabelX = cx - scale * earthXOffset;
     decLabelX = cx + scale * earthXOffset;
 
+    const lineHalfZ = lerp(0.30, 0.34, clamp01(sunFoldP / 0.35));
+    const lineBotZ = lerp(0.30, 0.36, clamp01(sunFoldP / 0.35));
+    const lineTopRaw = proj(0, 0, lineHalfZ);
+    const lineBot = proj(0, 0, -lineBotZ);
+    const clockY = Math.max(17, Math.min(cy - EARTH_R * scale - 24, lineTopRaw.y - 24));
+    const lineTop = {
+      x: lineTopRaw.x,
+      y: Math.max(lineTopRaw.y, clockY + 13 + 10 * clockOp),
+    };
+
     const juneUnzoomedCenter = proj(-earthXOffset, 0, 0);
     const juneUnzoomedRPx = EARTH_R * scale * juneUnzoomedCenter.f;
     const juneUnzoomedSouthOuter = proj(
@@ -1296,12 +1288,32 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     );
 
     if (clockOp > 0.002) {
-      const clockBottomY = fixedSideLabelY + 28 + 13;
-      toggleTop = Math.max(0, Math.min(availH - 28, clockBottomY + 10));
-      heatMsgTop = Math.max(0, Math.min(H - 48, clockBottomY + 12));
+      toggleTop = Math.max(0, Math.min(H - 68, fixedSideLabelY + 20));
+      heatMsgTop = Math.max(0, Math.min(H - 52, fixedSideLabelY + 16));
     }
 
-    const panelTop = 4;
+    const meshBottomY = proj(0, -MESH_HALF_Y, 0).y;
+    const frontEarthCenter = proj(0, -ORBIT_R, 0);
+    const frontEarthR = EARTH_R * scale * frontEarthCenter.f;
+    const frontEarthSouth = proj(
+      0,
+      -ORBIT_R,
+      -EARTH_R * 1.72 * Math.cos(AXIAL_TILT_RAD)
+    );
+    const frontEarthBottomY = Math.max(
+      frontEarthCenter.y + frontEarthR + 28,
+      frontEarthSouth.y + 8
+    );
+    const unfoldedMsgTop = Math.max(meshBottomY + 12, frontEarthBottomY + 8);
+    const foldedMsgTop = toggleTop + 30 + 10;
+    const msgBottomMargin = W < 540 ? 48 : 34;
+    seasonsMsgTop = Math.max(
+      0,
+      Math.min(H - msgBottomMargin, lerp(unfoldedMsgTop, foldedMsgTop, sunFoldP))
+    );
+
+    const panelTop =
+      clockOp > 0.002 ? Math.round(lerp(4, clockY + 13 + 8, clockOp)) : 4;
     const panelBottom = Math.max(panelTop + 80, fixedSideLabelY - 16);
     const panelH = panelBottom - panelTop;
     const junePanelRect = { x: 6, y: panelTop, w: Math.max(40, cx - 12), h: panelH };
@@ -1601,8 +1613,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           labelOpacity: 1,
           labelXOverride: zoomP > 0.001 && decSide ? decSide.fixedLabelX : undefined,
           labelYOverride: zoomP > 0.001 ? fixedSideLabelY : undefined,
-          clockTime,
-          clockOpacity: clockOp * solidDecP,
           sideViewProgress: sideP,
           youOpacity: S.youOnTheNorthHemisphereOpacity * solidDecP,
           youLatRad,
@@ -1638,8 +1648,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           labelXOverride:
             useJunePanel && zoomP > 0.001 && juneSide ? juneSide.fixedLabelX : undefined,
           labelYOverride: useJunePanel && zoomP > 0.001 ? fixedSideLabelY : undefined,
-          clockTime,
-          clockOpacity: clockOp,
           sideViewProgress: sideP,
           showTiltGuide: tiltGuideOp,
           youOpacity: S.youOnTheNorthHemisphereOpacity,
@@ -1835,9 +1843,6 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
     const showSunFold = sunFoldP > 0.002 && sunEarthOp > 0.002;
     const centerLineOp =
       clamp01(sunFoldP / 0.2) * sunEarthOp * (1 - clamp01(zoomP / 0.35));
-    const lineHalfZ = lerp(0.30, 0.38, clamp01(sunFoldP / 0.35));
-    const lineTop = proj(0, 0, lineHalfZ);
-    const lineBot = proj(0, 0, -lineHalfZ);
 
     const showUnzoomedRays = showSunFold && zoomP <= 0.001;
     const sunlightRays = showUnzoomedRays
@@ -2121,6 +2126,20 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           />
         )}
 
+        {/* Single synchronized HH:MM AM/PM digital clock centered above both Earths (Step 6+) */}
+        {clockTime && clockOp > 0.01 && sunEarthOp > 0.002 && (
+          <g
+            className="digital-clock"
+            opacity={clockOp * sunEarthOp}
+            transform={`translate(${cx.toFixed(1)} ${clockY.toFixed(1)})`}
+          >
+            <rect className="digital-clock-box" x={-46} y={-13} width={92} height={26} rx={6} />
+            <text className="digital-clock-txt" x={0} y={0}>
+              {clockTime}
+            </text>
+          </g>
+        )}
+
         {/* Step 8 moving dotted beam copy, red heat bar, and spread measurement */}
         {spreadComparisonNode}
 
@@ -2150,6 +2169,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
   const canClickZoom = zoomToggleOp > 0.05 && canToggleZoom;
   const probOp = clamp01(S.problemOpacity);
   const heatMsgMaxW = Math.max(120, Math.round(W * 0.44));
+  const msgTopPx = `${seasonsMsgTop.toFixed(1)}px`;
 
   return (
     <div className="fw-scene seasons-root">
@@ -2180,6 +2200,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           className="seasons-msg"
           aria-hidden={msgOp <= 0.01 ? true : undefined}
           style={{
+            top: msgTopPx,
             opacity: msgOp,
             transform: `translateY(${((1 - msgOp) * 8).toFixed(1)}px)`,
           }}
@@ -2190,6 +2211,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           className="seasons-msg"
           aria-hidden={moveMsgOp <= 0.01 ? true : undefined}
           style={{
+            top: msgTopPx,
             opacity: moveMsgOp,
             transform: `translateY(${((1 - moveMsgOp) * 8).toFixed(1)}px)`,
           }}
@@ -2200,6 +2222,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           className="seasons-msg"
           aria-hidden={sunlightDiffMsgOp <= 0.01 ? true : undefined}
           style={{
+            top: msgTopPx,
             opacity: sunlightDiffMsgOp,
             transform: `translateY(${((1 - sunlightDiffMsgOp) * 8).toFixed(1)}px)`,
           }}
@@ -2210,6 +2233,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           className="seasons-msg"
           aria-hidden={heatMsgOp <= 0.01 ? true : undefined}
           style={{
+            top: msgTopPx,
             opacity: heatMsgOp,
             transform: `translateY(${((1 - heatMsgOp) * 8).toFixed(1)}px)`,
           }}
@@ -2220,6 +2244,7 @@ export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> 
           className="seasons-msg"
           aria-hidden={southMsgOp <= 0.01 ? true : undefined}
           style={{
+            top: msgTopPx,
             opacity: southMsgOp,
             transform: `translateY(${((1 - southMsgOp) * 8).toFixed(1)}px)`,
           }}

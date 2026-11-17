@@ -1,56 +1,56 @@
 import React from 'react';
-import { ElementRendererRegistry, ElementsMap } from '../types';
-import { resolveRendererEntry } from '../stepTimeline';
+import { SceneRendererRegistry, ScenesMap } from '../types';
+import { resolveSceneRendererEntry } from '../stepTimeline';
 import { TitleBar } from './TitleBar';
 
 export interface DemoCanvasProps {
   title: string;
-  elements: ElementsMap;
-  renderers: ElementRendererRegistry;
+  scenes: ScenesMap;
+  renderers: SceneRendererRegistry;
   isAnimating: boolean;
   onHomeClick?: () => void;
   homeHref?: string;
-  onUpdateElementState: (elementId: string, statePatch: Record<string, any>) => void;
+  onUpdateSceneState: (sceneId: string, statePatch: Record<string, any>) => void;
 }
 
 /**
- * Shared Demo Canvas Component (Requirement 2):
+ * Shared Demo Canvas Component:
  * Renders the title area at the top (with the "home" icon on the left and centered title)
- * and the coordinate stage below where all active VisualElements are positioned and animated.
+ * and the coordinate stage below where the active Scene is positioned and animated.
  */
 export const DemoCanvas: React.FC<DemoCanvasProps> = ({
   title,
-  elements,
+  scenes,
   renderers,
   isAnimating,
   onHomeClick,
   homeHref,
-  onUpdateElementState,
+  onUpdateSceneState,
 }) => {
-  const elementList = Object.values(elements);
+  const sceneList = Object.values(scenes);
 
   return (
     <>
       <TitleBar title={title} onHomeClick={onHomeClick} homeHref={homeHref} />
 
       <div className="stage" role="region" aria-label={title}>
-        {elementList.map((el) => {
-          const entry = renderers[el.type];
+        {sceneList.map((sc) => {
+          const entry = renderers[sc.type];
           if (!entry) {
             return null;
           }
-          const Renderer = resolveRendererEntry(entry).renderer;
+          const Renderer = resolveSceneRendererEntry(entry).renderer;
 
-          const duration = el.transitionDurationMs ?? 0;
-          const easing = el.transitionEasing ?? 'cubic-bezier(0.22, 1, 0.36, 1)';
-          const scale = el.scale ?? 1;
-          const hasTransform = el.x !== 0 || el.y !== 0 || scale !== 1;
+          const duration = sc.transitionDurationMs ?? 0;
+          const easing = sc.transitionEasing ?? 'cubic-bezier(0.22, 1, 0.36, 1)';
+          const scale = sc.scale ?? 1;
+          const hasTransform = sc.x !== 0 || sc.y !== 0 || scale !== 1;
 
           const style: React.CSSProperties = {
             transform: hasTransform
-              ? `translate3d(${el.x}px, ${el.y}px, 0) scale(${scale})`
+              ? `translate3d(${sc.x}px, ${sc.y}px, 0) scale(${scale})`
               : undefined,
-            opacity: el.opacity,
+            opacity: sc.opacity,
             transition:
               duration > 0
                 ? `transform ${duration}ms ${easing}, opacity ${duration}ms ${easing}`
@@ -59,18 +59,18 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
 
           return (
             <div
-              key={el.id}
-              id={`fw-element-${el.id}`}
+              key={sc.id}
+              id={`fw-scene-${sc.id}`}
               className="fw-visual-element"
               style={style}
-              data-element-id={el.id}
-              data-element-type={el.type}
-              data-inactive={el.opacity < 0.05 ? 'true' : undefined}
+              data-scene-id={sc.id}
+              data-scene-type={sc.type}
+              data-inactive={sc.opacity < 0.05 ? 'true' : undefined}
             >
               <Renderer
-                element={el}
+                scene={sc}
                 isAnimating={isAnimating}
-                updateState={(patch) => onUpdateElementState(el.id, patch)}
+                updateState={(patch) => onUpdateSceneState(sc.id, patch)}
               />
             </div>
           );

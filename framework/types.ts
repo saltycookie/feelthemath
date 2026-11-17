@@ -1,12 +1,12 @@
 import React from 'react';
 
 /**
- * Represents a single visual element on the DemoCanvas.
- * Every element has a unique `id`, a `x`/`y` position on the canvas coordinate system,
+ * Represents the active visual scene on the DemoCanvas.
+ * Every scene has a unique `id`, a `x`/`y` position on the canvas coordinate system,
  * an `opacity` (0 to 1), an optional active transition duration (in ms),
  * and arbitrary component-specific `state` props.
  */
-export interface VisualElement<TState = Record<string, any>> {
+export interface Scene<TState = Record<string, any>> {
   id: string;
   type: string;
   x: number;
@@ -18,12 +18,12 @@ export interface VisualElement<TState = Record<string, any>> {
   state: TState;
 }
 
-export type ElementsMap = Record<string, VisualElement<any>>;
+export type ScenesMap = Record<string, Scene<any>>;
 
 /**
- * Partial patch used when animating or updating a VisualElement.
+ * Partial patch used when animating or updating a Scene.
  */
-export interface VisualElementPatch<TState = Record<string, any>> {
+export interface ScenePatch<TState = Record<string, any>> {
   x?: number;
   y?: number;
   opacity?: number;
@@ -32,12 +32,12 @@ export interface VisualElementPatch<TState = Record<string, any>> {
 }
 
 /**
- * Custom state interpolator function for a VisualElement type (Option A).
+ * Custom state interpolator function for a Scene type (Option A).
  * Called on every animation frame (`progress` in [0, 1], after easing is applied)
- * when `animateElement` or `animateElements` updates `element.state`.
+ * when `animateScene` or `animateScenes` updates `scene.state`.
  *
- * @param startState The element's `state` snapshot when `animateElement` began.
- * @param targetPatch The partial `state` patch passed to `animateElement`.
+ * @param startState The scene's `state` snapshot when `animateScene` began.
+ * @param targetPatch The partial `state` patch passed to `animateScene`.
  * @param progress Eased progress value in `[0, 1]` (guaranteed to end at `1`).
  * @returns The interpolated `state` for the current frame.
  */
@@ -58,200 +58,172 @@ export interface StepAnimationController {
   /** Wait for `ms` milliseconds (rejects if aborted) */
   wait: (ms: number) => Promise<void>;
 
-  /** Read a snapshot of the current visual elements on the canvas */
-  getElements: () => ElementsMap;
+  /** Read a snapshot of the current scenes on the canvas */
+  getScenes: () => ScenesMap;
 
-  /** Add a new visual element to the canvas (optionally fading it in over `durationMs`) */
-  addElement: <TState = Record<string, any>>(
-    element: VisualElement<TState>,
+  /** Add a new scene to the canvas (optionally fading it in over `durationMs`) */
+  addScene: <TState = Record<string, any>>(
+    scene: Scene<TState>,
     options?: { durationMs?: number; easing?: string }
   ) => Promise<void>;
 
-  /** Animate an existing element's position (x, y), opacity, scale, or state over `durationMs` */
-  animateElement: <TState = Record<string, any>>(
+  /** Animate an existing scene's position (x, y), opacity, scale, or state over `durationMs` */
+  animateScene: <TState = Record<string, any>>(
     id: string,
-    patch: VisualElementPatch<TState>,
+    patch: ScenePatch<TState>,
     options?: { durationMs?: number; easing?: string }
   ) => Promise<void>;
 
-  /** Animate multiple elements in parallel over `durationMs` */
-  animateElements: (
-    patches: Record<string, VisualElementPatch<any>>,
+  /** Animate multiple scenes in parallel over `durationMs` */
+  animateScenes: (
+    patches: Record<string, ScenePatch<any>>,
     options?: { durationMs?: number; easing?: string }
   ) => Promise<void>;
 
-  /** Immediately update an element without waiting */
-  updateElementImmediate: <TState = Record<string, any>>(
+  /** Immediately update a scene without waiting */
+  updateSceneImmediate: <TState = Record<string, any>>(
     id: string,
-    patch: VisualElementPatch<TState>
+    patch: ScenePatch<TState>
   ) => void;
 
-  /** Dim and remove an element over `durationMs` (defaults to 250ms) */
-  removeElement: (id: string, durationMs?: number) => Promise<void>;
+  /** Dim and remove a scene over `durationMs` (defaults to 250ms) */
+  removeScene: (id: string, durationMs?: number) => Promise<void>;
 }
 
 /**
  * Context passed to a step's `exit` animation handler when advancing to the next step.
  */
 export interface StepExitContext {
-  /** Current elements on the canvas (including post-play state and any user interactive changes) */
-  currentElements: ElementsMap;
-  /** Canonical beginning elements of the destination (next) step */
-  nextInitialElements: ElementsMap;
+  /** Current scenes on the canvas (including post-play state and any user interactive changes) */
+  currentScenes: ScenesMap;
+  /** Canonical beginning scenes of the destination (next) step */
+  nextInitialScenes: ScenesMap;
   /** Animation controller for orchestrating custom transitions */
   controller: StepAnimationController;
   /**
    * Executes the framework's default exit behavior:
-   * - Shared elements at the exact same (x, y) position remain intact.
-   * - Elements that no longer exist in `nextInitialElements` dim and disappear in 250ms.
-   * Can optionally pass `excludeIds` for elements the custom exit handler is animating itself.
+   * - Shared scenes at the exact same (x, y) position remain intact.
+   * - Scenes that no longer exist in `nextInitialScenes` dim and disappear in 250ms.
+   * Can optionally pass `excludeIds` for scenes the custom exit handler is animating itself.
    */
   runDefaultExit: (options?: { excludeIds?: string[]; durationMs?: number }) => Promise<void>;
 }
 
 /**
- * Per-element patch inside a `StepCue` (`play` or `exit`).
- */
-export interface ElementCuePatch<TState = Record<string, any>> {
-  x?: number;
-  y?: number;
-  opacity?: number;
-  scale?: number;
-  set?: Partial<TState>;
-  unset?: (keyof TState)[];
-}
-
-type SingleStateOf<TElements extends Record<string, any>> =
-  keyof TElements extends infer K
-    ? K extends keyof TElements
-      ? [Exclude<keyof TElements, K>] extends [never]
-        ? TElements[K]
-        : never
-      : never
-    : never;
-
-type CueDurationArg<TElements extends Record<string, any>> =
-  [SingleStateOf<TElements>] extends [never] ? ElementsMap : SingleStateOf<TElements>;
-
-/**
  * Declarative animation cue used in a step's `play` or `exit` timeline.
- * All cues in a step are folded synchronously onto global element state so subsequent
- * steps inherit the latest values automatically.
+ * Every step has a single active scene, so cues act directly on that scene.
+ * All cues in a step are folded synchronously onto the active scene state so
+ * subsequent steps on the same scene inherit the latest values automatically.
  */
-export interface StepCue<TElements extends Record<string, any> = Record<string, any>> {
+export interface StepCue<TState = Record<string, any>> {
   /** Wait `wait` ms before starting this cue */
   wait?: number;
   /** Duration in ms (defaults to 0 = immediate). Can be computed from live state on exit/play. */
-  ms?: number | ((state: CueDurationArg<TElements>) => number);
+  ms?: number | ((state: TState) => number);
   /** Easing name or CSS cubic-bezier (default cubic-out) */
   easing?: string;
   /** Run child cues or sequences concurrently and wait for the longest branch */
-  parallel?: StepTimeline<TElements>[];
-  /** Animate x/y/opacity/scale/state across one or more elements */
-  elements?: { [K in keyof TElements]?: ElementCuePatch<TElements[K]> };
-  /** Single-element shorthand: properties to set on the sole registered element */
-  set?: [SingleStateOf<TElements>] extends [never] ? never : Partial<SingleStateOf<TElements>>;
-  /** Single-element shorthand: properties to revert to `defaultState` on the sole element */
-  unset?: [SingleStateOf<TElements>] extends [never]
-    ? never
-    : (keyof SingleStateOf<TElements>)[];
+  parallel?: StepTimeline<TState>[];
+  /** Target x position for the step's scene */
+  x?: number;
+  /** Target y position for the step's scene */
+  y?: number;
+  /** Target opacity for the step's scene */
+  opacity?: number;
+  /** Target scale for the step's scene */
+  scale?: number;
+  /** Properties to set on the step's scene state */
+  set?: Partial<TState>;
+  /** Properties to revert to `defaultState` on the step's scene state */
+  unset?: (keyof TState)[];
 }
 
-export type StepTimeline<TElements extends Record<string, any> = Record<string, any>> =
-  | StepCue<TElements>
-  | StepCue<TElements>[];
-
-export type StepElementTarget<TElements extends Record<string, any>> =
-  | (keyof TElements & string)
-  | (keyof TElements & string)[];
-
-/**
- * Incremental changes to the active visual elements when entering a step.
- * Operations (`add`, `delete`, `clear`) are applied in the order their keys are listed.
- */
-export interface StepElementsChange<TElements extends Record<string, any> = Record<string, any>> {
-  /** Add one or more elements (initialized from `demo.renderers` and `defaultState`) */
-  add?: StepElementTarget<TElements>;
-  /** Remove one or more active elements */
-  delete?: StepElementTarget<TElements>;
-  /** Remove all currently active elements */
-  clear?: Record<string, never> | true;
-}
+export type StepTimeline<TState = Record<string, any>> =
+  | StepCue<TState>
+  | StepCue<TState>[];
 
 /**
  * Definition of a single step in a Math Demo.
+ * Every step has one and only one active scene.
  */
-export interface StepConfig<TElements extends Record<string, any> = Record<string, any>> {
-  /** 1-based step number (defaults to index + 1; used for #step-X URL hash) */
-  stepNumber?: number;
-  /** Title displayed in the top-center of the canvas */
-  title: string;
-  /** Short description for accessibility / developer inspector */
-  summary?: string;
-  /** Incremental changes (`add`, `delete`, `clear`) to the active visual elements for this step */
-  elements?: StepElementsChange<TElements>;
-  /**
-   * Optional "play" animation that kicks in after the step's initial elements are rendered.
-   * Accepts declarative `StepCue`s (folded into global VE state) or an async function.
-   */
-  play?: StepTimeline<TElements> | ((controller: StepAnimationController) => Promise<void>);
-  /**
-   * Optional "exit" animation executed when clicking "Next" to transition to step N+1.
-   * Accepts declarative `StepCue`s (folded into global VE state) or a custom async handler.
-   */
-  exit?: StepTimeline<TElements> | ((context: StepExitContext) => Promise<void>);
-}
+export type StepConfig<TScenes extends Record<string, any> = Record<string, any>> = {
+  [K in keyof TScenes & string]: {
+    /** 1-based step number (defaults to index + 1; used for #step-X URL hash) */
+    stepNumber?: number;
+    /** Title displayed in the top-center of the canvas */
+    title: string;
+    /** Short description for accessibility / developer inspector */
+    summary?: string;
+    /**
+     * Switch to this scene from this step onwards (resets to its initial config and `defaultState`).
+     * Optional when only one scene is registered in `DemoConfig.scenes`, or when continuing with
+     * the previous step's scene.
+     */
+    scene?: K;
+    /**
+     * Optional "play" animation that kicks in after the step's initial scene is rendered.
+     * Accepts declarative `StepCue`s (folded into scene state) or an async function.
+     */
+    play?: StepTimeline<TScenes[K]> | ((controller: StepAnimationController) => Promise<void>);
+    /**
+     * Optional "exit" animation executed when clicking "Next" to transition to step N+1.
+     * Accepts declarative `StepCue`s (folded into scene state) or a custom async handler.
+     */
+    exit?: StepTimeline<TScenes[K]> | ((context: StepExitContext) => Promise<void>);
+  };
+}[keyof TScenes & string];
 
 /**
- * A resolved step where `stepNumber` and `initialElements` are always populated.
+ * A resolved step where `stepNumber`, `sceneId`, and `initialScenes` are always populated.
  */
-export type ResolvedStepConfig<TElements extends Record<string, any> = Record<string, any>> =
-  StepConfig<TElements> & {
+export type ResolvedStepConfig<TScenes extends Record<string, any> = Record<string, any>> =
+  StepConfig<TScenes> & {
     stepNumber: number;
-    initialElements: VisualElement<any>[];
+    sceneId: string;
+    initialScenes: Scene<any>[];
   };
 
 /**
- * Props passed to a registered VisualElement renderer component.
+ * Props passed to a registered Scene renderer component.
  */
-export interface ElementRendererProps<TState = any> {
-  element: VisualElement<TState>;
+export interface SceneRendererProps<TState = any> {
+  scene: Scene<TState>;
   isAnimating: boolean;
-  /** Allows interactive controls inside the canvas (e.g., fold/unfold switch, draggable point) to update element state */
+  /** Allows interactive controls inside the canvas (e.g., fold/unfold switch, draggable point) to update scene state */
   updateState: (patch: Partial<TState>) => void;
 }
 
 /**
- * A React renderer component for a VisualElement type, with optional static
+ * A React renderer component for a Scene type, with optional static
  * `defaultState` and `interpolateState`.
  */
-export type ElementRendererComponent<TState = any> = React.ComponentType<
-  ElementRendererProps<TState>
+export type SceneRendererComponent<TState = any> = React.ComponentType<
+  SceneRendererProps<TState>
 > & {
   defaultState?: TState;
   interpolateState?: StateInterpolator<TState>;
 };
 
 /**
- * Renderer declaration under `DemoConfig.renderers`, including optional global
- * initial `x`, `y`, `opacity`, and `scale` for that visual element.
+ * Renderer declaration under `DemoConfig.scenes`, including optional initial
+ * `x`, `y`, `opacity`, and `scale` for that scene.
  */
-export interface ElementRendererConfig<TState = any> {
-  renderer: ElementRendererComponent<TState>;
+export interface SceneRendererConfig<TState = any> {
+  renderer: SceneRendererComponent<TState>;
   x?: number;
   y?: number;
   opacity?: number;
   scale?: number;
 }
 
-export type ElementRendererEntry<TState = any> =
-  | ElementRendererComponent<TState>
-  | ElementRendererConfig<TState>;
+export type SceneRendererEntry<TState = any> =
+  | SceneRendererComponent<TState>
+  | SceneRendererConfig<TState>;
 
-export type ElementRendererRegistry<
-  TElements extends Record<string, any> = Record<string, any>,
+export type SceneRendererRegistry<
+  TScenes extends Record<string, any> = Record<string, any>,
 > = {
-  [K in keyof TElements]: ElementRendererEntry<TElements[K]>;
+  [K in keyof TScenes]: SceneRendererEntry<TScenes[K]>;
 };
 
 export type StateInterpolatorRegistry = Record<string, StateInterpolator<any>>;
@@ -259,14 +231,14 @@ export type StateInterpolatorRegistry = Record<string, StateInterpolator<any>>;
 /**
  * Full configuration for a step-by-step interactive math demo.
  */
-export interface DemoConfig<TElements extends Record<string, any> = Record<string, any>> {
+export interface DemoConfig<TScenes extends Record<string, any> = Record<string, any>> {
   id: string;
   name: string;
   subtitle?: string;
-  steps: StepConfig<TElements>[];
-  renderers: ElementRendererRegistry<TElements>;
+  steps: StepConfig<TScenes>[];
+  scenes: SceneRendererRegistry<TScenes>;
   /**
-   * Optional map of custom state interpolators per element `type`.
+   * Optional map of custom state interpolators per scene `type`.
    * (Can also be attached directly to a renderer component as `Renderer.interpolateState`.)
    */
   stateInterpolators?: StateInterpolatorRegistry;

@@ -1,6 +1,6 @@
 # StepDeck (React Math Interactive Demo Framework)
 
-StepDeck is the React + TypeScript framework that every Feel the Math demo is built on. It gives each demo the same look (a sheet of paper in a paper box on a wooden desk), the same handwriting, the same title band and navigation (`Back`, the step dots, `Replay`, and `Next` / `Finish`), and the same deterministic step lifecycle (`initialElements`, `play`, and `exit`). A demo only describes its own visual element renderers and its steps; everything else comes from here, so the demos look and behave alike, and a fix or improvement made here reaches all of them.
+StepDeck is the React + TypeScript framework that every Feel the Math demo is built on. It gives each demo the same look (a sheet of paper in a paper box on a wooden desk), the same handwriting, the same title band and navigation (`Back`, the step dots, `Replay`, and `Next` / `Finish`), and the same deterministic step lifecycle (`initialScenes`, `play`, and `exit`). A demo only describes its own scene renderers and its steps; everything else comes from here, so the demos look and behave alike, and a fix or improvement made here reaches all of them.
 
 The project compiles via Vite (`npm run build`) into purely static HTML/CSS/JS files in `dist/` suitable for deployment on GitHub Pages (`github.io` / `feelthemath.app`) with no backend server.
 
@@ -11,9 +11,9 @@ theme.css                      colours, font, the desk, the box and the paper, n
 wood.webp                      the wooden desk, a picture that tiles without seams (made by tools/wood.py)
 lid-wood.webp                  the front page's lid, stained pine like a treasure chest's (made by tools/wood.py --lid)
 index.ts                       barrel exports for the React framework and math helpers
-types.ts                       TypeScript interfaces (DemoConfig, StepConfig, StepCue, VisualElement, ...)
-stepTimeline.ts                resolves step end-state inheritance and executes declarative StepCue timelines
-useStepEngine.ts               core step lifecycle state machine (initialElements -> play -> idle -> exit)
+types.ts                       TypeScript interfaces (DemoConfig, StepConfig, StepCue, Scene, ...)
+stepTimeline.ts                resolves step scene switching/state inheritance and executes declarative StepCue timelines
+useStepEngine.ts               core step lifecycle state machine (initialScenes -> play -> idle -> exit)
 useHashStepRouter.ts           #step-X URL hash parser and synchronization hook
 exitAnimation.ts               canonical state cloning and default 250ms exit animation
 useMeasure.ts                  reads sizes from the page for a renderer to draw from (see "Drawing a scene" below)
@@ -23,7 +23,7 @@ svg.ts                         textAt and rectAt: attributes for SVG marks place
 paths.ts                       path data for SVG drawings (arrowPath)
 mount.tsx                      mountDemo: renders a demo's MathDemoPlayer into the page's #deck element
 components/MathDemoPlayer.tsx  top-level player component wiring useStepEngine, DemoCanvas, NavigationPanel, and box.ts
-components/DemoCanvas.tsx      renders TitleBar and .stage with VisualElement wrappers
+components/DemoCanvas.tsx      renders TitleBar and .stage with Scene wrappers
 components/TitleBar.tsx        top title bar with the "All demos" home link and centered step title
 components/NavigationPanel.tsx bottom navigation bar with Back, step dots, Replay, and Next / Finish
 components/Bubble.tsx          callout bubbles that point at things (Bubble, and placeBubble to work out where they go)
@@ -34,7 +34,7 @@ box.ts                         the demo's side of it: the paper sinking into the
 
 ## How a demo works
 
-A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`. Each renderer in `renderers` can declare initial global position/opacity (`{ renderer, x?, y?, opacity?, scale? }`, or a bare renderer component when defaults are `0, 0, 1`) alongside `Renderer.defaultState`. At the beginning of a demo, no elements are active; steps add, delete, or clear elements via `elements: { add, delete, clear }`, while `play` and `exit` animate them:
+A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`. Each entry in `scenes` can declare initial position/opacity (`{ renderer, x?, y?, opacity?, scale? }`, or a bare renderer component when defaults are `0, 0, 1`) alongside `Renderer.defaultState`. Every step has one and only one active scene, while `play` and `exit` animate it:
 
 ```tsx
 import { mountDemo, type DemoConfig } from '../../framework';
@@ -44,13 +44,12 @@ import { type GardenState } from './state';
 export const myDemo: DemoConfig<{ garden: GardenState }> = {
   id: 'my-demo',
   name: 'My Demo',
-  renderers: {
+  scenes: {
     garden: GardenRenderer, // or { renderer: GardenRenderer, x: 0, y: 0, opacity: 1 }
   },
   steps: [
     {
       title: 'The question',
-      elements: { add: 'garden' },
     },
     {
       title: 'Draw the garden',
@@ -74,21 +73,18 @@ mountDemo(myDemo);
 
 ### The step language
 
-No elements are active before the first step. Each active VE's `x`, `y`, `opacity`, `scale`, and `state` persist across subsequent steps (initialized from `renderers` and `Renderer.defaultState` when added), and declarative `play` and `exit` cues fold forward synchronously at startup:
+Every step has **one and only one** active scene, and declarative `play` and `exit` cues fold forward synchronously at startup across consecutive steps on the same scene:
 
 - **Step declaration (`StepConfig`):**
-  - `elements: { add?, delete?, clear? }` — optional incremental mutations to the active VE set, applied in the order their keys are listed:
-    - `add: 'id' | ['id1', 'id2']` — adds one or more VEs initialized from `renderers` and `Renderer.defaultState`.
-    - `delete: 'id' | ['id1', 'id2']` — removes one or more active VEs (faded out in `250ms` on `Next` by `runDefaultExitAnimation`; re-adding later resets them to initial config/state).
-    - `clear: {}` (or `true`) — removes all currently active VEs.
-  - When `elements` is omitted, the step keeps the active VEs from the previous step.
-- **Timeline cues (`play` / `exit`):** a single `StepCue` or an array of sequential `StepCue`s:
+  - `scene?: 'id'` — switches the active scene from this step onwards (resetting to its initial `scenes[id]` transforms and `Renderer.defaultState`). Required on the first step when `DemoConfig.scenes` has multiple entries, and optional when continuing with the previous step's scene or when only one scene is registered.
+  - Switching to a different scene fades the previous scene out (`250ms`) on `Next` via `runDefaultExitAnimation`.
+- **Timeline cues (`play` / `exit`):** a single `StepCue` or an array of sequential `StepCue`s acting directly on the step's active scene:
   - `wait`: delay in `ms` before starting this cue.
   - `ms`: duration in `ms` (defaults to `0` = immediate), or `(state) => number` when timing depends on live interactive state.
   - `easing`: `'linear'`, `'ease-in'`, `'ease-in-out'`, or default cubic-out.
   - `parallel: [...]`: run child cues or cue arrays concurrently (each with its own `wait`, `ms`, `easing`) and wait for the longest branch.
-  - `elements: { id: { x?, y?, opacity?, scale?, set?, unset? } }` — animate any active VE's transform, opacity, or state (`unset` reverts keys back to `Renderer.defaultState`).
-  - **Single-element shorthand:** when `renderers` has a single entry, `set` and `unset` can be written directly on a cue without wrapping in `elements: { id: ... }`.
+  - `x`, `y`, `opacity`, `scale`: animate the active scene's transform or opacity.
+  - `set`, `unset`: update properties on the active scene's state (`unset` reverts keys back to `Renderer.defaultState`).
   - *(For unusual steps that cannot be expressed declaratively, `play` and `exit` also still accept async functions.)*
 
 ### Step lifecycle rules
@@ -99,15 +95,15 @@ No elements are active before the first step. Each active VE's `x`, `y`, `opacit
    - Right: `↺ Replay` button (on the left of `Next`) and `Next →` button (which becomes `Finish` on the final step and returns to `../../`).
    - Each step is synchronized with `#step-X` in the URL hash via `useHashStepRouter`.
 2. **Canvas & Title Area (`DemoCanvas.tsx` & `TitleBar.tsx`)**:
-   - Renders the `.titlebar` with the "All demos" home link on the left and the current step's title centered in the middle, and `.stage` below containing the active `VisualElement`s.
-3. **Initial Visual Elements & `play` Animation**:
-   - Entering a step immediately renders its resolved canonical `initialElements`.
+   - Renders the `.titlebar` with the "All demos" home link on the left and the current step's title centered in the middle, and `.stage` below containing the active `Scene`.
+3. **Initial Scene & `play` Animation**:
+   - Entering a step immediately renders its resolved canonical `initialScenes`.
    - If the step defines `play`, it runs automatically on entry. While `play` is running, `Next` is disabled.
-   - Clicking `Replay` resets the step to its resolved `initialElements` and replays `play`. If a step has no `play`, `Replay` is disabled.
+   - Clicking `Replay` resets the step to its resolved `initialScenes` and replays `play`. If a step has no `play`, `Replay` is disabled.
 4. **`exit` Animation on `Next`**:
-   - Clicking `Next` runs the step's `exit` cues followed by `runDefaultExitAnimation` (or a custom `exit(context)` handler if provided), which keeps shared elements at the same `(x, y)` position intact and dims/removes disappearing elements in `250ms`, before advancing to `#step-(X+1)` and entering the next step.
+   - Clicking `Next` runs the step's `exit` cues followed by `runDefaultExitAnimation` (or a custom `exit(context)` handler if provided), which keeps the scene intact when staying on the same scene at the same `(x, y)` position and dims/removes a replaced scene in `250ms`, before advancing to `#step-(X+1)` and entering the next step.
 5. **Deterministic Step Entry**:
-   - Every step has a deterministic beginning state (`initialElements`) resolved synchronously at startup regardless of whether the user arrives via URL `#step-X`, clicking a navigation dot, clicking `Back`, or clicking `Next`.
+   - Every step has a deterministic beginning state (`initialScenes`) resolved synchronously at startup regardless of whether the user arrives via URL `#step-X`, clicking a navigation dot, clicking `Back`, or clicking `Next`.
 
 ### For tools
 
@@ -118,7 +114,7 @@ No elements are active before the first step. Each active VE's `x`, `y`, `opacit
 
 Each demo keeps its state type and default state in `state.ts`, its renderer in `renderer.tsx`, its demo-specific styles in `demo.css`, and its steps and timing config in `demo.tsx` (loaded by `index.html`).
 
-A renderer draws its scene as JSX, worked out from `element.state` on every render. It does not build or change the
+A renderer draws its scene as JSX, worked out from `scene.state` on every render. It does not build or change the
 DOM by hand. Its code falls into three parts:
 
 1. **Measure.** Whatever the drawing needs to know about the page (how big the paper is, how wide a line of text came

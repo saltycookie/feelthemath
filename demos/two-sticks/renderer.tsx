@@ -8,7 +8,7 @@ import {
   easeInOut,
   lerp,
   useMeasure,
-  type ElementRendererComponent,
+  type SceneRendererComponent,
   type Size,
 } from '../../framework';
 import { DEFAULT_STICKS_STATE, type SticksState } from './state';
@@ -285,10 +285,10 @@ function SolveRows({ on, struck, bx }: { on?: boolean[]; struck?: boolean; bx?: 
   );
 }
 
-export const SticksSceneRenderer: ElementRendererComponent<SticksState> = ({
-  element,
+export const SticksSceneRenderer: SceneRendererComponent<SticksState> = ({
+  scene,
 }) => {
-  const P = element.state;
+  const P = scene.state;
   const boxRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const benchRef = useRef<HTMLDivElement | null>(null);

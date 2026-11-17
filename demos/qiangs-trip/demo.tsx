@@ -13,14 +13,13 @@ const BUBBLE_OUT_MS = 220;
 export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
   id: 'qiangs-trip',
   name: "Qiang's Trip",
-  renderers: {
+  scenes: {
     'trip-scene': TripSceneRenderer,
   },
   steps: [
     {
       title: 'Problem Description',
       summary: 'The problem',
-      elements: { add: 'trip-scene' },
     },
     {
       title: 'Problem Description',

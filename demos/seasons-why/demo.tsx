@@ -33,13 +33,12 @@ const YOU_SOUTH_MS = 1400;
 export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = {
   id: 'seasons-why',
   name: 'Why Are There Seasons?',
-  renderers: {
+  scenes: {
     'seasons-scene': SeasonsWhySceneRenderer,
   },
   steps: [
     {
       title: '',
-      elements: { add: 'seasons-scene' },
       play: [
         { ms: PROBLEM_IN_MS, set: { problemOpacity: 1 } },
       ],

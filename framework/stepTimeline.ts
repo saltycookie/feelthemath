@@ -134,60 +134,89 @@ function foldTimeline(
   }
 }
 
+function createInitialElement(demo: DemoConfig<any>, id: string): VisualElement<any> {
+  const entry = demo.renderers[id];
+  const { renderer, x, y, opacity, scale } = resolveRendererEntry(entry);
+  return {
+    id,
+    type: id,
+    x,
+    y,
+    opacity,
+    scale,
+    transitionDurationMs: 0,
+    state: structuredClone(renderer.defaultState ?? {}),
+  };
+}
+
+function toIdList(target: string | string[]): string[] {
+  return Array.isArray(target) ? target : [target];
+}
+
 /**
  * Resolves all steps in a `DemoConfig` synchronously at initialization:
  * - Assigns default `stepNumber` (`index + 1`).
- * - Initializes global visual elements from `demo.renderers` (`x`, `y`, `opacity`, `scale`, `defaultState`).
- * - Resolves each step's `initialElements` from `step.elements` (or the sole element when omitted)
- *   and folds declarative `play` / `exit` cues onto the global elements for subsequent steps.
+ * - Starts with no active visual elements.
+ * - Applies each step's `elements` mutations (`add`, `delete`, `clear`) in listed order,
+ *   initializing newly added elements from `demo.renderers` (`x`, `y`, `opacity`, `scale`, `defaultState`)
+ *   and resetting deleted/cleared elements if added again later.
+ * - Resolves each step's `initialElements` and folds declarative `play` / `exit` cues onto the
+ *   active global elements for subsequent steps.
  */
 export function resolveDemoSteps(demo: DemoConfig<any>): ResolvedStepConfig<any>[] {
   const soleElementId = getSoleElementId(demo);
   const getDefaultState = makeDefaultStateReader(demo);
 
   const globalVEs: ElementsMap = {};
-  for (const [id, entry] of Object.entries(demo.renderers)) {
-    const { renderer, x, y, opacity, scale } = resolveRendererEntry(entry);
-    globalVEs[id] = {
-      id,
-      type: id,
-      x,
-      y,
-      opacity,
-      scale,
-      transitionDurationMs: 0,
-      state: structuredClone(renderer.defaultState ?? {}),
-    };
-  }
+  const activeIds = new Set<string>();
 
   return demo.steps.map((step, index) => {
-    let activeIdList: string[];
-    if (step.elements !== undefined) {
-      activeIdList = step.elements;
-    } else if (soleElementId) {
-      activeIdList = [soleElementId];
-    } else {
-      throw new Error(
-        `Step ${index + 1} ("${step.title}") in multi-element demo "${demo.id}" must declare \`elements\`.`
-      );
+    if (step.elements) {
+      for (const [op, value] of Object.entries(step.elements)) {
+        if (value === undefined) continue;
+        if (op === 'clear') {
+          if (value) {
+            activeIds.clear();
+            for (const key of Object.keys(globalVEs)) {
+              delete globalVEs[key];
+            }
+          }
+        } else if (op === 'delete') {
+          for (const id of toIdList(value as string | string[])) {
+            if (!(id in demo.renderers)) {
+              throw new Error(
+                `Step ${index + 1} ("${step.title}") references unknown element "${id}" not declared in demo.renderers.`
+              );
+            }
+            activeIds.delete(id);
+            delete globalVEs[id];
+          }
+        } else if (op === 'add') {
+          for (const id of toIdList(value as string | string[])) {
+            if (!(id in demo.renderers)) {
+              throw new Error(
+                `Step ${index + 1} ("${step.title}") references unknown element "${id}" not declared in demo.renderers.`
+              );
+            }
+            if (!activeIds.has(id)) {
+              activeIds.add(id);
+              globalVEs[id] = createInitialElement(demo, id);
+            }
+          }
+        }
+      }
     }
 
-    const initialElements: VisualElement<any>[] = activeIdList.map((id) => {
-      const el = globalVEs[id];
-      if (!el) {
-        throw new Error(
-          `Step ${index + 1} ("${step.title}") references unknown element "${id}" not declared in demo.renderers.`
-        );
-      }
-      return cloneElement(el);
-    });
+    const initialElements: VisualElement<any>[] = Array.from(activeIds, (id) =>
+      cloneElement(globalVEs[id])
+    );
 
-    const activeIds = new Set(activeIdList);
+    const stepActiveIds = new Set(activeIds);
     if (step.play && typeof step.play !== 'function') {
-      foldTimeline(globalVEs, activeIds, step.play, soleElementId, getDefaultState);
+      foldTimeline(globalVEs, stepActiveIds, step.play, soleElementId, getDefaultState);
     }
     if (step.exit && typeof step.exit !== 'function') {
-      foldTimeline(globalVEs, activeIds, step.exit, soleElementId, getDefaultState);
+      foldTimeline(globalVEs, stepActiveIds, step.exit, soleElementId, getDefaultState);
     }
 
     return {

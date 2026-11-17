@@ -24,6 +24,7 @@ export const exampleDemo: DemoConfig<{ garden: GardenState }> = {
   steps: [
     {
       title: 'The question',
+      elements: { add: 'garden' },
     },
     {
       title: 'Draw the garden',

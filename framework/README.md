@@ -34,7 +34,7 @@ box.ts                         the demo's side of it: the paper sinking into the
 
 ## How a demo works
 
-A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`. Each renderer in `renderers` can declare initial global position/opacity (`{ renderer, x?, y?, opacity?, scale? }`, or a bare renderer component when defaults are `0, 0, 1`) alongside `Renderer.defaultState`. Steps declare which VEs are involved via `elements: ['id', ...]` (optional only in single-element demos), while `play` and `exit` animate them:
+A demo defines a `DemoConfig` object and calls `mountDemo(demoConfig)`, which renders `<MathDemoPlayer demo={demoConfig} />` into `<div class="deck" id="deck"></div>`. Each renderer in `renderers` can declare initial global position/opacity (`{ renderer, x?, y?, opacity?, scale? }`, or a bare renderer component when defaults are `0, 0, 1`) alongside `Renderer.defaultState`. At the beginning of a demo, no elements are active; steps add, delete, or clear elements via `elements: { add, delete, clear }`, while `play` and `exit` animate them:
 
 ```tsx
 import { mountDemo, type DemoConfig } from '../../framework';
@@ -50,6 +50,7 @@ export const myDemo: DemoConfig<{ garden: GardenState }> = {
   steps: [
     {
       title: 'The question',
+      elements: { add: 'garden' },
     },
     {
       title: 'Draw the garden',
@@ -73,10 +74,14 @@ mountDemo(myDemo);
 
 ### The step language
 
-Each VE's `x`, `y`, `opacity`, `scale`, and `state` live globally across the demo (initialized from `renderers` and `Renderer.defaultState`), and declarative `play` and `exit` cues fold forward synchronously at startup:
+No elements are active before the first step. Each active VE's `x`, `y`, `opacity`, `scale`, and `state` persist across subsequent steps (initialized from `renderers` and `Renderer.defaultState` when added), and declarative `play` and `exit` cues fold forward synchronously at startup:
 
 - **Step declaration (`StepConfig`):**
-  - `elements: ['id', ...]` — required on every step when multiple VEs are registered under `renderers`; omitted when there is only one VE (steps automatically use that VE). Any VE omitted from a step is faded out (`250ms`) on `Next` by `runDefaultExitAnimation`.
+  - `elements: { add?, delete?, clear? }` — optional incremental mutations to the active VE set, applied in the order their keys are listed:
+    - `add: 'id' | ['id1', 'id2']` — adds one or more VEs initialized from `renderers` and `Renderer.defaultState`.
+    - `delete: 'id' | ['id1', 'id2']` — removes one or more active VEs (faded out in `250ms` on `Next` by `runDefaultExitAnimation`; re-adding later resets them to initial config/state).
+    - `clear: {}` (or `true`) — removes all currently active VEs.
+  - When `elements` is omitted, the step keeps the active VEs from the previous step.
 - **Timeline cues (`play` / `exit`):** a single `StepCue` or an array of sequential `StepCue`s:
   - `wait`: delay in `ms` before starting this cue.
   - `ms`: duration in `ms` (defaults to `0` = immediate), or `(state) => number` when timing depends on live interactive state.

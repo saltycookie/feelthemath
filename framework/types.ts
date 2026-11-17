@@ -130,13 +130,6 @@ type SingleStateOf<TElements extends Record<string, any>> =
       : never
     : never;
 
-type IsSingleElement<TElements extends Record<string, any>> =
-  string extends keyof TElements
-    ? true
-    : [SingleStateOf<TElements>] extends [never]
-      ? false
-      : true;
-
 type CueDurationArg<TElements extends Record<string, any>> =
   [SingleStateOf<TElements>] extends [never] ? ElementsMap : SingleStateOf<TElements>;
 
@@ -168,27 +161,35 @@ export type StepTimeline<TElements extends Record<string, any> = Record<string, 
   | StepCue<TElements>
   | StepCue<TElements>[];
 
-type StepElementsDeclaration<TElements extends Record<string, any>> =
-  IsSingleElement<TElements> extends true
-    ? {
-        /** Visual elements involved in this step (optional when only one element is registered) */
-        elements?: (keyof TElements & string)[];
-      }
-    : {
-        /** Visual elements involved in this step */
-        elements: (keyof TElements & string)[];
-      };
+export type StepElementTarget<TElements extends Record<string, any>> =
+  | (keyof TElements & string)
+  | (keyof TElements & string)[];
+
+/**
+ * Incremental changes to the active visual elements when entering a step.
+ * Operations (`add`, `delete`, `clear`) are applied in the order their keys are listed.
+ */
+export interface StepElementsChange<TElements extends Record<string, any> = Record<string, any>> {
+  /** Add one or more elements (initialized from `demo.renderers` and `defaultState`) */
+  add?: StepElementTarget<TElements>;
+  /** Remove one or more active elements */
+  delete?: StepElementTarget<TElements>;
+  /** Remove all currently active elements */
+  clear?: Record<string, never> | true;
+}
 
 /**
  * Definition of a single step in a Math Demo.
  */
-export type StepConfig<TElements extends Record<string, any> = Record<string, any>> = {
+export interface StepConfig<TElements extends Record<string, any> = Record<string, any>> {
   /** 1-based step number (defaults to index + 1; used for #step-X URL hash) */
   stepNumber?: number;
   /** Title displayed in the top-center of the canvas */
   title: string;
   /** Short description for accessibility / developer inspector */
   summary?: string;
+  /** Incremental changes (`add`, `delete`, `clear`) to the active visual elements for this step */
+  elements?: StepElementsChange<TElements>;
   /**
    * Optional "play" animation that kicks in after the step's initial elements are rendered.
    * Accepts declarative `StepCue`s (folded into global VE state) or an async function.
@@ -199,7 +200,7 @@ export type StepConfig<TElements extends Record<string, any> = Record<string, an
    * Accepts declarative `StepCue`s (folded into global VE state) or a custom async handler.
    */
   exit?: StepTimeline<TElements> | ((context: StepExitContext) => Promise<void>);
-} & StepElementsDeclaration<TElements>;
+}
 
 /**
  * A resolved step where `stepNumber` and `initialElements` are always populated.

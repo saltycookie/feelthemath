@@ -10,14 +10,13 @@ import { type SticksState } from './state';
 export const twoSticksDemo: DemoConfig<{ 'sticks-scene': SticksState }> = {
   id: 'two-sticks',
   name: 'Two Perpendicular Sticks',
-  renderers: {
+  scenes: {
     'sticks-scene': SticksSceneRenderer,
   },
   steps: [
     {
       title: 'Problem Description',
       summary: 'The problem',
-      elements: { add: 'sticks-scene' },
       // Nothing moves; a new pulseCount makes the scene pulse the figure's marks.
       play: { set: { pulseCount: 1 } },
       exit: { unset: ['pulseCount'] },

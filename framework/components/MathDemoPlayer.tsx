@@ -29,7 +29,7 @@ function homeFromPage(): string {
 /**
  * Top-level Framework Component (`<MathDemoPlayer />`):
  * Provides the complete shared layout, step state machine, URL hash router (`#step-X`),
- * title area, visual element canvas, and bottom navigation panel across all math demos.
+ * title area, scene canvas, and bottom navigation panel across all math demos.
  */
 export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
   demo,
@@ -39,7 +39,7 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     currentStepIndex,
     currentStep,
     totalSteps,
-    elements,
+    scenes,
     isAnimating,
     hasPlayAnimation,
     canGoBack,
@@ -49,7 +49,7 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     goBack,
     goToStep,
     replayCurrentStep,
-    updateInteractiveElementState,
+    updateInteractiveSceneState,
   } = useStepEngine(demo);
 
   // Synchronize <html data-step="N" data-step-busy> attributes synchronously before paint
@@ -83,11 +83,11 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     <>
       <DemoCanvas
         title={currentStep?.title ?? demo.name}
-        elements={elements}
-        renderers={demo.renderers}
+        scenes={scenes}
+        renderers={demo.scenes}
         isAnimating={isAnimating}
         homeHref={homeHref}
-        onUpdateElementState={updateInteractiveElementState}
+        onUpdateSceneState={updateInteractiveSceneState}
       />
 
       <NavigationPanel

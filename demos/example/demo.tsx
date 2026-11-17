@@ -18,13 +18,12 @@ const ANSWER_IN_MS = 600;
 export const exampleDemo: DemoConfig<{ garden: GardenState }> = {
   id: 'example',
   name: 'Example',
-  renderers: {
+  scenes: {
     garden: GardenRenderer,
   },
   steps: [
     {
       title: 'The question',
-      elements: { add: 'garden' },
     },
     {
       title: 'Draw the garden',

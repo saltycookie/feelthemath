@@ -9,7 +9,7 @@ import {
   textAt,
   useMeasure,
   useTween,
-  type ElementRendererComponent,
+  type SceneRendererComponent,
 } from '../../framework';
 import { DEFAULT_WALK_STATE, type WalkState } from './state';
 
@@ -209,11 +209,11 @@ function ringPath(w: number, h: number) {
   return 'M' + pts.join('L');
 }
 
-export const WalkSceneRenderer: ElementRendererComponent<WalkState> = ({
-  element,
+export const WalkSceneRenderer: SceneRendererComponent<WalkState> = ({
+  scene,
   updateState,
 }) => {
-  const S = element.state;
+  const S = scene.state;
   const stageRef = useRef<HTMLDivElement | null>(null);
   const probRef = useRef<HTMLParagraphElement | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);

@@ -1,7 +1,7 @@
 // The example demo's scene: its state, and the renderer that draws it.
 // The steps that animate the state are in demo.tsx.
 //
-// A renderer draws its scene as JSX worked out from the element's state and from sizes read off the page
+// A renderer draws its scene as JSX worked out from the scene's state and from sizes read off the page
 // with useMeasure. Nothing is drawn from a size until that size has been measured.
 
 import { useRef } from 'react';
@@ -9,7 +9,7 @@ import {
   Bubble,
   placeBubble,
   useMeasure,
-  type ElementRendererComponent,
+  type SceneRendererComponent,
   type Size,
 } from '../../framework';
 import { DEFAULT_GARDEN_STATE, type GardenState } from './state';
@@ -36,8 +36,8 @@ function layoutGarden(box: Size): { x: number; y: number; width: number; height:
   return { x: (box.w - width) / 2, y: (box.h - height) / 2, width, height };
 }
 
-export const GardenRenderer: ElementRendererComponent<GardenState> = ({ element }) => {
-  const { rectangleOpacity, growthProgress, bubbleOpacity, answerOpacity } = element.state;
+export const GardenRenderer: SceneRendererComponent<GardenState> = ({ scene }) => {
+  const { rectangleOpacity, growthProgress, bubbleOpacity, answerOpacity } = scene.state;
 
   const boxRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);

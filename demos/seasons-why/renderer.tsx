@@ -3,7 +3,7 @@ import {
   clamp01,
   lerp,
   useMeasure,
-  type ElementRendererComponent,
+  type SceneRendererComponent,
   type Size,
 } from '../../framework';
 import { DEFAULT_SEASONS_WHY_STATE, type SeasonsWhyState } from './state';
@@ -713,12 +713,12 @@ function renderGlobe({
   );
 }
 
-export const SeasonsWhySceneRenderer: ElementRendererComponent<SeasonsWhyState> = ({
-  element,
+export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = ({
+  scene,
   isAnimating,
   updateState,
 }) => {
-  const S = element.state;
+  const S = scene.state;
   const uid = useId().replace(/:/g, '');
   const boxRef = useRef<HTMLDivElement>(null);
   const [spinAngle, setSpinAngle] = useState(0);

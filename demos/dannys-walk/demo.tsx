@@ -12,14 +12,13 @@ const UNFOLD_MS = 2600;
 export const dannysWalkDemo: DemoConfig<{ 'walk-scene': WalkState }> = {
   id: 'dannys-walk',
   name: "Danny's Walk",
-  renderers: {
+  scenes: {
     'walk-scene': WalkSceneRenderer,
   },
   steps: [
     {
       title: 'Problem Description',
       summary: 'The problem',
-      elements: { add: 'walk-scene' },
     },
     {
       title: 'Problem Description',

@@ -15,7 +15,7 @@ import {
   useMeasure,
   useTween,
   type BubbleAnchor,
-  type ElementRendererComponent,
+  type SceneRendererComponent,
 } from '../../framework';
 import { DEFAULT_TRIP_STATE, type BubbleKey, type TripState } from './state';
 
@@ -164,11 +164,11 @@ function Road({ road }: { road: number }) {
   );
 }
 
-export const TripSceneRenderer: ElementRendererComponent<TripState> = ({
-  element,
+export const TripSceneRenderer: SceneRendererComponent<TripState> = ({
+  scene,
   updateState,
 }) => {
-  const S = element.state;
+  const S = scene.state;
   const boxRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const formulaRef = useRef<HTMLDivElement | null>(null);

@@ -2149,11 +2149,8 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
     );
   }
 
-  const msgOp = clamp01(S.aboutSameDistMessageOpacity);
   const moveMsgOp = clamp01(S.moveEarthMessageOpacity);
   const sunlightDiffMsgOp = clamp01(S.sunlightDiffMessageOpacity);
-  const heatMsgOp = clamp01(S.moreHeatMessageOpacity);
-  const southMsgOp = clamp01(S.southQuestionMessageOpacity);
   const spinToggleOp = clamp01(S.spinToggleOpacity);
   const zoomToggleOp = clamp01(S.zoomToggleOpacity);
   const moreHeatLabelOp = clamp01(S.moreHeatLabelOpacity);
@@ -2198,17 +2195,6 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
         </svg>
         <p
           className="seasons-msg"
-          aria-hidden={msgOp <= 0.01 ? true : undefined}
-          style={{
-            top: msgTopPx,
-            opacity: msgOp,
-            transform: `translateY(${((1 - msgOp) * 8).toFixed(1)}px)`,
-          }}
-        >
-          No, the Earth stays at about the same distance from the Sun all year.
-        </p>
-        <p
-          className="seasons-msg"
           aria-hidden={moveMsgOp <= 0.01 ? true : undefined}
           style={{
             top: msgTopPx,
@@ -2228,28 +2214,6 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
           }}
         >
           Do you see any difference in sunlight between June and December?
-        </p>
-        <p
-          className="seasons-msg"
-          aria-hidden={heatMsgOp <= 0.01 ? true : undefined}
-          style={{
-            top: msgTopPx,
-            opacity: heatMsgOp,
-            transform: `translateY(${((1 - heatMsgOp) * 8).toFixed(1)}px)`,
-          }}
-        >
-          When do you get more heat, June or December?
-        </p>
-        <p
-          className="seasons-msg"
-          aria-hidden={southMsgOp <= 0.01 ? true : undefined}
-          style={{
-            top: msgTopPx,
-            opacity: southMsgOp,
-            transform: `translateY(${((1 - southMsgOp) * 8).toFixed(1)}px)`,
-          }}
-        >
-          Can you figure out when is summer, when is winter?
         </p>
         {moreHeatLabelOp > 0.01 && (
           <p

@@ -38,7 +38,6 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
   },
   steps: [
     {
-      title: '',
       play: [
         { ms: PROBLEM_IN_MS, set: { problemOpacity: 1 } },
       ],
@@ -47,27 +46,24 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       ],
     },
     {
-      title: 'Is the Earth Closer to the Sun in Summers?',
+      topMessage: 'Is the Earth Closer to the Sun in Summers?',
+      bottomMessage: 'No, the Earth stays at about the same distance from the Sun all year.',
       play: [
         { ms: MESH_IN_MS, set: { mesh2DOpacity: 1 } },
         { wait: 150, ms: SUN_EARTH_IN_MS, set: { sunAndEarthOpacity: 1 } },
         { wait: 250, ms: ORBIT_SHOW_MS, set: { earthOrbitOpacity: 1 } },
         { wait: 150, ms: ORBIT_MS, easing: 'linear', set: { earthOrbitProgress: 1 } },
-        { wait: 250, ms: MESSAGE_IN_MS, set: { aboutSameDistMessageOpacity: 1 } },
-      ],
-      exit: [
-        { ms: MESSAGE_OUT_MS, unset: ['aboutSameDistMessageOpacity'] },
       ],
     },
     {
-      title: "The Earth's Spin Axis Is Tilted",
+      topMessage: "The Earth's Spin Axis Is Tilted",
       play: [
         { wait: 200, ms: VIEW_TILT_MS, easing: 'ease-in-out', set: { space30DegViewProgress: 1 } },
         { wait: 350, ms: AXIS_TILT_MS, easing: 'ease-in-out', set: { earthSpinAxisTiltedProgress: 1 } },
       ],
     },
     {
-      title: 'The Earth Always Tilts to the Same Direction',
+      topMessage: 'The Earth Always Tilts to the Same Direction',
       play: [
         { wait: 250, ms: TILTED_ORBIT_MS, easing: 'linear', set: { tiltedEarthOrbitingProgress: 1 } },
         { wait: 250, ms: MESSAGE_IN_MS, set: { moveEarthMessageOpacity: 1 } },
@@ -91,7 +87,7 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       ],
     },
     {
-      title: 'June vs December',
+      topMessage: 'June vs December',
       play: [
         { wait: 200, ms: VIEW_SIDE_MS, easing: 'ease-in-out', set: { spaceSidedViewProgress: 1 } },
         { wait: 200, ms: DEC_SOLID_MS, easing: 'ease-in-out', set: { solidDecemberEarthProgress: 1 } },
@@ -99,7 +95,7 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       ],
     },
     {
-      title: 'Suppose You Live in the North',
+      topMessage: 'Suppose You Live in the North',
       play: [
         {
           wait: 200,
@@ -114,7 +110,8 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       ],
     },
     {
-      title: 'Look at the sun at noon',
+      topMessage: 'Look at the sun at noon',
+      bottomMessage: 'When do you get more heat, June or December?',
       play: [
         { ms: SPIN_TOGGLE_OUT_MS, set: { spinToggleOpacity: 0 } },
         { wait: 120, ms: STOP_NOON_MS, easing: 'linear', set: { stopAtNoonProgress: 1 } },
@@ -123,29 +120,21 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         {
           wait: 200,
           ms: ZOOM_TOGGLE_IN_MS,
-          set: { zoomToggleOpacity: 1, moreHeatMessageOpacity: 1 },
+          set: { zoomToggleOpacity: 1 },
         },
         { set: { canToggleZoom: true } },
       ],
       exit: [
         { unset: ['canToggleZoom'] },
         {
-          parallel: [
-            {
-              ms: (s) => Math.round(MESSAGE_OUT_MS * s.moreHeatMessageOpacity),
-              unset: ['moreHeatMessageOpacity'],
-            },
-            {
-              ms: (s) => Math.round((1 - s.surfaceZoomProgress) * SURFACE_ZOOM_MS),
-              easing: 'ease-in-out',
-              set: { surfaceZoomProgress: 1 },
-            },
-          ],
+          ms: (s) => Math.round((1 - s.surfaceZoomProgress) * SURFACE_ZOOM_MS),
+          easing: 'ease-in-out',
+          set: { surfaceZoomProgress: 1 },
         },
       ],
     },
     {
-      title: 'The more the light spreads, the less heat the land gets',
+      topMessage: 'The more the light spreads, the less heat the land gets',
       play: [
         { ms: ZOOM_TOGGLE_OUT_MS, set: { zoomToggleOpacity: 0 } },
         {
@@ -166,7 +155,7 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       ],
     },
     {
-      title: 'Summer in June, winter in December',
+      topMessage: 'Summer in June, winter in December',
       play: [
         { wait: 250, ms: 300, set: { moreHeatLabelOpacity: 0 } },
         { ms: 400, set: { summerLabelOpacity: 1 } },
@@ -201,10 +190,10 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       ],
     },
     {
-      title: 'What if You Live in the South?',
+      topMessage: 'What if You Live in the South?',
+      bottomMessage: 'Can you figure out when is summer, when is winter?',
       play: [
         { wait: 250, ms: YOU_SOUTH_MS, easing: 'ease-in-out', set: { youSouthProgress: 1 } },
-        { wait: 250, ms: MESSAGE_IN_MS, set: { southQuestionMessageOpacity: 1 } },
         { set: { zoomToggleOpacity: 1, canToggleZoom: true } },
       ],
     },

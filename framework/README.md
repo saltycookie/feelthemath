@@ -77,6 +77,7 @@ Every step has **one and only one** active scene, and declarative `play` and `ex
 
 - **Step declaration (`StepConfig`):**
   - `scene?: 'id'` — switches the active scene from this step onwards (resetting to its initial `scenes[id]` transforms and `Renderer.defaultState`). Required on the first step when `DemoConfig.scenes` has multiple entries, and optional when continuing with the previous step's scene or when only one scene is registered.
+  - `topMessage?: ReactNode`, `bottomMessage?: ReactNode` — optional bold theme-orange messages (`15px–24px`) displayed in reserved slots above and below the scene. `topMessage` fades in first, `play` starts 500 ms later, then `bottomMessage` fades in; on `Next`, both fade out in 250 ms in parallel with exit animations.
   - Switching to a different scene fades the previous scene out (`250ms`) on `Next` via `runDefaultExitAnimation`.
 - **Timeline cues (`play` / `exit`):** a single `StepCue` or an array of sequential `StepCue`s acting directly on the step's active scene:
   - `wait`: delay in `ms` before starting this cue.

@@ -12,7 +12,7 @@ export interface NavigationPanelProps {
   onNext: () => void;
   onReplay: () => void;
   onSelectStep: (stepIndex: number) => void;
-  steps?: { title: string; summary?: string }[];
+  steps?: { title?: string; summary?: string }[];
   homeHref?: string;
 }
 

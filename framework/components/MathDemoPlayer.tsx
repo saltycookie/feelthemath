@@ -40,6 +40,8 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     currentStep,
     totalSteps,
     scenes,
+    topMessageOpacity,
+    bottomMessageOpacity,
     isAnimating,
     hasPlayAnimation,
     canGoBack,
@@ -79,15 +81,24 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isAnimating, currentStepIndex, totalSteps, canGoBack, goNext, goBack]);
 
+  const reserveTopMessage = demo.steps.some((s) => s.topMessage !== undefined);
+  const reserveBottomMessage = demo.steps.some((s) => s.bottomMessage !== undefined);
+
   return (
     <>
       <DemoCanvas
-        title={currentStep?.title ?? demo.name}
+        title={currentStep ? (currentStep.title ?? '') : demo.name}
         scenes={scenes}
         renderers={demo.scenes}
         isAnimating={isAnimating}
         homeHref={homeHref}
         onUpdateSceneState={updateInteractiveSceneState}
+        topMessage={currentStep?.topMessage}
+        bottomMessage={currentStep?.bottomMessage}
+        topMessageOpacity={topMessageOpacity}
+        bottomMessageOpacity={bottomMessageOpacity}
+        reserveTopMessage={reserveTopMessage}
+        reserveBottomMessage={reserveBottomMessage}
       />
 
       <NavigationPanel

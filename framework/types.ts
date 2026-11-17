@@ -150,8 +150,8 @@ export type StepConfig<TScenes extends Record<string, any> = Record<string, any>
   [K in keyof TScenes & string]: {
     /** 1-based step number (defaults to index + 1; used for #step-X URL hash) */
     stepNumber?: number;
-    /** Title displayed in the top-center of the canvas */
-    title: string;
+    /** Optional title displayed in the top-center of the canvas */
+    title?: string;
     /** Short description for accessibility / developer inspector */
     summary?: string;
     /**
@@ -160,6 +160,14 @@ export type StepConfig<TScenes extends Record<string, any> = Record<string, any>
      * the previous step's scene.
      */
     scene?: K;
+    /**
+     * Optional message displayed above the scene (bold theme orange) before `play` starts.
+     */
+    topMessage?: React.ReactNode;
+    /**
+     * Optional message displayed below the scene (bold theme orange) after `play` finishes.
+     */
+    bottomMessage?: React.ReactNode;
     /**
      * Optional "play" animation that kicks in after the step's initial scene is rendered.
      * Accepts declarative `StepCue`s (folded into scene state) or an async function.

@@ -144,7 +144,7 @@ export function resolveDemoSteps(demo: DemoConfig<any>): ResolvedStepConfig<any>
     if (step.scene !== undefined) {
       if (!(step.scene in demo.scenes)) {
         throw new Error(
-          `Step ${index + 1} ("${step.title}") references unknown scene "${step.scene}" not declared in demo.scenes.`
+          `Step ${index + 1} ("${step.title ?? ''}") references unknown scene "${step.scene}" not declared in demo.scenes.`
         );
       }
       if (step.scene !== currentSceneId || !currentScene) {
@@ -153,7 +153,7 @@ export function resolveDemoSteps(demo: DemoConfig<any>): ResolvedStepConfig<any>
       }
     } else if (!currentSceneId || !currentScene) {
       throw new Error(
-        `Step ${index + 1} ("${step.title}") in multi-scene demo "${demo.id}" must declare \`scene\`.`
+        `Step ${index + 1} ("${step.title ?? ''}") in multi-scene demo "${demo.id}" must declare \`scene\`.`
       );
     }
 

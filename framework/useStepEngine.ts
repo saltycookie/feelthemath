@@ -85,6 +85,9 @@ const defaultStateInterpolator: StateInterpolator<Record<string, any>> = (
  * 6. Per-scene-type custom `interpolateState(startState, targetPatch, progress)` called via
  *    `requestAnimationFrame` during `animateScene` / `animateScenes`.
  */
+const TOP_MESSAGE_DELAY_MS = 500;
+const MESSAGE_FADE_MS = 250;
+
 export function useStepEngine(demo: DemoConfig<any>) {
   const steps = useMemo(() => resolveDemoSteps(demo), [demo]);
   const totalSteps = steps.length;
@@ -103,9 +106,17 @@ export function useStepEngine(demo: DemoConfig<any>) {
     return map;
   });
 
-  const [phase, setPhase] = useState<StepLifecyclePhase>(() =>
-    steps[initialIdx]?.play ? 'playing' : 'idle'
-  );
+  const [messageVisibility, setMessageVisibility] = useState<{
+    topOpacity: number;
+    bottomOpacity: number;
+  }>({ topOpacity: 0, bottomOpacity: 0 });
+
+  const [phase, setPhase] = useState<StepLifecyclePhase>(() => {
+    const s = steps[initialIdx];
+    return s?.play || s?.topMessage !== undefined || s?.bottomMessage !== undefined
+      ? 'playing'
+      : 'idle';
+  });
 
   const updateScenes = useCallback(
     (updater: ScenesMap | ((prev: ScenesMap) => ScenesMap)) => {
@@ -398,7 +409,8 @@ export function useStepEngine(demo: DemoConfig<any>) {
 
   /**
    * Enters `targetStepIndex` by setting its deterministic canonical `initialScenes`
-   * and immediately kicking off its `play` animation (if defined).
+   * and running its message / `play` sequence:
+   * - `topMessage` fades in first, followed 500ms later by `play`, then `bottomMessage`.
    */
   const enterStep = useCallback(
     async (targetStepIndex: number) => {
@@ -409,8 +421,13 @@ export function useStepEngine(demo: DemoConfig<any>) {
       // Always set exact canonical beginning state for the step
       const canonicalStart = createCanonicalScenesMap(step.initialScenes);
       updateScenes(canonicalStart);
+      setMessageVisibility({ topOpacity: 0, bottomOpacity: 0 });
 
-      if (!step.play) {
+      const hasTop = step.topMessage !== undefined;
+      const hasBottom = step.bottomMessage !== undefined;
+      const hasPlay = Boolean(step.play);
+
+      if (!hasTop && !hasBottom && !hasPlay) {
         setPhase('idle');
         return;
       }
@@ -422,18 +439,42 @@ export function useStepEngine(demo: DemoConfig<any>) {
       try {
         const controller = createController(abortController.signal);
         const arrival = waitForBoxArrival();
+
+        if (hasTop) {
+          // Allow initial opacity: 0 frame to paint so CSS 250ms fade-in triggers cleanly
+          await controller.wait(20);
+          setMessageVisibility((prev) => ({ ...prev, topOpacity: 1 }));
+        }
+
         if (arrival) {
           await arrival;
           await controller.wait(250);
-        } else {
-          // Small frame delay so initialScenes paint cleanly before play animation starts
+        } else if (!hasTop) {
+          // Small frame delay so initialScenes paint cleanly before play/bottomMessage starts
           await controller.wait(40);
         }
-        if (typeof step.play === 'function') {
-          await step.play(controller);
-        } else {
-          await runStepTimeline(step.play, controller, demo, step.sceneId);
+
+        if (hasTop) {
+          if (hasPlay || hasBottom) {
+            await controller.wait(TOP_MESSAGE_DELAY_MS);
+          } else if (!arrival) {
+            await controller.wait(MESSAGE_FADE_MS);
+          }
         }
+
+        if (step.play) {
+          if (typeof step.play === 'function') {
+            await step.play(controller);
+          } else {
+            await runStepTimeline(step.play, controller, demo, step.sceneId);
+          }
+        }
+
+        if (hasBottom && !abortController.signal.aborted) {
+          setMessageVisibility((prev) => ({ ...prev, bottomOpacity: 1 }));
+          await controller.wait(MESSAGE_FADE_MS);
+        }
+
         if (!abortController.signal.aborted) {
           setPhase('idle');
         }
@@ -488,19 +529,24 @@ export function useStepEngine(demo: DemoConfig<any>) {
 
   /**
    * Replay button handler:
-   * Resets current step to its canonical `initialScenes` and replays `step.play()`.
+   * Resets current step to its canonical `initialScenes` and replays its message/`play` sequence.
    */
   const replayCurrentStep = useCallback(() => {
     const currentStep = steps[stepIndex];
-    if (!currentStep?.play || phase !== 'idle') return;
+    const hasAnim = Boolean(
+      currentStep?.play ||
+        currentStep?.topMessage !== undefined ||
+        currentStep?.bottomMessage !== undefined
+    );
+    if (!hasAnim || phase !== 'idle') return;
     enterStep(stepIndex);
   }, [steps, stepIndex, phase, enterStep]);
 
   /**
    * Next button handler:
    * - Disabled when `phase !== 'idle'` (i.e., while `play` or `exit` is ongoing).
-   * - Runs current step's custom `exit` function/cues (plus `runDefaultExitAnimation`)
-   *   to smoothly transition from current step's post-play state into next step's beginning state.
+   * - Fades out any top/bottom messages in 250ms in parallel with the current step's
+   *   `exit` function/cues (plus `runDefaultExitAnimation`).
    * - Then commits next step's canonical `initialScenes`, updates URL to `#step-(X+1)`,
    *   and runs next step's `play` animation.
    */
@@ -518,6 +564,12 @@ export function useStepEngine(demo: DemoConfig<any>) {
 
     const nextInitialMap = createCanonicalScenesMap(nextStep.initialScenes);
     const controller = createController(abortController.signal);
+    const hasMessages = Boolean(
+      currentStep.topMessage !== undefined || currentStep.bottomMessage !== undefined
+    );
+    if (hasMessages) {
+      setMessageVisibility({ topOpacity: 0, bottomOpacity: 0 });
+    }
 
     try {
       const runDefaultExit = (options?: { excludeIds?: string[]; durationMs?: number }) =>
@@ -528,22 +580,29 @@ export function useStepEngine(demo: DemoConfig<any>) {
           options
         );
 
-      if (currentStep.exit) {
-        if (typeof currentStep.exit === 'function') {
-          const exitContext: StepExitContext = {
-            currentScenes: scenesRef.current,
-            nextInitialScenes: nextInitialMap,
-            controller,
-            runDefaultExit,
-          };
-          await currentStep.exit(exitContext);
+      const runSceneExit = async () => {
+        if (currentStep.exit) {
+          if (typeof currentStep.exit === 'function') {
+            const exitContext: StepExitContext = {
+              currentScenes: scenesRef.current,
+              nextInitialScenes: nextInitialMap,
+              controller,
+              runDefaultExit,
+            };
+            await currentStep.exit(exitContext);
+          } else {
+            await runStepTimeline(currentStep.exit, controller, demo, currentStep.sceneId);
+            await runDefaultExit();
+          }
         } else {
-          await runStepTimeline(currentStep.exit, controller, demo, currentStep.sceneId);
           await runDefaultExit();
         }
-      } else {
-        await runDefaultExit();
-      }
+      };
+
+      await Promise.all([
+        runSceneExit(),
+        hasMessages ? controller.wait(MESSAGE_FADE_MS) : Promise.resolve(),
+      ]);
 
       if (abortController.signal.aborted) return;
 
@@ -598,7 +657,11 @@ export function useStepEngine(demo: DemoConfig<any>) {
   );
 
   const currentStep = steps[stepIndex];
-  const hasPlayAnimation = Boolean(currentStep?.play);
+  const hasPlayAnimation = Boolean(
+    currentStep?.play ||
+      currentStep?.topMessage !== undefined ||
+      currentStep?.bottomMessage !== undefined
+  );
   const isAnimating = phase === 'playing' || phase === 'exiting';
 
   return {
@@ -606,6 +669,8 @@ export function useStepEngine(demo: DemoConfig<any>) {
     currentStep,
     totalSteps,
     scenes,
+    topMessageOpacity: messageVisibility.topOpacity,
+    bottomMessageOpacity: messageVisibility.bottomOpacity,
     phase,
     isAnimating,
     hasPlayAnimation,

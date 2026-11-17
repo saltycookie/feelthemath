@@ -10,8 +10,6 @@ export interface SeasonsWhyState {
   earthOrbitProgress: number;
   // Showing the earth orbit.
   earthOrbitOpacity: number;
-  // Showing message: "No, the Earth stays at about the same distance from the Sun all year."
-  aboutSameDistMessageOpacity: number;
   // Showing space (2d mesh, sun, earth, orbit, etc) from the front, 30 degree above the plane.
   space30DegViewProgress: number;
   // Tilt the earth's spin axis to the correct angle.
@@ -45,8 +43,6 @@ export interface SeasonsWhyState {
   zoomToggleOpacity: number;
   // Whether the user can currently click the Step 7 Zoom In / Zoom Out toggle.
   canToggleZoom: boolean;
-  // Showing message: "When do you get more heat, June or December?"
-  moreHeatMessageOpacity: number;
   // Continuous position (0 = June, 1 = December) of the Step 8 comparison animation.
   seasonCompareProgress: number;
   // Opacity of the Step 8 red heat intensity bar, spread measurement, and dotted beam copy.
@@ -65,8 +61,6 @@ export interface SeasonsWhyState {
   winterRingProgress: number;
   // Continuous position (0 = 30°N, 1 = 30°S) moving "You" and its tangent line to the Southern Hemisphere in Step 10.
   youSouthProgress: number;
-  // Opacity of the Step 10 bottom message: "Can you figure out when is summer, when is winter?"
-  southQuestionMessageOpacity: number;
   // Viewing space from the front.
   // The 2D mesh and earth orbit disappears when it progresses to 1.
   spaceSidedViewProgress: number;
@@ -86,7 +80,6 @@ export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {
   sunAndEarthOpacity: 0,
   earthOrbitProgress: 0,
   earthOrbitOpacity: 0,
-  aboutSameDistMessageOpacity: 0,
   space30DegViewProgress: 0,
   earthSpinAxisTiltedProgress: 0,
   tiltedEarthOrbitingProgress: 0,
@@ -103,7 +96,6 @@ export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {
   surfaceZoomProgress: 0,
   zoomToggleOpacity: 0,
   canToggleZoom: false,
-  moreHeatMessageOpacity: 0,
   seasonCompareProgress: 0,
   spreadOverlayOpacity: 0,
   moreHeatLabelOpacity: 0,
@@ -113,7 +105,6 @@ export const DEFAULT_SEASONS_WHY_STATE: SeasonsWhyState = {
   summerRingProgress: 0,
   winterRingProgress: 0,
   youSouthProgress: 0,
-  southQuestionMessageOpacity: 0,
   spaceSidedViewProgress: 0,
   solidDecemberEarthProgress: 0,
   sunFoldedProgress: 0,

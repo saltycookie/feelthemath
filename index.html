@@ -90,20 +90,16 @@
 
   /* the demos: one card each, with its picture (made with tools/thumbnail.py), its title and a line about it */
   .demos{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-  a.demo{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:clamp(14px,3vw,20px);align-items:start;
+  a.demo{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:clamp(12px,2.5vw,18px);align-items:center;
     padding:clamp(10px,2vw,14px);border:1.5px solid var(--grid-strong);border-radius:12px;color:inherit;text-decoration:none;
     background:var(--paper);                      /* the white paper the lid used to be */
     box-shadow:0 1px 2px rgb(30 10 0 / .35), 0 4px 12px rgb(30 10 0 / .3);
     transition:border-color .2s}
   a.demo:hover{border-color:var(--ink)}
   a.demo:focus-visible{outline:2.5px solid var(--cream);outline-offset:3px}   /* on the wood, so light */
-  .demo .thumb{display:block;width:104px;height:104px;border:1px solid var(--grid-strong);border-radius:4px}
-  .demo h2{margin:.1em 0 .2em;font-size:clamp(21px,3.2vw,26px);line-height:1.2}
-  .demo p{margin:0;font-size:18px;line-height:1.4;color:var(--muted);text-wrap:pretty}
-  @media (max-width:480px){
-    .demo .thumb{width:72px;height:72px}
-    .demo p{font-size:16px}
-  }
+  .demo .thumb{display:block;width:64px;height:64px;border:1px solid var(--grid-strong);border-radius:4px}
+  .demo h2{margin:.1em 0 .15em;font-size:18px;line-height:1.2}
+  .demo p{margin:0;font-size:14px;line-height:1.4;color:var(--muted);text-wrap:pretty}
 </style>
 </head>
 <body>

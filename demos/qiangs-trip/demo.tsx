@@ -20,6 +20,7 @@ export const qiangsTripDemo: DemoConfig<{ 'trip-scene': TripState }> = {
     {
       title: 'Problem Description',
       summary: 'The problem',
+      elements: { add: 'trip-scene' },
     },
     {
       title: 'Problem Description',

@@ -17,6 +17,7 @@ export const twoSticksDemo: DemoConfig<{ 'sticks-scene': SticksState }> = {
     {
       title: 'Problem Description',
       summary: 'The problem',
+      elements: { add: 'sticks-scene' },
       // Nothing moves; a new pulseCount makes the scene pulse the figure's marks.
       play: { set: { pulseCount: 1 } },
       exit: { unset: ['pulseCount'] },

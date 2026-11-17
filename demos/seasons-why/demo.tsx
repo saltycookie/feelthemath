@@ -39,6 +39,7 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
   steps: [
     {
       title: '',
+      elements: { add: 'seasons-scene' },
       play: [
         { ms: PROBLEM_IN_MS, set: { problemOpacity: 1 } },
       ],

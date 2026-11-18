@@ -39,9 +39,9 @@ export interface SeasonsWhyState {
   tangentLineOpacity: number;
   // Progress (0 -> 1) of zooming into "You" and shifting the tangent line to horizontal (Step 7).
   surfaceZoomProgress: number;
-  // Opacity of the Step 7 Zoom In / Zoom Out toggle below the clocks.
+  // Opacity of the Step 10 Zoom In / Zoom Out toggle below the Earths.
   zoomToggleOpacity: number;
-  // Whether the user can currently click the Step 7 Zoom In / Zoom Out toggle.
+  // Whether the user can currently click the Step 10 Zoom In / Zoom Out toggle.
   canToggleZoom: boolean;
   // Continuous position (0 = June, 1 = December) of the Step 8 comparison animation.
   seasonCompareProgress: number;

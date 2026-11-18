@@ -23,7 +23,6 @@ const STOP_NOON_MS = 1800;
 const TANGENT_IN_MS = 550;
 const SURFACE_ZOOM_MS = 2600;
 const ZOOM_TOGGLE_IN_MS = 450;
-const ZOOM_TOGGLE_OUT_MS = 250;
 const SPREAD_IN_MS = 450;
 const SPREAD_SLIDE_MS = 2600;
 const HEAT_LABELS_IN_MS = 500;
@@ -116,27 +115,12 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         { wait: 120, ms: STOP_NOON_MS, easing: 'linear', set: { stopAtNoonProgress: 1 } },
         { wait: 200, ms: TANGENT_IN_MS, easing: 'ease-out', set: { tangentLineOpacity: 1 } },
         { wait: 350, ms: SURFACE_ZOOM_MS, easing: 'ease-in-out', set: { surfaceZoomProgress: 1 } },
-        {
-          wait: 200,
-          ms: ZOOM_TOGGLE_IN_MS,
-          set: { zoomToggleOpacity: 1 },
-        },
-        { set: { canToggleZoom: true } },
       ],
       bottomMessage: 'When does the land get more heat, June or December?',
-      exit: [
-        { unset: ['canToggleZoom'] },
-        {
-          ms: (s) => Math.round((1 - s.surfaceZoomProgress) * SURFACE_ZOOM_MS),
-          easing: 'ease-in-out',
-          set: { surfaceZoomProgress: 1 },
-        },
-      ],
     },
     {
       topMessage: 'The more the light spreads, the less heat the land gets',
       play: [
-        { ms: ZOOM_TOGGLE_OUT_MS, set: { zoomToggleOpacity: 0 } },
         {
           wait: 80,
           ms: SPREAD_IN_MS,
@@ -163,28 +147,17 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         { ms: 400, set: { winterLabelOpacity: 1 } },
         { wait: 150, ms: ANSWER_RING_MS, set: { winterRingProgress: 1 } },
         { wait: 450, ms: SURFACE_ZOOM_MS, easing: 'ease-in-out', set: { surfaceZoomProgress: 0 } },
-        { wait: 200, ms: ZOOM_TOGGLE_IN_MS, set: { zoomToggleOpacity: 1 } },
-        { set: { canToggleZoom: true } },
       ],
       bottomMessage: 'In the north, summer is in June and winter is in December.',
       exit: [
         {
-          parallel: [
-            {
-              ms: MESSAGE_OUT_MS,
-              set: {
-                summerLabelOpacity: 0,
-                winterLabelOpacity: 0,
-                summerRingProgress: 0,
-                winterRingProgress: 0,
-              },
-            },
-            {
-              ms: (s) => Math.round(s.surfaceZoomProgress * SURFACE_ZOOM_MS),
-              easing: 'ease-in-out',
-              set: { surfaceZoomProgress: 0 },
-            },
-          ],
+          ms: MESSAGE_OUT_MS,
+          set: {
+            summerLabelOpacity: 0,
+            winterLabelOpacity: 0,
+            summerRingProgress: 0,
+            winterRingProgress: 0,
+          },
         },
         { unset: ['spreadOverlayOpacity'] },
       ],
@@ -194,7 +167,8 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
       bottomMessage: 'Can you figure out when is summer and when is winter?',
       play: [
         { wait: 250, ms: YOU_SOUTH_MS, easing: 'ease-in-out', set: { youSouthProgress: 1 } },
-        { set: { zoomToggleOpacity: 1, canToggleZoom: true } },
+        { wait: 200, ms: ZOOM_TOGGLE_IN_MS, set: { zoomToggleOpacity: 1 } },
+        { set: { canToggleZoom: true } },
       ],
     },
   ],

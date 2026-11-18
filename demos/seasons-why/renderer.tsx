@@ -1000,6 +1000,8 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
   // Build projected 3D scene primitives once `box` is measured
   let sceneContent: React.ReactNode = null;
   let toggleTop = Math.max(0, H - 36);
+  let spinToggleLeft = W / 2 + 54;
+  let spinToggleTop = 17;
   let heatMsgTop = Math.max(0, H - 48);
   let seasonsMsgTop = Math.max(0, H - 42);
   let juneLabelX = W * 0.25;
@@ -1270,6 +1272,8 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
     const lineTopRaw = proj(0, 0, lineHalfZ);
     const lineBot = proj(0, 0, -lineBotZ);
     const clockY = Math.max(17, Math.min(cy - EARTH_R * scale - 24, lineTopRaw.y - 24));
+    spinToggleLeft = cx + 46 + 8;
+    spinToggleTop = clockY;
     const lineTop = {
       x: lineTopRaw.x,
       y: Math.max(lineTopRaw.y, clockY + 13 + 10 * clockOp),
@@ -1305,7 +1309,7 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
       frontEarthSouth.y + 8
     );
     const unfoldedMsgTop = Math.max(meshBottomY + 12, frontEarthBottomY + 8);
-    const foldedMsgTop = toggleTop + 30 + 10;
+    const foldedMsgTop = fixedSideLabelY + 20;
     const msgBottomMargin = W < 540 ? 48 : 34;
     seasonsMsgTop = Math.max(
       0,
@@ -2275,36 +2279,32 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
             <AnswerRingWord text="Winter" progress={winterRingP} />
           </p>
         )}
-        {spinToggleOp > 0.01 && (
+        {box && spinToggleOp > 0.01 && (
           <button
             type="button"
             className="spin-toggle"
             aria-pressed={isSpinPaused}
             aria-label={isSpinPaused ? 'Spin both Earths' : 'Pause both Earths'}
+            title={isSpinPaused ? 'Spin' : 'Pause'}
             disabled={!canToggleSpin}
             onClick={() => canToggleSpin && updateState({ earthSpinPaused: !isSpinPaused })}
             style={{
-              top: `${toggleTop.toFixed(1)}px`,
+              left: `${spinToggleLeft.toFixed(1)}px`,
+              top: `${spinToggleTop.toFixed(1)}px`,
               opacity: spinToggleOp,
               pointerEvents: canToggleSpin ? 'auto' : 'none',
-              transform: `translate(-50%, ${((1 - spinToggleOp) * 6).toFixed(1)}px)`,
+              transform: `translateY(calc(-50% + ${((1 - spinToggleOp) * 4).toFixed(1)}px))`,
             }}
           >
             {isSpinPaused ? (
-              <>
-                <svg viewBox="0 0 14 14" aria-hidden="true">
-                  <path d="M3.5,2.2 L11.5,7 L3.5,11.8 Z" />
-                </svg>
-                <span>Spin</span>
-              </>
+              <svg viewBox="0 0 14 14" aria-hidden="true">
+                <path d="M3.5,2.2 L11.5,7 L3.5,11.8 Z" />
+              </svg>
             ) : (
-              <>
-                <svg viewBox="0 0 14 14" aria-hidden="true">
-                  <rect x="2.5" y="2.2" width="3.2" height="9.6" rx="0.9" />
-                  <rect x="8.3" y="2.2" width="3.2" height="9.6" rx="0.9" />
-                </svg>
-                <span>Pause</span>
-              </>
+              <svg viewBox="0 0 14 14" aria-hidden="true">
+                <rect x="2.5" y="2.2" width="3.2" height="9.6" rx="0.9" />
+                <rect x="8.3" y="2.2" width="3.2" height="9.6" rx="0.9" />
+              </svg>
             )}
           </button>
         )}

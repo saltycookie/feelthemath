@@ -52,7 +52,7 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         { wait: 250, ms: ORBIT_SHOW_MS, set: { earthOrbitOpacity: 1 } },
         { wait: 150, ms: ORBIT_MS, easing: 'linear', set: { earthOrbitProgress: 1 } },
       ],
-      bottomMessage: 'No, the earth stays at about the same distance from the sun all year around.',
+      bottomMessage: 'No, the earth stays at about the same distance from the sun all year round.',
     },
     {
       topMessage: "The earth's spin axis is tilted",

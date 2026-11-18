@@ -116,10 +116,10 @@ export const seasonsWhyDemo: DemoConfig<{ 'seasons-scene': SeasonsWhyState }> = 
         { wait: 200, ms: TANGENT_IN_MS, easing: 'ease-out', set: { tangentLineOpacity: 1 } },
         { wait: 350, ms: SURFACE_ZOOM_MS, easing: 'ease-in-out', set: { surfaceZoomProgress: 1 } },
       ],
-      bottomMessage: 'When does the land get more heat, June or December?',
+      bottomMessage: 'When does the ground get more heat, June or December?',
     },
     {
-      topMessage: 'The more the light spreads, the less heat the land gets',
+      topMessage: 'The more the light spreads, the less heat the ground gets',
       play: [
         {
           wait: 80,

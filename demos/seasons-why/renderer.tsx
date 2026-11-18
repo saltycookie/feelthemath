@@ -1264,8 +1264,8 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
     const clockTime =
       clockOp > 0.002 ? formatClockTime(effectiveSpinAngle - NOON_SPIN_ANGLE) : undefined;
 
-    juneLabelX = cx - scale * earthXOffset;
-    decLabelX = cx + scale * earthXOffset;
+    juneLabelX = lerp(cx - scale * earthXOffset, W * 0.25, zoomP);
+    decLabelX = lerp(cx + scale * earthXOffset, W * 0.75, zoomP);
 
     const lineHalfZ = lerp(0.30, 0.34, clamp01(sunFoldP / 0.35));
     const lineBotZ = lerp(0.30, 0.36, clamp01(sunFoldP / 0.35));
@@ -1334,7 +1334,10 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
     const globeBodyOp = clamp01(1 - clamp01((zoomP - 0.1) / 0.65));
     const flatLandOp = clamp01((zoomP - 0.25) / 0.55);
 
-    const youTargetY = panelTop + panelH * 0.68;
+    const youTargetY = Math.min(
+      panelTop + panelH * 0.68,
+      Math.max(panelTop + panelH * 0.5, fixedSideLabelY - 78)
+    );
     const juneDeltaLat = youLatRad - AXIAL_TILT_RAD;
     const decDeltaLat = youLatRad + AXIAL_TILT_RAD;
     const juneElevSin = Math.max(0.28, Math.cos(juneDeltaLat));
@@ -1592,7 +1595,7 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
         panelProj,
         panelCamDir,
         lightDirOverride,
-        fixedLabelX: cx + scale * worldEx,
+        fixedLabelX: isJune ? juneLabelX : decLabelX,
         surfaceOverlay,
       };
     };
@@ -1705,11 +1708,11 @@ export const SeasonsWhySceneRenderer: SceneRendererComponent<SeasonsWhyState> = 
       const heatFadeT = clamp01((spreadRatio - minRatio) / Math.max(1e-4, maxRatio - minRatio));
       const spreadUnits = lerp(3, 5, heatFadeT);
 
-      const barR = Math.round(lerp(220, 245, heatFadeT));
-      const barG = Math.round(lerp(48, 178, heatFadeT));
-      const barB = Math.round(lerp(42, 170, heatFadeT));
+      const barR = Math.round(lerp(220, 235, heatFadeT));
+      const barG = Math.round(lerp(48, 128, heatFadeT));
+      const barB = Math.round(lerp(42, 120, heatFadeT));
       const barFill = `rgb(${barR}, ${barG}, ${barB})`;
-      const barStroke = `rgba(176, 36, 30, ${lerp(0.88, 0.42, heatFadeT).toFixed(2)})`;
+      const barStroke = `rgba(176, 36, 30, ${lerp(0.88, 0.52, heatFadeT).toFixed(2)})`;
 
       const barY = youTargetY + 1.1;
       const barH = Math.round(Math.min(34, Math.max(20, (panelBottom - youTargetY) * 0.3)));

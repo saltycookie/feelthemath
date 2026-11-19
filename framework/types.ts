@@ -18,10 +18,8 @@ export interface Scene<TState = Record<string, any>> {
   state: TState;
 }
 
-export type ScenesMap = Record<string, Scene<any>>;
-
 /**
- * Partial patch used when animating or updating a Scene.
+ * Partial patch used when animating or updating the active Scene.
  */
 export interface ScenePatch<TState = Record<string, any>> {
   x?: number;
@@ -32,9 +30,9 @@ export interface ScenePatch<TState = Record<string, any>> {
 }
 
 /**
- * Custom state interpolator function for a Scene type (Option A).
+ * Custom state interpolator function for a Scene type.
  * Called on every animation frame (`progress` in [0, 1], after easing is applied)
- * when `animateScene` or `animateScenes` updates `scene.state`.
+ * when `animateScene` updates `scene.state`.
  *
  * @param startState The scene's `state` snapshot when `animateScene` began.
  * @param targetPatch The partial `state` patch passed to `animateScene`.
@@ -49,7 +47,8 @@ export type StateInterpolator<TState = Record<string, any>> = (
 
 /**
  * Imperative animation controller provided to a step's `play` and `exit` functions.
- * All methods respect cancellation via AbortSignal if the user navigates away via URL/dots.
+ * Operates directly on the step's single active scene and respects cancellation via
+ * `AbortSignal` if the user navigates away via URL/dots/Back/Replay.
  */
 export interface StepAnimationController {
   /** AbortSignal that trips if the user jumps to another step or replays */
@@ -58,55 +57,37 @@ export interface StepAnimationController {
   /** Wait for `ms` milliseconds (rejects if aborted) */
   wait: (ms: number) => Promise<void>;
 
-  /** Read a snapshot of the current scenes on the canvas */
-  getScenes: () => ScenesMap;
+  /** Read a snapshot of the active scene on the canvas */
+  getScene: () => Scene<any> | null;
 
-  /** Add a new scene to the canvas (optionally fading it in over `durationMs`) */
-  addScene: <TState = Record<string, any>>(
-    scene: Scene<TState>,
-    options?: { durationMs?: number; easing?: string }
-  ) => Promise<void>;
-
-  /** Animate an existing scene's position (x, y), opacity, scale, or state over `durationMs` */
+  /** Animate the active scene's position (x, y), opacity, scale, or state over `durationMs` */
   animateScene: <TState = Record<string, any>>(
-    id: string,
     patch: ScenePatch<TState>,
     options?: { durationMs?: number; easing?: string }
   ) => Promise<void>;
 
-  /** Animate multiple scenes in parallel over `durationMs` */
-  animateScenes: (
-    patches: Record<string, ScenePatch<any>>,
-    options?: { durationMs?: number; easing?: string }
-  ) => Promise<void>;
-
-  /** Immediately update a scene without waiting */
+  /** Immediately update the active scene without waiting */
   updateSceneImmediate: <TState = Record<string, any>>(
-    id: string,
     patch: ScenePatch<TState>
   ) => void;
-
-  /** Dim and remove a scene over `durationMs` (defaults to 250ms) */
-  removeScene: (id: string, durationMs?: number) => Promise<void>;
 }
 
 /**
  * Context passed to a step's `exit` animation handler when advancing to the next step.
  */
 export interface StepExitContext {
-  /** Current scenes on the canvas (including post-play state and any user interactive changes) */
-  currentScenes: ScenesMap;
-  /** Canonical beginning scenes of the destination (next) step */
-  nextInitialScenes: ScenesMap;
+  /** Current active scene on the canvas (including post-play state and any user interactive changes) */
+  currentScene: Scene<any> | null;
+  /** Canonical beginning scene of the destination (next) step */
+  nextInitialScene: Scene<any>;
   /** Animation controller for orchestrating custom transitions */
   controller: StepAnimationController;
   /**
    * Executes the framework's default exit behavior:
-   * - Shared scenes at the exact same (x, y) position remain intact.
-   * - Scenes that no longer exist in `nextInitialScenes` dim and disappear in 250ms.
-   * Can optionally pass `excludeIds` for scenes the custom exit handler is animating itself.
+   * - If the next step uses the same scene at the exact same `(x, y)` position, it remains intact.
+   * - Otherwise the current scene fades out in 250ms.
    */
-  runDefaultExit: (options?: { excludeIds?: string[]; durationMs?: number }) => Promise<void>;
+  runDefaultExit: (options?: { durationMs?: number }) => Promise<void>;
 }
 
 /**
@@ -148,8 +129,6 @@ export type StepTimeline<TState = Record<string, any>> =
  */
 export type StepConfig<TScenes extends Record<string, any> = Record<string, any>> = {
   [K in keyof TScenes & string]: {
-    /** 1-based step number (defaults to index + 1; used for #step-X URL hash) */
-    stepNumber?: number;
     /** Optional title displayed in the top-center of the canvas */
     title?: string;
     /** Short description for accessibility / developer inspector */
@@ -182,13 +161,12 @@ export type StepConfig<TScenes extends Record<string, any> = Record<string, any>
 }[keyof TScenes & string];
 
 /**
- * A resolved step where `stepNumber`, `sceneId`, and `initialScenes` are always populated.
+ * A resolved step where `sceneId` and `initialScene` are always populated.
  */
 export type ResolvedStepConfig<TScenes extends Record<string, any> = Record<string, any>> =
   StepConfig<TScenes> & {
-    stepNumber: number;
     sceneId: string;
-    initialScenes: Scene<any>[];
+    initialScene: Scene<any>;
   };
 
 /**

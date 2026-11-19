@@ -6,7 +6,6 @@ export interface NavigationPanelProps {
   canGoBack: boolean;
   canGoNext: boolean;
   canReplay: boolean;
-  hasPlayAnimation: boolean;
   isAnimating: boolean;
   onBack: () => void;
   onNext: () => void;

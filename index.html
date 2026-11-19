@@ -12,9 +12,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap">
 <link rel="stylesheet" href="framework/theme.css">
 <link rel="preload" href="framework/lid-wood.webp" as="image" type="image/webp">   <!-- the lid's wood (theme.css), fetched early -->
-<!-- the lid opens going into a demo and closes coming back (framework/lid.js). The first frame waits until all of the
-     lid has been read (#lid-end), so that lid.js can cut the closing lid from the whole of it. -->
-<script src="framework/lid.js"></script>
+<!-- the lid opens going into a demo and closes coming back (framework/lid.ts). The first frame waits until all of the
+     lid has been read (#lid-end), so that lid.ts can cut the closing lid from the whole of it. -->
+<script type="module" src="./framework/lid.ts" blocking="render"></script>
 <link rel="expect" href="#lid-end" blocking="render">
 <style>
   /* the front page: the same box as every demo, with its lid on, and the title and one card per demo written on the
@@ -106,7 +106,7 @@
 <main class="box-lid">
 <div class="front">
   <!-- a few glowing stars on the wood, round the writing (and on the floor, after the cards). They are inlays, part of
-       the lid itself rather than writing on it, so they stay while the lid opens and closes (framework/lid.js) -->
+       the lid itself rather than writing on it, so they stay while the lid opens and closes (framework/lid.ts) -->
   <div class="lid-stars inlay" aria-hidden="true"><i class="star s1"></i><i class="star s2"></i><i class="star s3"></i><i class="star s4"></i><i class="star s5"></i><i class="star s6"></i></div>
   <h1 aria-label="Feel the Math">
     <svg class="mark" viewBox="16 0 104 120" aria-hidden="true">

@@ -2,7 +2,6 @@ export * from './types';
 export * from './math';
 export * from './svg';
 export * from './paths';
-export * from './exitAnimation';
 export * from './stepTimeline';
 export * from './useHashStepRouter';
 export * from './useStepEngine';

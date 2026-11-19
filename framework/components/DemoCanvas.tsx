@@ -1,16 +1,16 @@
 import React from 'react';
-import { SceneRendererRegistry, ScenesMap } from '../types';
+import { Scene, SceneRendererRegistry } from '../types';
 import { resolveSceneRendererEntry } from '../stepTimeline';
 import { TitleBar } from './TitleBar';
 
 export interface DemoCanvasProps {
   title: string;
-  scenes: ScenesMap;
+  scene: Scene<any> | null;
   renderers: SceneRendererRegistry;
   isAnimating: boolean;
   onHomeClick?: () => void;
   homeHref?: string;
-  onUpdateSceneState: (sceneId: string, statePatch: Record<string, any>) => void;
+  onUpdateSceneState: (statePatch: Record<string, any>) => void;
   topMessage?: React.ReactNode;
   bottomMessage?: React.ReactNode;
   topMessageOpacity?: number;
@@ -26,7 +26,7 @@ export interface DemoCanvasProps {
  */
 export const DemoCanvas: React.FC<DemoCanvasProps> = ({
   title,
-  scenes,
+  scene,
   renderers,
   isAnimating,
   onHomeClick,
@@ -39,7 +39,27 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
   reserveTopMessage = false,
   reserveBottomMessage = false,
 }) => {
-  const sceneList = Object.values(scenes);
+  const entry = scene ? renderers[scene.type] : undefined;
+  const Renderer = entry ? resolveSceneRendererEntry(entry).renderer : null;
+
+  let sceneStyle: React.CSSProperties | undefined;
+  if (scene) {
+    const duration = scene.transitionDurationMs ?? 0;
+    const easing = scene.transitionEasing ?? 'cubic-bezier(0.22, 1, 0.36, 1)';
+    const scale = scene.scale ?? 1;
+    const hasTransform = scene.x !== 0 || scene.y !== 0 || scale !== 1;
+
+    sceneStyle = {
+      transform: hasTransform
+        ? `translate3d(${scene.x}px, ${scene.y}px, 0) scale(${scale})`
+        : undefined,
+      opacity: scene.opacity,
+      transition:
+        duration > 0
+          ? `transform ${duration}ms ${easing}, opacity ${duration}ms ${easing}`
+          : 'none',
+    };
+  }
 
   return (
     <>
@@ -57,47 +77,23 @@ export const DemoCanvas: React.FC<DemoCanvasProps> = ({
         )}
 
         <div className="fw-stage-body">
-          {sceneList.map((sc) => {
-            const entry = renderers[sc.type];
-            if (!entry) {
-              return null;
-            }
-            const Renderer = resolveSceneRendererEntry(entry).renderer;
-
-            const duration = sc.transitionDurationMs ?? 0;
-            const easing = sc.transitionEasing ?? 'cubic-bezier(0.22, 1, 0.36, 1)';
-            const scale = sc.scale ?? 1;
-            const hasTransform = sc.x !== 0 || sc.y !== 0 || scale !== 1;
-
-            const style: React.CSSProperties = {
-              transform: hasTransform
-                ? `translate3d(${sc.x}px, ${sc.y}px, 0) scale(${scale})`
-                : undefined,
-              opacity: sc.opacity,
-              transition:
-                duration > 0
-                  ? `transform ${duration}ms ${easing}, opacity ${duration}ms ${easing}`
-                  : 'none',
-            };
-
-            return (
-              <div
-                key={sc.id}
-                id={`fw-scene-${sc.id}`}
-                className="fw-visual-element"
-                style={style}
-                data-scene-id={sc.id}
-                data-scene-type={sc.type}
-                data-inactive={sc.opacity < 0.05 ? 'true' : undefined}
-              >
-                <Renderer
-                  scene={sc}
-                  isAnimating={isAnimating}
-                  updateState={(patch) => onUpdateSceneState(sc.id, patch)}
-                />
-              </div>
-            );
-          })}
+          {scene && Renderer && (
+            <div
+              key={scene.id}
+              id={`fw-scene-${scene.id}`}
+              className="fw-visual-element"
+              style={sceneStyle}
+              data-scene-id={scene.id}
+              data-scene-type={scene.type}
+              data-inactive={scene.opacity < 0.05 ? 'true' : undefined}
+            >
+              <Renderer
+                scene={scene}
+                isAnimating={isAnimating}
+                updateState={onUpdateSceneState}
+              />
+            </div>
+          )}
         </div>
 
         {(bottomMessage !== undefined || reserveBottomMessage) && (

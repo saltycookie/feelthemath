@@ -25,7 +25,6 @@ function copyStaticPagesAssets(): Plugin {
         'apple-touch-icon.png',
         'framework/wood.webp',
         'framework/lid-wood.webp',
-        'framework/lid.js',
         'framework/theme.css',
         'demos/dannys-walk/thumbnail.png',
         'demos/dannys-walk/thumbnail@2x.png',
@@ -47,23 +46,41 @@ function copyStaticPagesAssets(): Plugin {
       }
 
       // 1. Post-process dist/index.html:
-      //    - Move <link rel="stylesheet" ...> before <script src="framework/lid.js"></script>
+      //    - Move the Vite-emitted theme <link rel="stylesheet"> BEFORE the inline <style> and
+      //      bundled lid <script type="module">, and preserve blocking="render" on the module script.
       //    - Inline demo thumbnails as base64 data URIs (using crisp @2x PNG) without srcset
       //      so thumbnails render immediately during view transitions and through preview proxies.
       const indexHtmlPath = resolve(outDir, 'index.html');
       if (existsSync(indexHtmlPath)) {
         let html = readFileSync(indexHtmlPath, 'utf-8');
 
-        // Extract Vite-injected theme stylesheet link and place it before framework/lid.js
+        // Extract Vite-injected local theme stylesheet link and bundled lid module script
         const themeLinkMatch = html.match(
-          /\s*<link rel="stylesheet"[^>]*href="([^"]*theme[^"]*\.css)"[^>]*>/
+          /\s*<link rel="stylesheet"[^>]*href="(\.\/assets\/[^"]+\.css)"[^>]*>/
         );
+        const themeLinkTag = themeLinkMatch
+          ? `<link rel="stylesheet" href="${themeLinkMatch[1]}">`
+          : '';
         if (themeLinkMatch) {
-          const themeHref = themeLinkMatch[1];
           html = html.replace(themeLinkMatch[0], '');
+        }
+
+        const lidScriptMatch = html.match(
+          /\s*<script type="module"[^>]*src="([^"]+)"[^>]*><\/script>/
+        );
+        const lidScriptTag = lidScriptMatch
+          ? `<script type="module" src="${lidScriptMatch[1]}" blocking="render"></script>`
+          : '';
+        if (lidScriptMatch) {
+          html = html.replace(lidScriptMatch[0], '');
+        }
+
+        // Place theme stylesheet and render-blocking lid script right before <link rel="expect" ...> (above inline <style>)
+        if (themeLinkTag || lidScriptTag) {
+          const injected = [themeLinkTag, lidScriptTag].filter(Boolean).join('\n');
           html = html.replace(
-            '<script src="framework/lid.js"></script>',
-            `<link rel="stylesheet" href="${themeHref}">\n<script src="framework/lid.js"></script>`
+            '<link rel="expect"',
+            `${injected}\n<link rel="expect"`
           );
         }
 
@@ -92,7 +109,7 @@ function copyStaticPagesAssets(): Plugin {
       }
 
       // 2. Post-process dist/demos/*/index.html:
-      //    - Place <link rel="stylesheet"> tags (theme.css first, then demo css) BEFORE <script type="module">
+      //    - Place <link rel="stylesheet"> tags (theme CSS first, then demo CSS) BEFORE <script type="module">
       //    - Add blocking="render" to <script type="module"> so the React tree and box.ts are ready
       //      before the browser fires pagereveal and captures the cross-document view transition snapshot.
       const demoSlugs = ['dannys-walk', 'qiangs-trip', 'two-sticks', 'example', 'seasons-why'];
@@ -101,24 +118,27 @@ function copyStaticPagesAssets(): Plugin {
         if (!existsSync(demoHtmlPath)) continue;
         let html = readFileSync(demoHtmlPath, 'utf-8');
 
-        const stylesheets: string[] = [];
+        const stylesheets: { href: string; tag: string }[] = [];
         html = html.replace(
           /\s*<link rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/g,
           (_, href: string) => {
-            stylesheets.push(`<link rel="stylesheet" href="${href}">`);
+            stylesheets.push({ href, tag: `<link rel="stylesheet" href="${href}">` });
             return '';
           }
         );
-        // Ensure theme.css is loaded before demo-specific stylesheet
-        stylesheets.sort((a, b) =>
-          a.includes('theme') ? -1 : b.includes('theme') ? 1 : 0
-        );
+        // Ensure Google Fonts and shared framework theme CSS always precede the demo-specific stylesheet
+        const rank = (href: string) => {
+          if (href.startsWith('https://')) return 0;
+          if (href.includes(`/${slug}-`)) return 2;
+          return 1;
+        };
+        stylesheets.sort((a, b) => rank(a.href) - rank(b.href));
 
         // Add blocking="render" to the entry module script and place stylesheets before it
         html = html.replace(
           /<script type="module"[^>]*src="([^"]+)"[^>]*><\/script>/,
           (_, src: string) =>
-            `${stylesheets.join('\n  ')}\n  <script type="module" src="${src}" blocking="render"></script>`
+            `${stylesheets.map((s) => s.tag).join('\n  ')}\n  <script type="module" src="${src}" blocking="render"></script>`
         );
 
         writeFileSync(demoHtmlPath, html, 'utf-8');

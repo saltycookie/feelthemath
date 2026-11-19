@@ -10,6 +10,8 @@ import {
   StepTimeline,
 } from './types';
 
+export const DEFAULT_EXIT_DURATION_MS = 250;
+
 export interface ResolvedSceneRendererEntry<TState = any> {
   renderer: SceneRendererComponent<TState>;
   x: number;
@@ -33,13 +35,33 @@ export function resolveSceneRendererEntry<TState = any>(
   };
 }
 
-function cloneScene(scene: Scene<any>): Scene<any> {
+/**
+ * Deep-clones a Scene so a step's canonical initial state is never mutated by
+ * animations or user interactions.
+ */
+export function cloneScene<TState = any>(scene: Scene<TState>): Scene<TState> {
   return {
     ...scene,
     scale: scene.scale ?? 1,
     transitionDurationMs: 0,
     state: structuredClone(scene.state),
   };
+}
+
+/**
+ * Checks whether the current and next steps share the same scene at the exact same `(x, y)` position.
+ */
+export function isSharedAtSamePosition(
+  currentScene: Scene<any> | null,
+  nextScene: Scene<any> | undefined
+): boolean {
+  if (!currentScene || !nextScene) return false;
+  return (
+    currentScene.id === nextScene.id &&
+    currentScene.type === nextScene.type &&
+    currentScene.x === nextScene.x &&
+    currentScene.y === nextScene.y
+  );
 }
 
 function makeDefaultStateReader(demo: DemoConfig<any>): (type: string) => Record<string, any> {
@@ -123,8 +145,7 @@ function foldTimeline(
 
 /**
  * Resolves all steps in a `DemoConfig` synchronously at initialization:
- * - Assigns default `stepNumber` (`index + 1`).
- * - Each step has one and only one active scene.
+ * - Each step has one and only one active scene (`initialScene`).
  * - If `demo.scenes` has a single entry, `step.scene` may be omitted on all steps.
  * - When `step.scene` switches to a different scene, that scene starts fresh from
  *   `demo.scenes[id]` (`x`, `y`, `opacity`, `scale`, `defaultState`).
@@ -169,9 +190,8 @@ export function resolveDemoSteps(demo: DemoConfig<any>): ResolvedStepConfig<any>
 
     return {
       ...step,
-      stepNumber: step.stepNumber ?? index + 1,
       sceneId: currentSceneId,
-      initialScenes: [initialScene],
+      initialScene,
     };
   });
 }
@@ -228,7 +248,7 @@ export async function runStepTimeline(
   const resolveMs = (cue: StepCue<any>): number => {
     if (cue.ms === undefined) return 0;
     if (typeof cue.ms === 'number') return cue.ms;
-    const activeScene = controller.getScenes()[sceneId];
+    const activeScene = controller.getScene();
     return Math.max(0, cue.ms(activeScene?.state ?? defaultState));
   };
 
@@ -255,9 +275,9 @@ export async function runStepTimeline(
 
     if (patch) {
       if (durationMs <= 0) {
-        controller.updateSceneImmediate(sceneId, patch);
+        controller.updateSceneImmediate(patch);
       } else {
-        await controller.animateScene(sceneId, patch, { durationMs, easing });
+        await controller.animateScene(patch, { durationMs, easing });
       }
     }
   };

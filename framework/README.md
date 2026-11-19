@@ -1,6 +1,6 @@
 # StepDeck (React Math Interactive Demo Framework)
 
-StepDeck is the React + TypeScript framework that every Feel the Math demo is built on. It gives each demo the same look (a sheet of paper in a paper box on a wooden desk), the same handwriting, the same title band and navigation (`Back`, the step dots, `Replay`, and `Next` / `Finish`), and the same deterministic step lifecycle (`initialScenes`, `play`, and `exit`). A demo only describes its own scene renderers and its steps; everything else comes from here, so the demos look and behave alike, and a fix or improvement made here reaches all of them.
+StepDeck is the React + TypeScript framework that every Feel the Math demo is built on. It gives each demo the same look (a sheet of paper in a paper box on a wooden desk), the same handwriting, the same title band and navigation (`Back`, the step dots, `Replay`, and `Next` / `Finish`), and the same deterministic step lifecycle (`initialScene`, `play`, and `exit`). A demo only describes its own scene renderers and its steps; everything else comes from here, so the demos look and behave alike, and a fix or improvement made here reaches all of them.
 
 The project compiles via Vite (`npm run build`) into purely static HTML/CSS/JS files in `dist/` suitable for deployment on GitHub Pages (`github.io` / `feelthemath.app`) with no backend server.
 
@@ -12,23 +12,23 @@ wood.webp                      the wooden desk, a picture that tiles without sea
 lid-wood.webp                  the front page's lid, stained pine like a treasure chest's (made by tools/wood.py --lid)
 index.ts                       barrel exports for the React framework and math helpers
 types.ts                       TypeScript interfaces (DemoConfig, StepConfig, StepCue, Scene, ...)
-stepTimeline.ts                resolves step scene switching/state inheritance and executes declarative StepCue timelines
-useStepEngine.ts               core step lifecycle state machine (initialScenes -> play -> idle -> exit)
+stepTimeline.ts                resolves step scene switching/state inheritance, canonical cloning, and declarative StepCue timelines
+useStepEngine.ts               core step lifecycle state machine (initialScene -> play -> idle -> exit)
 useHashStepRouter.ts           #step-X URL hash parser and synchronization hook
-exitAnimation.ts               canonical state cloning and default 250ms exit animation
 useMeasure.ts                  reads sizes from the page for a renderer to draw from (see "Drawing a scene" below)
 useTween.ts                    moves a value over a few frames in answer to the reader (a switch, a dragged point)
 math.ts                        clamp, clamp01, lerp and easing curves
 svg.ts                         textAt and rectAt: attributes for SVG marks placed from a drawing's numbers
 paths.ts                       path data for SVG drawings (arrowPath)
-mount.tsx                      mountDemo: renders a demo's MathDemoPlayer into the page's #deck element
-components/MathDemoPlayer.tsx  top-level player component wiring useStepEngine, DemoCanvas, NavigationPanel, and box.ts
-components/DemoCanvas.tsx      renders TitleBar and .stage with Scene wrappers
+mount.tsx                      mountDemo: registers box.ts and renders a demo's MathDemoPlayer into the page's #deck element
+components/MathDemoPlayer.tsx  top-level player component wiring useStepEngine, DemoCanvas, and NavigationPanel
+components/DemoCanvas.tsx      renders TitleBar and .stage with the active Scene wrapper
 components/TitleBar.tsx        top title bar with the "All demos" home link and centered step title
 components/NavigationPanel.tsx bottom navigation bar with Back, step dots, Replay, and Next / Finish
 components/Bubble.tsx          callout bubbles that point at things (Bubble, and placeBubble to work out where they go)
 components/Chip.tsx            a small label marking a known value on a chart's axis
-lid.js                         the front page's lid, opened going into a demo and closed coming back
+boxMath.ts                     shared box perspective math and view-transition helpers used by lid.ts and box.ts
+lid.ts                         the front page's lid, opened going into a demo and closed coming back
 box.ts                         the demo's side of it: the paper sinking into the box and rising from it
 ```
 
@@ -78,7 +78,7 @@ Every step has **one and only one** active scene, and declarative `play` and `ex
 - **Step declaration (`StepConfig`):**
   - `scene?: 'id'` — switches the active scene from this step onwards (resetting to its initial `scenes[id]` transforms and `Renderer.defaultState`). Required on the first step when `DemoConfig.scenes` has multiple entries, and optional when continuing with the previous step's scene or when only one scene is registered.
   - `topMessage?: ReactNode`, `bottomMessage?: ReactNode` — optional bold theme-orange messages (`15px–24px`) displayed in reserved slots above and below the scene. `topMessage` fades in first, `play` starts 500 ms later, then `bottomMessage` fades in; on `Next`, both fade out in 250 ms in parallel with exit animations.
-  - Switching to a different scene fades the previous scene out (`250ms`) on `Next` via `runDefaultExitAnimation`.
+  - Switching to a different scene fades the previous scene out (`250ms`) on `Next` by default.
 - **Timeline cues (`play` / `exit`):** a single `StepCue` or an array of sequential `StepCue`s acting directly on the step's active scene:
   - `wait`: delay in `ms` before starting this cue.
   - `ms`: duration in `ms` (defaults to `0` = immediate), or `(state) => number` when timing depends on live interactive state.
@@ -98,13 +98,13 @@ Every step has **one and only one** active scene, and declarative `play` and `ex
 2. **Canvas & Title Area (`DemoCanvas.tsx` & `TitleBar.tsx`)**:
    - Renders the `.titlebar` with the "All demos" home link on the left and the current step's title centered in the middle, and `.stage` below containing the active `Scene`.
 3. **Initial Scene & `play` Animation**:
-   - Entering a step immediately renders its resolved canonical `initialScenes`.
+   - Entering a step immediately renders its resolved canonical `initialScene`.
    - If the step defines `play`, it runs automatically on entry. While `play` is running, `Next` is disabled.
-   - Clicking `Replay` resets the step to its resolved `initialScenes` and replays `play`. If a step has no `play`, `Replay` is disabled.
+   - Clicking `Replay` resets the step to its resolved `initialScene` and replays `play`. If a step has no `play`, `Replay` is disabled.
 4. **`exit` Animation on `Next`**:
-   - Clicking `Next` runs the step's `exit` cues followed by `runDefaultExitAnimation` (or a custom `exit(context)` handler if provided), which keeps the scene intact when staying on the same scene at the same `(x, y)` position and dims/removes a replaced scene in `250ms`, before advancing to `#step-(X+1)` and entering the next step.
+   - Clicking `Next` runs the step's `exit` cues followed by the default exit behavior (or a custom `exit(context)` handler if provided), which keeps the scene intact when staying on the same scene at the same `(x, y)` position and fades out a replaced scene in `250ms`, before advancing to `#step-(X+1)` and entering the next step.
 5. **Deterministic Step Entry**:
-   - Every step has a deterministic beginning state (`initialScenes`) resolved synchronously at startup regardless of whether the user arrives via URL `#step-X`, clicking a navigation dot, clicking `Back`, or clicking `Next`.
+   - Every step has a deterministic beginning state (`initialScene`) resolved synchronously at startup regardless of whether the user arrives via URL `#step-X`, clicking a navigation dot, clicking `Back`, or clicking `Next`.
 
 ### For tools
 

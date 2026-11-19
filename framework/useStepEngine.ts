@@ -3,13 +3,19 @@ import {
   DemoConfig,
   Scene,
   ScenePatch,
-  ScenesMap,
   StateInterpolator,
   StepAnimationController,
   StepExitContext,
 } from './types';
-import { createCanonicalScenesMap, runDefaultExitAnimation } from './exitAnimation';
-import { resolveDemoSteps, resolveSceneRendererEntry, runStepTimeline } from './stepTimeline';
+import {
+  cloneScene,
+  DEFAULT_EXIT_DURATION_MS,
+  isSharedAtSamePosition,
+  resolveDemoSteps,
+  resolveSceneRendererEntry,
+  runStepTimeline,
+} from './stepTimeline';
+import { clamp01, easeInOut, easeOut } from './math';
 import { parseStepHash, useHashStepRouter } from './useHashStepRouter';
 import { waitForBoxArrival } from './box';
 
@@ -25,7 +31,7 @@ function createAbortError(): Error {
  * Standard easing functions used for frame-by-frame state interpolation.
  */
 function applyEasing(t: number, easingName?: string): number {
-  const clamped = Math.max(0, Math.min(1, t));
+  const clamped = clamp01(t);
   if (easingName === 'linear') {
     return clamped;
   }
@@ -33,12 +39,10 @@ function applyEasing(t: number, easingName?: string): number {
     return clamped * clamped * clamped;
   }
   if (easingName === 'ease-in-out') {
-    return clamped < 0.5
-      ? 4 * clamped * clamped * clamped
-      : 1 - Math.pow(-2 * clamped + 2, 3) / 2;
+    return easeInOut(clamped);
   }
   // Default cubic-out (matches cubic-bezier(0.22, 1, 0.36, 1) closely)
-  return 1 - Math.pow(1 - clamped, 3);
+  return easeOut(clamped);
 }
 
 /**
@@ -71,39 +75,60 @@ const defaultStateInterpolator: StateInterpolator<Record<string, any>> = (
 };
 
 /**
- * Core state-machine hook for the step-by-step math demo framework.
- *
- * Enforces all architectural invariants + custom state interpolators:
- * 1. Bottom Navigation Panel state (Back, Replay, Next, Dots, #step-X URL sync).
- * 2. Canvas active scene & title synchronization.
- * 3. Initial scene rendered immediately on step entry, followed by `play` animation
- *    (disabling Next while `play` is running, disabling Replay when step has no `play`).
- * 4. `exit` animation when clicking Next (default 250ms dim-out when switching scenes and
- *    intact preservation when staying on the same scene at the same position, or custom step `exit` function).
- * 5. Deterministic beginning state for every step regardless of whether entered via URL/#step-X,
- *    navigation dots, Back button, or Next button.
- * 6. Per-scene-type custom `interpolateState(startState, targetPatch, progress)` called via
- *    `requestAnimationFrame` during `animateScene` / `animateScenes`.
+ * Merges only the keys touched by `targetPatch` (or modified by a custom interpolator) onto `currentState`,
+ * so concurrent `parallel` cues on distinct keys never clobber each other.
  */
+function mergeInterpolatedState(
+  currentState: Record<string, any>,
+  startState: Record<string, any>,
+  targetPatch: Record<string, any>,
+  interpolated: Record<string, any>
+): Record<string, any> {
+  const merged: Record<string, any> = { ...currentState };
+  for (const key of Object.keys(interpolated)) {
+    if (key in targetPatch || interpolated[key] !== startState[key]) {
+      merged[key] = interpolated[key];
+    }
+  }
+  return merged;
+}
+
 const TOP_MESSAGE_DELAY_MS = 500;
 const MESSAGE_FADE_MS = 250;
 
+/**
+ * Core state-machine hook for the step-by-step math demo framework.
+ *
+ * Enforces all architectural invariants:
+ * 1. Bottom Navigation Panel state (Back, Replay, Next, Dots, #step-X URL sync).
+ * 2. Canvas active scene & title synchronization (one active scene per step).
+ * 3. Initial scene rendered immediately on step entry, followed by `play` animation
+ *    (disabling Next while `play` is running, disabling Replay when step has no `play`).
+ * 4. `exit` animation when clicking Next (default 250ms fade-out when switching scenes,
+ *    intact preservation when staying on the same scene at the same position, or custom step `exit`).
+ * 5. Deterministic beginning state for every step regardless of whether entered via URL/#step-X,
+ *    navigation dots, Back button, or Next button.
+ * 6. Per-scene-type custom `interpolateState(startState, targetPatch, progress)` called via
+ *    `requestAnimationFrame` during `animateScene`.
+ */
 export function useStepEngine(demo: DemoConfig<any>) {
   const steps = useMemo(() => resolveDemoSteps(demo), [demo]);
   const totalSteps = steps.length;
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const scenesRef = useRef<ScenesMap>({});
+  const sceneRef = useRef<Scene<any> | null>(null);
 
   const initialIdx =
     typeof window !== 'undefined'
       ? parseStepHash(window.location.hash, totalSteps) ?? 0
       : 0;
 
-  const [scenes, setScenesState] = useState<ScenesMap>(() => {
-    const map = createCanonicalScenesMap(steps[initialIdx]?.initialScenes ?? []);
-    scenesRef.current = map;
-    return map;
+  const [scene, setSceneState] = useState<Scene<any> | null>(() => {
+    const initial = steps[initialIdx]?.initialScene
+      ? cloneScene(steps[initialIdx].initialScene)
+      : null;
+    sceneRef.current = initial;
+    return initial;
   });
 
   const [messageVisibility, setMessageVisibility] = useState<{
@@ -118,12 +143,12 @@ export function useStepEngine(demo: DemoConfig<any>) {
       : 'idle';
   });
 
-  const updateScenes = useCallback(
-    (updater: ScenesMap | ((prev: ScenesMap) => ScenesMap)) => {
+  const updateScene = useCallback(
+    (updater: Scene<any> | null | ((prev: Scene<any> | null) => Scene<any> | null)) => {
       const next =
-        typeof updater === 'function' ? updater(scenesRef.current) : updater;
-      scenesRef.current = next;
-      setScenesState(next);
+        typeof updater === 'function' ? updater(sceneRef.current) : updater;
+      sceneRef.current = next;
+      setSceneState(next);
     },
     []
   );
@@ -180,94 +205,85 @@ export function useStepEngine(demo: DemoConfig<any>) {
           signal.addEventListener('abort', onAbort, { once: true });
         });
 
-      const getScenes = () => scenesRef.current;
+      const getScene = () => sceneRef.current;
 
       const updateSceneImmediate = <TState = Record<string, any>>(
-        id: string,
         patch: ScenePatch<TState>
       ) => {
         if (signal.aborted) return;
-        updateScenes((prev) => {
-          const existing = prev[id];
-          if (!existing) return prev;
+        updateScene((existing) => {
+          if (!existing) return existing;
           const interpolator = getInterpolatorForType(existing.type);
           return {
-            ...prev,
-            [id]: {
-              ...existing,
-              x: patch.x !== undefined ? patch.x : existing.x,
-              y: patch.y !== undefined ? patch.y : existing.y,
-              opacity: patch.opacity !== undefined ? patch.opacity : existing.opacity,
-              scale: patch.scale !== undefined ? patch.scale : existing.scale,
-              transitionDurationMs: 0,
-              state: patch.state
-                ? interpolator(existing.state, patch.state, 1)
-                : existing.state,
-            },
+            ...existing,
+            x: patch.x !== undefined ? patch.x : existing.x,
+            y: patch.y !== undefined ? patch.y : existing.y,
+            opacity: patch.opacity !== undefined ? patch.opacity : existing.opacity,
+            scale: patch.scale !== undefined ? patch.scale : existing.scale,
+            transitionDurationMs: 0,
+            state: patch.state
+              ? interpolator(existing.state, patch.state, 1)
+              : existing.state,
           };
         });
       };
 
-      const animateScenes = async (
-        patches: Record<string, ScenePatch<any>>,
+      const animateScene = async <TState = Record<string, any>>(
+        patch: ScenePatch<TState>,
         options?: { durationMs?: number; easing?: string }
       ): Promise<void> => {
         if (signal.aborted) throw createAbortError();
         const durationMs = options?.durationMs ?? 450;
         const easing = options?.easing ?? 'cubic-bezier(0.22, 1, 0.36, 1)';
 
-        // Snapshot starting states for scenes whose `state` is being animated
-        const startStates: Record<string, any> = {};
-        let hasStatePatches = false;
+        const current = sceneRef.current;
+        if (!current) return;
 
-        for (const [id, patch] of Object.entries(patches)) {
-          const existing = scenesRef.current[id];
-          if (existing && patch.state) {
-            startStates[id] = structuredClone(existing.state);
-            hasStatePatches = true;
-          }
-        }
+        const statePatch = patch.state;
+        const startState = statePatch ? structuredClone(current.state) : null;
 
         // 1. Immediately apply outer CSS-transitioned properties (x, y, opacity, scale)
-        //    and initial frame (progress = 0) of any state patches
-        updateScenes((prev) => {
-          const next = { ...prev };
-          for (const [id, patch] of Object.entries(patches)) {
-            const existing = next[id];
-            if (!existing) continue;
-            const interpolator = getInterpolatorForType(existing.type);
-            next[id] = {
-              ...existing,
-              x: patch.x !== undefined ? patch.x : existing.x,
-              y: patch.y !== undefined ? patch.y : existing.y,
-              opacity: patch.opacity !== undefined ? patch.opacity : existing.opacity,
-              scale: patch.scale !== undefined ? patch.scale : existing.scale,
-              transitionDurationMs: durationMs,
-              transitionEasing: easing,
-              state:
-                patch.state && startStates[id]
-                  ? interpolator(
-                      startStates[id],
-                      patch.state,
-                      durationMs <= 0 ? 1 : 0
-                    )
-                  : existing.state,
-            };
+        //    and initial frame (progress = 0) of any state patch
+        updateScene((existing) => {
+          if (!existing) return existing;
+          const interpolator = getInterpolatorForType(existing.type);
+          let nextState = existing.state;
+          if (statePatch && startState) {
+            const interpolated = interpolator(
+              startState,
+              statePatch,
+              durationMs <= 0 ? 1 : 0
+            );
+            nextState = mergeInterpolatedState(
+              existing.state,
+              startState,
+              statePatch,
+              interpolated
+            );
           }
-          return next;
+          return {
+            ...existing,
+            x: patch.x !== undefined ? patch.x : existing.x,
+            y: patch.y !== undefined ? patch.y : existing.y,
+            opacity: patch.opacity !== undefined ? patch.opacity : existing.opacity,
+            scale: patch.scale !== undefined ? patch.scale : existing.scale,
+            transitionDurationMs: durationMs,
+            transitionEasing: easing,
+            state: nextState,
+          };
         });
 
         if (durationMs <= 0) {
           return;
         }
 
-        // 2. If no `state` patches were provided, CSS transitions handle x/y/opacity/scale
-        if (!hasStatePatches) {
+        // 2. If no `state` patch was provided, CSS transitions handle x/y/opacity/scale
+        if (!statePatch || !startState) {
           await wait(durationMs);
           return;
         }
 
-        // 3. Otherwise, run a requestAnimationFrame loop over `durationMs` calling each
+        // 3. Otherwise, run a requestAnimationFrame loop over `durationMs` calling the
         //    scene type's `interpolateState(startState, targetPatch, easedProgress)`
         await new Promise<void>((resolve, reject) => {
           if (signal.aborted) {
@@ -292,29 +308,23 @@ export function useStepEngine(demo: DemoConfig<any>) {
             const easedProgress =
               rawProgress >= 1 ? 1 : applyEasing(rawProgress, easing);
 
-            updateScenes((prev) => {
-              const next = { ...prev };
-              for (const [id, patch] of Object.entries(patches)) {
-                const existing = next[id];
-                if (!existing || !patch.state || !startStates[id]) continue;
-                const interpolator = getInterpolatorForType(existing.type);
-                const interpolated = interpolator(
-                  startStates[id],
-                  patch.state,
-                  easedProgress
-                );
-                const mergedState: Record<string, any> = { ...existing.state };
-                for (const key of Object.keys(interpolated)) {
-                  if (key in patch.state || interpolated[key] !== startStates[id][key]) {
-                    mergedState[key] = interpolated[key];
-                  }
-                }
-                next[id] = {
-                  ...existing,
-                  state: mergedState,
-                };
-              }
-              return next;
+            updateScene((existing) => {
+              if (!existing) return existing;
+              const interpolator = getInterpolatorForType(existing.type);
+              const interpolated = interpolator(
+                startState,
+                statePatch,
+                easedProgress
+              );
+              return {
+                ...existing,
+                state: mergeInterpolatedState(
+                  existing.state,
+                  startState,
+                  statePatch,
+                  interpolated
+                ),
+              };
             });
 
             if (rawProgress < 1) {
@@ -329,86 +339,19 @@ export function useStepEngine(demo: DemoConfig<any>) {
         });
       };
 
-      const animateScene = async <TState = Record<string, any>>(
-        id: string,
-        patch: ScenePatch<TState>,
-        options?: { durationMs?: number; easing?: string }
-      ): Promise<void> => {
-        await animateScenes({ [id]: patch }, options);
-      };
-
-      const addScene = async <TState = Record<string, any>>(
-        scene: Scene<TState>,
-        options?: { durationMs?: number; easing?: string }
-      ): Promise<void> => {
-        if (signal.aborted) throw createAbortError();
-        const durationMs = options?.durationMs ?? 400;
-        const easing = options?.easing ?? 'cubic-bezier(0.22, 1, 0.36, 1)';
-        const targetOpacity = scene.opacity ?? 1;
-
-        if (durationMs <= 0) {
-          updateScenes((prev) => ({
-            ...prev,
-            [scene.id]: {
-              ...scene,
-              opacity: targetOpacity,
-              scale: scene.scale ?? 1,
-              transitionDurationMs: 0,
-              state: structuredClone(scene.state),
-            },
-          }));
-          return;
-        }
-
-        // Mount with opacity 0 first, then transition to targetOpacity on next frame
-        updateScenes((prev) => ({
-          ...prev,
-          [scene.id]: {
-            ...scene,
-            opacity: 0,
-            scale: scene.scale ?? 1,
-            transitionDurationMs: 0,
-            state: structuredClone(scene.state),
-          },
-        }));
-
-        await wait(25);
-        await animateScene(
-          scene.id,
-          { opacity: targetOpacity },
-          { durationMs, easing }
-        );
-      };
-
-      const removeScene = async (id: string, durationMs = 250): Promise<void> => {
-        if (signal.aborted) throw createAbortError();
-        if (durationMs > 0 && scenesRef.current[id]) {
-          await animateScene(id, { opacity: 0 }, { durationMs, easing: 'ease-out' });
-        }
-        if (signal.aborted) throw createAbortError();
-        updateScenes((prev) => {
-          const next = { ...prev };
-          delete next[id];
-          return next;
-        });
-      };
-
       return {
         signal,
         wait,
-        getScenes,
-        addScene,
+        getScene,
         animateScene,
-        animateScenes,
         updateSceneImmediate,
-        removeScene,
       };
     },
-    [updateScenes, getInterpolatorForType]
+    [updateScene, getInterpolatorForType]
   );
 
   /**
-   * Enters `targetStepIndex` by setting its deterministic canonical `initialScenes`
+   * Enters `targetStepIndex` by setting its deterministic canonical `initialScene`
    * and running its message / `play` sequence:
    * - `topMessage` fades in first, followed 500ms later by `play`, then `bottomMessage`.
    */
@@ -419,8 +362,7 @@ export function useStepEngine(demo: DemoConfig<any>) {
       if (!step) return;
 
       // Always set exact canonical beginning state for the step
-      const canonicalStart = createCanonicalScenesMap(step.initialScenes);
-      updateScenes(canonicalStart);
+      updateScene(cloneScene(step.initialScene));
       setMessageVisibility({ topOpacity: 0, bottomOpacity: 0 });
 
       const hasTop = step.topMessage !== undefined;
@@ -450,7 +392,7 @@ export function useStepEngine(demo: DemoConfig<any>) {
           await arrival;
           await controller.wait(250);
         } else if (!hasTop) {
-          // Small frame delay so initialScenes paint cleanly before play/bottomMessage starts
+          // Small frame delay so initialScene paints cleanly before play/bottomMessage starts
           await controller.wait(40);
         }
 
@@ -488,7 +430,7 @@ export function useStepEngine(demo: DemoConfig<any>) {
         }
       }
     },
-    [demo, steps, cancelActiveAnimation, updateScenes, createController]
+    [demo, steps, cancelActiveAnimation, updateScene, createController]
   );
 
   const handleExternalHashJump = useCallback(
@@ -529,7 +471,7 @@ export function useStepEngine(demo: DemoConfig<any>) {
 
   /**
    * Replay button handler:
-   * Resets current step to its canonical `initialScenes` and replays its message/`play` sequence.
+   * Resets current step to its canonical `initialScene` and replays its message/`play` sequence.
    */
   const replayCurrentStep = useCallback(() => {
     const currentStep = steps[stepIndex];
@@ -546,8 +488,8 @@ export function useStepEngine(demo: DemoConfig<any>) {
    * Next button handler:
    * - Disabled when `phase !== 'idle'` (i.e., while `play` or `exit` is ongoing).
    * - Fades out any top/bottom messages in 250ms in parallel with the current step's
-   *   `exit` function/cues (plus `runDefaultExitAnimation`).
-   * - Then commits next step's canonical `initialScenes`, updates URL to `#step-(X+1)`,
+   *   `exit` function/cues (and default 250ms fade-out when switching scenes).
+   * - Then commits next step's canonical `initialScene`, updates URL to `#step-(X+1)`,
    *   and runs next step's `play` animation.
    */
   const goNext = useCallback(async () => {
@@ -562,7 +504,7 @@ export function useStepEngine(demo: DemoConfig<any>) {
     abortControllerRef.current = abortController;
     setPhase('exiting');
 
-    const nextInitialMap = createCanonicalScenesMap(nextStep.initialScenes);
+    const nextInitialScene = cloneScene(nextStep.initialScene);
     const controller = createController(abortController.signal);
     const hasMessages = Boolean(
       currentStep.topMessage !== undefined || currentStep.bottomMessage !== undefined
@@ -572,20 +514,26 @@ export function useStepEngine(demo: DemoConfig<any>) {
     }
 
     try {
-      const runDefaultExit = (options?: { excludeIds?: string[]; durationMs?: number }) =>
-        runDefaultExitAnimation(
-          scenesRef.current,
-          nextInitialMap,
-          controller,
-          options
-        );
+      const runDefaultExit = async (options?: { durationMs?: number }) => {
+        const currentScene = sceneRef.current;
+        if (!currentScene || isSharedAtSamePosition(currentScene, nextInitialScene)) {
+          return;
+        }
+        const durationMs = options?.durationMs ?? DEFAULT_EXIT_DURATION_MS;
+        if (durationMs > 0) {
+          await controller.animateScene({ opacity: 0 }, { durationMs, easing: 'ease-out' });
+        }
+        if (!abortController.signal.aborted) {
+          updateScene(null);
+        }
+      };
 
       const runSceneExit = async () => {
         if (currentStep.exit) {
           if (typeof currentStep.exit === 'function') {
             const exitContext: StepExitContext = {
-              currentScenes: scenesRef.current,
-              nextInitialScenes: nextInitialMap,
+              currentScene: sceneRef.current,
+              nextInitialScene,
               controller,
               runDefaultExit,
             };
@@ -624,6 +572,7 @@ export function useStepEngine(demo: DemoConfig<any>) {
     steps,
     cancelActiveAnimation,
     createController,
+    updateScene,
     setStepIndexAndHash,
     enterStep,
   ]);
@@ -634,26 +583,21 @@ export function useStepEngine(demo: DemoConfig<any>) {
   }, [stepIndex, goToStep]);
 
   /**
-   * Allows interactive canvas controls (such as the Fold/Unfold toggle switch or draggable point C)
-   * to update their scene's internal state once `play` has completed.
+   * Allows interactive canvas controls (such as the Fold/Unfold toggle switch or draggable point)
+   * to update the active scene's state directly.
    */
   const updateInteractiveSceneState = useCallback(
-    (sceneId: string, statePatch: Record<string, any>) => {
-      updateScenes((prev) => {
-        const target = prev[sceneId];
-        if (!target) return prev;
+    (statePatch: Record<string, any>) => {
+      updateScene((target) => {
+        if (!target) return target;
         const interpolator = getInterpolatorForType(target.type);
         return {
-          ...prev,
-          [sceneId]: {
-            ...target,
-            transitionDurationMs: 350,
-            state: interpolator(target.state, statePatch, 1),
-          },
+          ...target,
+          state: interpolator(target.state, statePatch, 1),
         };
       });
     },
-    [updateScenes, getInterpolatorForType]
+    [updateScene, getInterpolatorForType]
   );
 
   const currentStep = steps[stepIndex];
@@ -668,12 +612,11 @@ export function useStepEngine(demo: DemoConfig<any>) {
     currentStepIndex: stepIndex,
     currentStep,
     totalSteps,
-    scenes,
+    scene,
     topMessageOpacity: messageVisibility.topOpacity,
     bottomMessageOpacity: messageVisibility.bottomOpacity,
     phase,
     isAnimating,
-    hasPlayAnimation,
     canGoBack: stepIndex > 0 && phase !== 'exiting',
     canGoNext: stepIndex < totalSteps - 1 && !isAnimating,
     canReplay: hasPlayAnimation && !isAnimating,

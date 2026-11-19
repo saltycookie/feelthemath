@@ -3,11 +3,6 @@ import { DemoConfig } from '../types';
 import { useStepEngine } from '../useStepEngine';
 import { DemoCanvas } from './DemoCanvas';
 import { NavigationPanel } from './NavigationPanel';
-import { watchBox } from '../box';
-
-if (typeof window !== 'undefined') {
-  watchBox();
-}
 
 export interface MathDemoPlayerProps {
   demo: DemoConfig<any>;
@@ -20,9 +15,10 @@ export interface MathDemoPlayerProps {
  * file by tools/single_file.py has no front page beside it, so the tool sets this to the live site.
  */
 function homeFromPage(): string {
-  const meta = typeof document !== 'undefined'
-    ? document.querySelector<HTMLMetaElement>('meta[name="stepdeck-home"]')
-    : null;
+  const meta =
+    typeof document !== 'undefined'
+      ? document.querySelector<HTMLMetaElement>('meta[name="stepdeck-home"]')
+      : null;
   return meta?.content || '../../';
 }
 
@@ -39,11 +35,10 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     currentStepIndex,
     currentStep,
     totalSteps,
-    scenes,
+    scene,
     topMessageOpacity,
     bottomMessageOpacity,
     isAnimating,
-    hasPlayAnimation,
     canGoBack,
     canGoNext,
     canReplay,
@@ -88,7 +83,7 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
     <>
       <DemoCanvas
         title={currentStep ? (currentStep.title ?? '') : demo.name}
-        scenes={scenes}
+        scene={scene}
         renderers={demo.scenes}
         isAnimating={isAnimating}
         homeHref={homeHref}
@@ -107,7 +102,6 @@ export const MathDemoPlayer: React.FC<MathDemoPlayerProps> = ({
         canGoBack={canGoBack}
         canGoNext={canGoNext}
         canReplay={canReplay}
-        hasPlayAnimation={hasPlayAnimation}
         isAnimating={isAnimating}
         onBack={goBack}
         onNext={goNext}

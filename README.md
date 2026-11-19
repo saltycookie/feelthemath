@@ -42,7 +42,7 @@ npm run preview   # preview the compiled static build in dist/
 
 ```
 index.html                 the site's home page: the same box with its wooden lid on, and a card for each demo on the lid
-                           (the lid opens going into a demo and closes coming back: framework/lid.js and box.js)
+                           (the lid opens going into a demo and closes coming back: framework/lid.ts and box.ts)
 favicon.svg                the site icon, shown in browser tabs (see "The site icon" below)
 favicon.ico                the same icon for older browsers, made from favicon.svg by tools/icons.py
 apple-touch-icon.png       the same icon for iPhone and iPad home screens, made the same way
